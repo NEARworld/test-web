@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   const { code } = await req.json();
@@ -25,9 +26,34 @@ export async function POST(req: NextRequest) {
 
     const userData = await userResponse.json();
 
+    const { id: kakaoId, properties, kakao_account } = userData;
+    const email = kakao_account?.email;
+    const nickname = properties?.nickname;
+
+    const user = await prisma.user.upsert({
+      where: { kakaoId: kakaoId.toString() },
+      update: {
+        email,
+        nickname,
+        accessToken: access_token,
+        updatedAt: new Date(),
+      },
+      create: {
+        kakaoId: kakaoId.toString(),
+        email,
+        nickname,
+        accessToken: access_token,
+      },
+    });
+
     return NextResponse.json({
       success: true,
-      user: userData,
+      user: {
+        id: user.id,
+        kakaoId: user.kakaoId,
+        email: user.email,
+        nickname: user.nickname,
+      },
       token: access_token,
     });
   } catch (error) {
