@@ -21,7 +21,7 @@ export default function KakaoCallback() {
           });
           const data = await response.json();
           console.log("토큰 응답:", data);
-          router.push("/");
+          router.push("/dashboard");
         } catch (error) {
           console.error("로그인 실패:", error);
           router.push("/login");
