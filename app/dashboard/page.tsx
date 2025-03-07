@@ -1,20 +1,39 @@
 // app/dashboard/page.tsx
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+interface MenuItem {
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Reservation {
+  groupName: string;
+  totalPeople: number;
+  dateTime: string;
+  seatNumber: string;
+  menu: MenuItem[];
+}
 
 export default function DashboardPage() {
-  // 예시 데이터 (실제로는 API에서 가져올 수 있음)
-  const reservations = {
+  const reservations: { lunch: Reservation[]; dinner: Reservation[] } = {
     lunch: [
       {
         groupName: "김씨 가족",
         totalPeople: 4,
         dateTime: "2025-03-06 12:00",
         seatNumber: "A-1",
+        menu: [{ name: "김치찌개", price: 8000, quantity: 2 }],
       },
       {
         groupName: "이씨 팀",
         totalPeople: 6,
         dateTime: "2025-03-06 13:00",
         seatNumber: "B-2",
+        menu: [{ name: "삼겹살", price: 15000, quantity: 4 }],
       },
     ],
     dinner: [
@@ -23,76 +42,99 @@ export default function DashboardPage() {
         totalPeople: 8,
         dateTime: "2025-03-06 18:30",
         seatNumber: "C-1",
+        menu: [{ name: "냉면", price: 9000, quantity: 3 }],
       },
       {
         groupName: "최씨 친구들",
         totalPeople: 5,
         dateTime: "2025-03-06 19:00",
         seatNumber: "C-2",
+        menu: [{ name: "잡채", price: 10000, quantity: 2 }],
       },
       {
         groupName: "정씨 동료",
         totalPeople: 3,
         dateTime: "2025-03-06 20:00",
         seatNumber: "D-1",
+        menu: [{ name: "김밥", price: 5000, quantity: 3 }],
       },
     ],
   };
 
-  return (
-    <div className="flex min-h-screen">
-      <div className="flex flex-1 flex-col">
-        <main className="flex-1 p-6">
-          <div className="container mx-auto flex h-full justify-center">
-            <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
-              {/* 점심 예약 섹션 */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold">점심 예약</h2>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                  {reservations.lunch.map((group, index) => (
-                    <div
-                      key={index}
-                      className="bg-muted/50 flex flex-col gap-2 rounded-xl p-4"
-                    >
-                      <h3 className="font-semibold">{group.groupName}</h3>
-                      <p>인원: {group.totalPeople}명</p>
-                      <p>예약 시간: {group.dateTime}</p>
-                      <p>예약석: {group.seatNumber}</p>
-                    </div>
-                  ))}
-                  {reservations.lunch.length === 0 && (
-                    <p className="text-muted-foreground col-span-3">
-                      현재 점심 예약이 없습니다.
-                    </p>
-                  )}
-                </div>
-              </div>
+  const calculateTotalPrice = (menu: MenuItem[]) => {
+    return menu.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
 
-              {/* 저녁 예약 섹션 */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold">저녁 예약</h2>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                  {reservations.dinner.map((group, index) => (
-                    <div
-                      key={index}
-                      className="bg-muted/50 flex flex-col gap-2 rounded-xl p-4"
-                    >
-                      <h3 className="font-semibold">{group.groupName}</h3>
-                      <p>인원: {group.totalPeople}명</p>
-                      <p>예약 시간: {group.dateTime}</p>
-                      <p>예약석: {group.seatNumber}</p>
-                    </div>
-                  ))}
-                  {reservations.dinner.length === 0 && (
-                    <p className="text-muted-foreground col-span-3">
-                      현재 저녁 예약이 없습니다.
-                    </p>
-                  )}
-                </div>
-              </div>
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+    const weekday = weekdays[date.getDay()];
+    return `${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`;
+  };
+
+  const ReservationCard = ({ reservation }: { reservation: Reservation }) => (
+    <Card className="relative">
+      <CardHeader>
+        <CardTitle>{reservation.groupName}</CardTitle>
+        <Badge variant="secondary" className="absolute top-4 right-4">
+          {formatDateTime(reservation.dateTime)}
+        </Badge>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p>인원: {reservation.totalPeople}명</p>
+        <p>예약석: {reservation.seatNumber}</p>
+        <div>
+          <p className="font-medium">예약 메뉴:</p>
+          <ul className="list-disc pl-5">
+            {reservation.menu.map((item, idx) => (
+              <li key={idx}>
+                {item.name} - {item.quantity}개 ({item.price.toLocaleString()}
+                원)
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-right font-semibold">
+          총 가격: {calculateTotalPrice(reservation.menu).toLocaleString()} 원
+        </p>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="min-h-screen p-6">
+      <div className="container mx-auto">
+        {/* 점심 예약 섹션 */}
+        <section className="mb-12">
+          <h2 className="mb-4 text-2xl font-bold">점심 예약</h2>
+          {reservations.lunch.length === 0 ? (
+            <p className="text-muted-foreground">현재 점심 예약이 없습니다.</p>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {reservations.lunch.map((reservation, index) => (
+                <ReservationCard key={index} reservation={reservation} />
+              ))}
             </div>
-          </div>
-        </main>
+          )}
+        </section>
+
+        {/* 저녁 예약 섹션 */}
+        <section>
+          <h2 className="mb-4 text-2xl font-bold">저녁 예약</h2>
+          {reservations.dinner.length === 0 ? (
+            <p className="text-muted-foreground">현재 저녁 예약이 없습니다.</p>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {reservations.dinner.map((reservation, index) => (
+                <ReservationCard key={index} reservation={reservation} />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

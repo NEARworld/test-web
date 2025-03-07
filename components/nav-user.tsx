@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useEffect, useState } from "react";
 
 export function NavUser({
   user,
@@ -36,6 +37,27 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const [userData, setUserData] = useState(user);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/user");
+        const data = await response.json();
+        if (data) {
+          setUserData({
+            name: data.nickname || user.name,
+            email: data.email || user.email,
+            avatar: user.avatar, // Keep existing avatar since API doesn't provide it
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, [user]);
 
   return (
     <SidebarMenu>
