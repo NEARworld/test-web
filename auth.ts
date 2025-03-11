@@ -41,13 +41,13 @@ const authConfig: NextAuthConfig = {
   // 콜백 함수 (타입 정의 포함)
   callbacks: {
     // JWT 토큰 커스터마이징
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        token.image = user.image;
 
         if (account?.provider === "kakao") {
           // upsert를 사용하여 생성/업데이트 로직 통합
-
           await prisma.user.upsert({
             where: { id: user.id },
             create: {
@@ -73,7 +73,7 @@ const authConfig: NextAuthConfig = {
         session.user.id = token.sub as string; // 유저를 디비에서 조회할때 사용
         session.user.name = token.name as string; // 세션에 ID 추가
         session.user.email = token.email as string;
-        session.user.profileImage = token.profileImage as string; // 프로필 이미지 추가
+        session.user.image = token.image as string; // 프로필 이미지 추가
       }
       return session;
     },
@@ -102,7 +102,7 @@ declare module "next-auth" {
       id: string; // 기본 타입에 id 추가
       name?: string | null;
       email?: string | null;
-      profileImage?: string | null;
+      image?: string | null;
     };
   }
 
