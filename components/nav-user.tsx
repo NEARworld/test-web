@@ -25,15 +25,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { data: session } = useSession();
   const user = session?.user;
-
-  console.log(user);
 
   if (user)
     return (
