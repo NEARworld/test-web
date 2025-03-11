@@ -20,7 +20,7 @@ const authConfig: NextAuthConfig = {
           id: profile.id.toString(),
           name: profile.properties?.nickname,
           email: profile.kakao_account?.email,
-          profileImage: profile.properties?.profile_image,
+          image: profile.properties?.profile_image,
         };
       },
     }),
@@ -41,24 +41,25 @@ const authConfig: NextAuthConfig = {
   // 콜백 함수 (타입 정의 포함)
   callbacks: {
     // JWT 토큰 커스터마이징
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         token.id = user.id;
 
         if (account?.provider === "kakao") {
           // upsert를 사용하여 생성/업데이트 로직 통합
+
           await prisma.user.upsert({
             where: { id: user.id },
             create: {
               id: user.id,
               name: user.name,
               email: user.email,
-              profileImage: user.image,
+              image: user.image,
             },
             update: {
               name: user.name,
               email: user.email,
-              profileImage: user.image,
+              image: user.image,
             },
           });
         }

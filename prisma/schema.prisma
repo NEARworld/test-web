@@ -14,7 +14,6 @@ model User {
   email         String?         @unique
   emailVerified DateTime?
   image         String?
-  profileImage  String?        // 프로필 이미지 URL 저장
   accounts      Account[]
   sessions      Session[]
  
