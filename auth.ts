@@ -70,6 +70,7 @@ const authConfig: NextAuthConfig = {
     // 세션 커스터마이징
     async session({ session, token }) {
       if (token.id) {
+        session.user.id = token.sub as string; // 유저를 디비에서 조회할때 사용
         session.user.name = token.name as string; // 세션에 ID 추가
         session.user.email = token.email as string;
         session.user.profileImage = token.profileImage as string; // 프로필 이미지 추가
