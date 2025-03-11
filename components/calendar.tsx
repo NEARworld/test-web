@@ -1,4 +1,3 @@
-// components/Calendar.tsx
 "use client";
 
 import { useState } from "react";
@@ -20,6 +19,11 @@ const Calendar = ({
 }: CalendarProps) => {
   const [currentYear, setCurrentYear] = useState(initialYear);
   const [currentMonth, setCurrentMonth] = useState(initialMonth);
+  const [selectedDate, setSelectedDate] = useState<{
+    year: number;
+    month: number;
+    day: number;
+  } | null>(null);
 
   // 달력에 예약 데이터를 반영하기 위해 예약 데이터를 활용
   const hasReservations = (year: number, month: number, day: number) => {
@@ -59,6 +63,8 @@ const Calendar = ({
   };
 
   const handleDateClick = (day: number) => {
+    setSelectedDate({ year: currentYear, month: currentMonth, day });
+
     if (onDateSelect) {
       onDateSelect(currentYear, currentMonth, day);
     }
@@ -83,6 +89,11 @@ const Calendar = ({
         currentMonth === today.getMonth() &&
         day === today.getDate();
 
+      const isSelected =
+        selectedDate?.year === currentYear &&
+        selectedDate?.month === currentMonth &&
+        selectedDate?.day === day;
+
       const hasRes = hasReservations(currentYear, currentMonth, day);
       const reservationCount = hasRes
         ? getReservationCount(currentYear, currentMonth, day)
@@ -93,11 +104,13 @@ const Calendar = ({
           key={day}
           onClick={() => handleDateClick(day)}
           className={`relative flex h-12 cursor-pointer items-center justify-center rounded-lg border border-gray-200 transition-colors ${
-            isToday
+            isSelected
               ? "bg-blue-500 text-white"
-              : hasRes
-                ? "bg-green-100 text-green-800"
-                : "hover:bg-gray-100"
+              : isToday
+                ? "bg-blue-200 text-blue-800"
+                : hasRes
+                  ? "bg-green-100 text-green-800"
+                  : "hover:bg-gray-100"
           }`}
         >
           {day}

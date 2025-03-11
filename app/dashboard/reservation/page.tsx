@@ -142,25 +142,27 @@ export default function ReservationPage() {
   return (
     <div className="p-6">
       <div className="container mx-auto">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          {/* 달력 섹션 - 좌측 배치 */}
-          <section className="w-full lg:w-1/2">
-            <h2 className="mb-4 text-2xl font-bold">예약 관리 달력</h2>
-            <Calendar
-              reservations={allReservations}
-              onDateSelect={handleDateSelect}
-              initialYear={2025}
-              initialMonth={2} // 3월 (0-indexed)
-            />
+        <div className="flex flex-col gap-6">
+          {/* 달력 섹션 */}
+          <section className="w-full">
+            {/* <h2 className="mb-4 text-2xl font-bold">예약 관리 달력</h2> */}
+            <div className="mx-auto max-w-3xl">
+              <Calendar
+                reservations={allReservations}
+                onDateSelect={handleDateSelect}
+                initialYear={2025}
+                initialMonth={2} // 3월 (0-indexed)
+              />
+            </div>
           </section>
 
-          {/* 선택한 날짜의 예약 섹션 - 우측 배치 */}
-          <section className="w-full lg:w-1/2">
+          {/* 선택한 날짜의 예약 섹션 - 달력 아래 배치 */}
+          <section className="w-full">
             <h2 className="mb-4 text-2xl font-bold">
               {formatDisplayDate(selectedDate)}의 예약
             </h2>
             {/* 고정된 높이와 항상 스크롤바가 보이도록 설정 */}
-            <div className="scrollbar-gutter-stable h-[600px] overflow-x-hidden overflow-y-auto rounded-lg bg-white p-4 shadow">
+            <div className="scrollbar-gutter-stable h-[500px] overflow-x-hidden overflow-y-auto rounded-lg bg-white p-4 shadow">
               {selectedDateReservations.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-gray-500">
@@ -168,7 +170,7 @@ export default function ReservationPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   {/* 점심 예약 섹션 */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-blue-600">
