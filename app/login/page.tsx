@@ -1,8 +1,12 @@
 "use client";
-
 import Image from "next/image";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
+  const session = useSession();
+
+  console.log("login page session", session?.data?.user);
+
   // 카카오 로그인 URL 생성
   const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI}`;
 
@@ -20,7 +24,10 @@ export default function LoginPage() {
       </h1>
 
       {/* 카카오 로그인 버튼 */}
-      <button onClick={handleKakaoLogin} className="relative cursor-pointer">
+      <button
+        onClick={() => signIn("kakao", { redirectTo: "/dashboard" })}
+        className="relative cursor-pointer"
+      >
         <Image
           src="https://developers.kakao.com/assets/img/about/logos/kakaologin/kr/kakao_account_login_btn_medium_narrow.png"
           alt="카카오 로그인 버튼"
