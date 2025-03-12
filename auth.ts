@@ -1,30 +1,17 @@
 // app/auth/[...nextauth]/route.ts
-import NextAuth, { NextAuthConfig } from "next-auth";
-import Kakao from "next-auth/providers/kakao";
+import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import { PrismaClient } from "@prisma/client";
+import authConfig from "./auth.config";
 
 // NextAuth 설정 타입 정의
-const authConfig: NextAuthConfig = {
+export const { handlers, signIn, signOut, auth } = NextAuth({
   // Prisma 어댑터 설정
   adapter: PrismaAdapter(prisma as PrismaClient),
 
   // Kakao 소셜 로그인 제공자 설정
-  providers: [
-    Kakao({
-      clientId: process.env.KAKAO_CLIENT_ID ?? "",
-      clientSecret: process.env.KAKAO_CLIENT_SECRET ?? "",
-      profile(profile) {
-        return {
-          id: profile.id.toString(),
-          name: profile.properties?.nickname,
-          email: profile.kakao_account?.email,
-          image: profile.properties?.profile_image,
-        };
-      },
-    }),
-  ],
+  ...authConfig,
 
   // 세션 설정
   session: {
@@ -87,10 +74,7 @@ const authConfig: NextAuthConfig = {
 
   // 디버그 모드
   debug: process.env.NODE_ENV === "development",
-};
-
-// NextAuth 초기화
-export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
+});
 
 // Next.js App Router에서 GET/POST 핸들러 내보내기
 export { handlers as GET, handlers as POST };

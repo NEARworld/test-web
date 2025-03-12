@@ -1,20 +1,8 @@
 "use client";
 import Image from "next/image";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
-  const session = useSession();
-
-  console.log("login page session", session?.data?.user);
-
-  // 카카오 로그인 URL 생성
-  const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI}`;
-
-  // 로그인 버튼 클릭 시 카카오 인증 페이지로 이동
-  const handleKakaoLogin = () => {
-    window.location.href = KAKAO_AUTH_URL;
-  };
-
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
       {/* 로고 */}
