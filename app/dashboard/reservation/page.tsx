@@ -1,4 +1,3 @@
-// app/dashboard/reservation/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -22,85 +21,69 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Calendar from "@/components/calendar";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Check, X, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ReservationStatus } from "@prisma/client";
 
 interface MenuItem {
+  id?: string;
   name: string;
   price: number;
   quantity: number;
 }
 
 interface Reservation {
+  id: string;
   groupName: string;
   totalPeople: number;
   dateTime: string;
   seatNumber: string;
-  menu: MenuItem[];
+  menuItems: MenuItem[];
+  status: ReservationStatus;
+  createdBy: {
+    name: string;
+  };
 }
 
 export default function ReservationPage() {
-  const [selectedDate, setSelectedDate] = useState("2025-03-06");
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [availableMenus, setAvailableMenus] = useState<
+    { name: string; price: number; id: string }[]
+  >([]);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState({ title: "", message: "" });
+  const [selectedReservation, setSelectedReservation] = useState<string | null>(
+    null,
+  );
+  const [statusActionType, setStatusActionType] = useState<
+    "confirm" | "cancel" | "complete" | null
+  >(null);
+
   const [formData, setFormData] = useState({
     groupName: "",
     totalPeople: 2,
     time: "12:00",
     seatNumber: "A-1",
-    menuItems: [{ name: "김치찌개", price: 8000, quantity: 1 }],
+    menuItems: [{ name: "", price: 0, quantity: 1 }],
   });
 
-  const reservations: { lunch: Reservation[]; dinner: Reservation[] } = {
-    lunch: [
-      {
-        groupName: "김씨 가족",
-        totalPeople: 4,
-        dateTime: "2025-03-06 12:00",
-        seatNumber: "A-1",
-        menu: [{ name: "김치찌개", price: 8000, quantity: 2 }],
-      },
-      {
-        groupName: "이씨 팀",
-        totalPeople: 6,
-        dateTime: "2025-03-06 13:00",
-        seatNumber: "B-2",
-        menu: [{ name: "삼겹살", price: 15000, quantity: 4 }],
-      },
-    ],
-    dinner: [
-      {
-        groupName: "박씨 모임",
-        totalPeople: 8,
-        dateTime: "2025-03-06 18:30",
-        seatNumber: "C-1",
-        menu: [{ name: "냉면", price: 9000, quantity: 3 }],
-      },
-      {
-        groupName: "최씨 친구들",
-        totalPeople: 5,
-        dateTime: "2025-03-06 19:00",
-        seatNumber: "C-2",
-        menu: [{ name: "잡채", price: 10000, quantity: 2 }],
-      },
-      {
-        groupName: "정씨 동료",
-        totalPeople: 3,
-        dateTime: "2025-03-06 20:00",
-        seatNumber: "D-1",
-        menu: [{ name: "김밥", price: 5000, quantity: 3 }],
-      },
-    ],
-  };
-
-  const availableMenuItems = [
-    { name: "김치찌개", price: 8000 },
-    { name: "삼겹살", price: 15000 },
-    { name: "냉면", price: 9000 },
-    { name: "잡채", price: 10000 },
-    { name: "김밥", price: 5000 },
-    { name: "비빔밥", price: 9000 },
-  ];
-
+  // Available seats and times (could be fetched from API in a real application)
   const availableSeats = [
     "A-1",
     "A-2",
@@ -133,7 +116,59 @@ export default function ReservationPage() {
     "20:30",
   ];
 
-  const allReservations = [...reservations.lunch, ...reservations.dinner];
+  // Fetch reservations for the selected date
+  const fetchReservations = async (date: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/reservations?date=${date}`);
+      if (!response.ok) throw new Error("Failed to fetch reservations");
+
+      const data = await response.json();
+      setReservations(data);
+    } catch (error) {
+      console.error("Error fetching reservations:", error);
+      showAlert("Error", "Failed to load reservations. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch available menu items
+  const fetchMenuItems = async () => {
+    try {
+      const response = await fetch("/api/menu");
+      if (!response.ok) throw new Error("Failed to fetch menu items");
+
+      const data = await response.json();
+      setAvailableMenus(data.filter((item: any) => item.isAvailable));
+
+      // Initialize form with first menu item if available
+      if (data.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          menuItems: [
+            {
+              name: data[0].name,
+              price: data[0].price,
+              quantity: 1,
+            },
+          ],
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching menu items:", error);
+    }
+  };
+
+  // Initial data load
+  const loadInitialData = async () => {
+    await Promise.all([fetchReservations(selectedDate), fetchMenuItems()]);
+  };
+
+  // Call loadInitialData on component mount
+  useState(() => {
+    loadInitialData();
+  });
 
   const calculateTotalPrice = (menu: MenuItem[]) => {
     return menu.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -153,37 +188,96 @@ export default function ReservationPage() {
   const handleDateSelect = (year: number, month: number, day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     setSelectedDate(dateStr);
+    fetchReservations(dateStr);
   };
 
   const handleAddReservation = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleSubmitReservation = () => {
-    // 실제 구현에서는 여기서 API 호출 등을 통해 예약을 저장합니다
-    console.log("예약 데이터:", {
-      ...formData,
-      dateTime: `${selectedDate} ${formData.time}`,
-    });
-
-    // 모달 닫기 및 폼 초기화
-    setIsModalOpen(false);
+    // Reset form data
     setFormData({
       groupName: "",
       totalPeople: 2,
       time: "12:00",
       seatNumber: "A-1",
-      menuItems: [{ name: "김치찌개", price: 8000, quantity: 1 }],
+      menuItems: [
+        {
+          name: availableMenus.length > 0 ? availableMenus[0].name : "",
+          price: availableMenus.length > 0 ? availableMenus[0].price : 0,
+          quantity: 1,
+        },
+      ],
     });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitReservation = async () => {
+    try {
+      setIsLoading(true);
+
+      // Form validation
+      if (!formData.groupName.trim()) {
+        showAlert("Missing Information", "Please enter a group name.");
+        return;
+      }
+
+      if (formData.totalPeople < 1) {
+        showAlert(
+          "Invalid Information",
+          "Number of people must be at least 1.",
+        );
+        return;
+      }
+
+      if (formData.menuItems.some((item) => item.quantity < 1 || !item.name)) {
+        showAlert("Invalid Menu", "Please check your menu items.");
+        return;
+      }
+
+      const reservationData = {
+        groupName: formData.groupName,
+        totalPeople: formData.totalPeople,
+        dateTime: `${selectedDate}T${formData.time}:00.000Z`,
+        seatNumber: formData.seatNumber,
+        menuItems: formData.menuItems,
+        status: "CONFIRMED",
+      };
+
+      const response = await fetch("/api/reservations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reservationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create reservation");
+      }
+
+      // Success - refresh the reservations list
+      await fetchReservations(selectedDate);
+
+      // Close modal and reset form
+      setIsModalOpen(false);
+
+      // Show success message
+      showAlert("Success", "Reservation created successfully!");
+    } catch (error: any) {
+      console.error("Error creating reservation:", error);
+      showAlert(
+        "Error",
+        error.message || "Failed to create reservation. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleMenuItemChange = (index: number, field: string, value: any) => {
     const newMenuItems = [...formData.menuItems];
 
     if (field === "name") {
-      const selectedItem = availableMenuItems.find(
-        (item) => item.name === value,
-      );
+      const selectedItem = availableMenus.find((item) => item.name === value);
       if (selectedItem) {
         newMenuItems[index] = {
           ...newMenuItems[index],
@@ -203,13 +297,15 @@ export default function ReservationPage() {
   };
 
   const addMenuItem = () => {
+    if (availableMenus.length === 0) return;
+
     setFormData({
       ...formData,
       menuItems: [
         ...formData.menuItems,
         {
-          name: availableMenuItems[0].name,
-          price: availableMenuItems[0].price,
+          name: availableMenus[0].name,
+          price: availableMenus[0].price,
           quantity: 1,
         },
       ],
@@ -227,46 +323,180 @@ export default function ReservationPage() {
     }
   };
 
-  const ReservationCard = ({ reservation }: { reservation: Reservation }) => (
-    <Card className="relative">
-      <CardHeader>
-        <CardTitle>{reservation.groupName}</CardTitle>
-        <Badge variant="secondary" className="absolute top-4 right-4">
-          {formatDateTime(reservation.dateTime)}
-        </Badge>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <p>인원: {reservation.totalPeople}명</p>
-        <p>예약석: {reservation.seatNumber}</p>
-        <div>
-          <p className="font-medium">예약 메뉴:</p>
-          <ul className="list-disc pl-5">
-            {reservation.menu.map((item, idx) => (
-              <li key={idx}>
-                {item.name} - {item.quantity}개 ({item.price.toLocaleString()}
-                원)
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="text-right font-semibold">
-          총 가격: {calculateTotalPrice(reservation.menu).toLocaleString()} 원
-        </p>
-      </CardContent>
-    </Card>
-  );
+  const showAlert = (title: string, message: string) => {
+    setAlertMessage({ title, message });
+    setIsAlertOpen(true);
+  };
 
-  const selectedDateReservations = allReservations.filter((r) =>
-    r.dateTime.startsWith(selectedDate),
-  );
+  const handleStatusChange = (
+    reservationId: string,
+    action: "confirm" | "cancel" | "complete",
+  ) => {
+    setSelectedReservation(reservationId);
+    setStatusActionType(action);
+    setIsAlertOpen(true);
 
-  // 점심과 저녁 예약을 나누어서 표시
-  const lunchReservations = selectedDateReservations.filter((r) => {
+    let title, message;
+    switch (action) {
+      case "confirm":
+        title = "Confirm Reservation";
+        message = "Are you sure you want to confirm this reservation?";
+        break;
+      case "cancel":
+        title = "Cancel Reservation";
+        message = "Are you sure you want to cancel this reservation?";
+        break;
+      case "complete":
+        title = "Complete Reservation";
+        message = "Mark this reservation as completed?";
+        break;
+    }
+
+    setAlertMessage({ title, message });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!selectedReservation || !statusActionType) return;
+
+    try {
+      setIsLoading(true);
+
+      const newStatus =
+        statusActionType === "confirm"
+          ? "CONFIRMED"
+          : statusActionType === "cancel"
+            ? "CANCELED"
+            : "COMPLETED";
+
+      const response = await fetch(
+        `/api/reservations/${selectedReservation}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update reservation status");
+      }
+
+      // Refresh reservations
+      await fetchReservations(selectedDate);
+
+      showAlert(
+        "Status Updated",
+        `Reservation has been ${newStatus.toLowerCase()} successfully.`,
+      );
+    } catch (error) {
+      console.error("Error updating reservation status:", error);
+      showAlert(
+        "Error",
+        "Failed to update reservation status. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+      setSelectedReservation(null);
+      setStatusActionType(null);
+    }
+  };
+
+  // Get a badge variant based on reservation status
+  const getStatusBadge = (status: ReservationStatus) => {
+    switch (status) {
+      case "CONFIRMED":
+        return { variant: "default" as const, text: "확정됨" };
+      case "PENDING":
+        return { variant: "outline" as const, text: "대기중" };
+      case "CANCELED":
+        return { variant: "destructive" as const, text: "취소됨" };
+      case "COMPLETED":
+        return { variant: "secondary" as const, text: "완료됨" };
+    }
+  };
+
+  const ReservationCard = ({ reservation }: { reservation: Reservation }) => {
+    const statusBadge = getStatusBadge(reservation.status);
+
+    return (
+      <Card className="relative">
+        <CardHeader>
+          <div className="flex justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>{reservation.groupName}</CardTitle>
+              <div className="flex gap-2">
+                <Badge variant={statusBadge.variant}>{statusBadge.text}</Badge>
+              </div>
+            </div>
+            <Badge variant="secondary" className="absolute top-4 right-4">
+              {formatDateTime(reservation.dateTime)}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p>인원: {reservation.totalPeople}명</p>
+          <p>예약석: {reservation.seatNumber}</p>
+          <div>
+            <p className="font-medium">예약 메뉴:</p>
+            <ul className="list-disc pl-5">
+              {reservation.menuItems.map((item, idx) => (
+                <li key={idx}>
+                  {item.name} - {item.quantity}개 ({item.price.toLocaleString()}
+                  원)
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="text-right font-semibold">
+            총 가격:{" "}
+            {calculateTotalPrice(reservation.menuItems).toLocaleString()} 원
+          </p>
+
+          {/* Status management buttons */}
+          {reservation.status !== "CANCELED" &&
+            reservation.status !== "COMPLETED" && (
+              <div className="mt-4 flex justify-end gap-2">
+                {reservation.status === "PENDING" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleStatusChange(reservation.id, "confirm")
+                    }
+                  >
+                    <Check className="mr-1 h-4 w-4" /> 확정
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange(reservation.id, "complete")}
+                >
+                  <Check className="mr-1 h-4 w-4" /> 완료
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleStatusChange(reservation.id, "cancel")}
+                >
+                  <X className="mr-1 h-4 w-4" /> 취소
+                </Button>
+              </div>
+            )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Filter reservations for lunch and dinner
+  const lunchReservations = reservations.filter((r) => {
     const hour = new Date(r.dateTime).getHours();
     return hour < 17; // 5PM 이전은 점심으로 간주
   });
 
-  const dinnerReservations = selectedDateReservations.filter((r) => {
+  const dinnerReservations = reservations.filter((r) => {
     const hour = new Date(r.dateTime).getHours();
     return hour >= 17; // 5PM 이후는 저녁으로 간주
   });
@@ -288,19 +518,19 @@ export default function ReservationPage() {
             <div className="mx-auto max-w-3xl">
               {/* 상단 헤더와 예약 버튼 */}
               <div className="flex items-center justify-end">
-                {/* <h1 className="text-3xl font-bold">예약 관리</h1> */}
                 <Button
                   onClick={handleAddReservation}
                   className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isLoading}
                 >
                   <Plus className="mr-2 h-4 w-4" /> 예약하기
                 </Button>
               </div>
               <Calendar
-                reservations={allReservations}
+                reservations={reservations}
                 onDateSelect={handleDateSelect}
-                initialYear={2025}
-                initialMonth={2} // 3월 (0-indexed)
+                initialYear={new Date().getFullYear()}
+                initialMonth={new Date().getMonth()}
               />
             </div>
           </section>
@@ -309,10 +539,17 @@ export default function ReservationPage() {
           <section className="w-full">
             <h2 className="mb-4 text-2xl font-bold">
               {formatDisplayDate(selectedDate)}의 예약
+              {isLoading && (
+                <span className="ml-2 text-sm text-gray-500">Loading...</span>
+              )}
             </h2>
             {/* 고정된 높이와 항상 스크롤바가 보이도록 설정 */}
             <div className="scrollbar-gutter-stable h-[500px] overflow-x-hidden overflow-y-auto rounded-lg bg-white p-4 shadow">
-              {selectedDateReservations.length === 0 ? (
+              {isLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-gray-500">로딩 중...</p>
+                </div>
+              ) : reservations.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-gray-500">
                     선택한 날짜에 예약이 없습니다.
@@ -330,9 +567,9 @@ export default function ReservationPage() {
                         점심 예약이 없습니다.
                       </p>
                     ) : (
-                      lunchReservations.map((reservation, index) => (
+                      lunchReservations.map((reservation) => (
                         <ReservationCard
-                          key={`lunch-${index}`}
+                          key={reservation.id}
                           reservation={reservation}
                         />
                       ))
@@ -349,9 +586,9 @@ export default function ReservationPage() {
                         저녁 예약이 없습니다.
                       </p>
                     ) : (
-                      dinnerReservations.map((reservation, index) => (
+                      dinnerReservations.map((reservation) => (
                         <ReservationCard
-                          key={`dinner-${index}`}
+                          key={reservation.id}
                           reservation={reservation}
                         />
                       ))
@@ -455,6 +692,7 @@ export default function ReservationPage() {
                   variant="outline"
                   size="sm"
                   onClick={addMenuItem}
+                  disabled={availableMenus.length === 0}
                 >
                   <Plus className="h-4 w-4" /> 메뉴 추가
                 </Button>
@@ -476,8 +714,8 @@ export default function ReservationPage() {
                         <SelectValue placeholder="메뉴 선택" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableMenuItems.map((menuItem) => (
-                          <SelectItem key={menuItem.name} value={menuItem.name}>
+                        {availableMenus.map((menuItem) => (
+                          <SelectItem key={menuItem.id} value={menuItem.name}>
                             {menuItem.name} ({menuItem.price.toLocaleString()}
                             원)
                           </SelectItem>
@@ -499,7 +737,7 @@ export default function ReservationPage() {
                         handleMenuItemChange(
                           index,
                           "quantity",
-                          parseInt(e.target.value),
+                          parseInt(e.target.value) || 1,
                         )
                       }
                     />
@@ -532,15 +770,53 @@ export default function ReservationPage() {
               type="button"
               variant="outline"
               onClick={() => setIsModalOpen(false)}
+              disabled={isLoading}
             >
               취소
             </Button>
-            <Button type="button" onClick={handleSubmitReservation}>
-              예약 등록
+            <Button
+              type="button"
+              onClick={handleSubmitReservation}
+              disabled={isLoading}
+            >
+              {isLoading ? "처리 중..." : "예약 등록"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Alert Dialog for confirmations and notifications */}
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {statusActionType ? alertMessage.title : alertMessage.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusActionType ? alertMessage.message : alertMessage.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {statusActionType ? (
+              <>
+                <AlertDialogCancel
+                  onClick={() => {
+                    setSelectedReservation(null);
+                    setStatusActionType(null);
+                  }}
+                >
+                  취소
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={confirmStatusChange}>
+                  확인
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction>확인</AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
