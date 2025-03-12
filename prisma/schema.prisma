@@ -7,7 +7,20 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
- 
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  COMPLETED
+}
+
 model User {
   id            String          @id @default(uuid())
   name          String?
@@ -17,6 +30,9 @@ model User {
   accounts      Account[]
   sessions      Session[]
  
+  role          UserRole     @default(STAFF)
+  reservations  Reservation[] // Reservations created by this user
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -51,11 +67,61 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
- 
+
 model VerificationToken {
   identifier String
   token      String
   expires    DateTime
  
   @@id([identifier, token])
+}
+
+model Reservation {
+  id            String       @id @default(cuid())
+  groupName     String       // 예약자/단체명
+  totalPeople   Int          // 인원 수
+  dateTime      DateTime     // 예약 날짜 및 시간
+  seatNumber    String       // 예약석 번호
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // 예약을 등록한 직원 정보
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+  
+  // 예약된 메뉴 아이템
+  menuItems     MenuItem[]
+  
+  // 상태 관리
+  status        ReservationStatus @default(CONFIRMED)
+
+  @@index([dateTime])
+  @@index([createdById])
+}
+
+model MenuItem {
+  id            String       @id @default(cuid())
+  name          String
+  price         Int
+  quantity      Int
+  
+  // 이 메뉴 아이템이 속한 예약
+  reservationId String
+  reservation   Reservation  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([reservationId])
+}
+
+model Menu {
+  id            String       @id @default(cuid())
+  name          String       @unique
+  description   String?
+  price         Int
+  category      String?
+  isAvailable   Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
