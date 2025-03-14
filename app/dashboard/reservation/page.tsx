@@ -254,10 +254,13 @@ export default function ReservationPage() {
         return;
       }
 
+      // 한국 시간 기준으로 날짜와 시간 설정
+      const korDateTime = new Date(`${selectedDate}T${formData.time}:00+09:00`);
+
       const reservationData = {
         groupName: formData.groupName,
         totalPeople: formData.totalPeople,
-        dateTime: `${selectedDate}T${formData.time}:00.000Z`,
+        dateTime: korDateTime.toISOString(), // 자동으로 UTC로 변환됨
         seatNumber: formData.seatNumber,
         menuItems: formData.menuItems,
         status: "CONFIRMED",
