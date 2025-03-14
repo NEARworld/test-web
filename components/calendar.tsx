@@ -6,6 +6,10 @@ import { Badge } from "@/components/ui/badge";
 
 interface CalendarProps {
   reservations: any[];
+  monthlyStats?: {
+    date: string;
+    totalReservations: number;
+  }[]; // 월별 통계 데이터 추가
   onDateSelect?: (year: number, month: number, day: number) => void;
   initialYear?: number;
   initialMonth?: number; // 0-indexed (0 = January)
@@ -13,6 +17,7 @@ interface CalendarProps {
 
 const Calendar = ({
   reservations,
+  monthlyStats = [], // 월별 통계 추가
   onDateSelect,
   initialYear = new Date().getFullYear(),
   initialMonth = new Date().getMonth(),
@@ -33,7 +38,8 @@ const Calendar = ({
 
   const getReservationCount = (year: number, month: number, day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return reservations.filter((r) => r.dateTime.startsWith(dateStr)).length;
+    const dailyStat = monthlyStats.find((stat) => stat.date === dateStr);
+    return dailyStat?.totalReservations || 0;
   };
 
   const getDaysInMonth = (year: number, month: number) => {
@@ -94,10 +100,12 @@ const Calendar = ({
         selectedDate?.month === currentMonth &&
         selectedDate?.day === day;
 
-      const hasRes = hasReservations(currentYear, currentMonth, day);
-      const reservationCount = hasRes
-        ? getReservationCount(currentYear, currentMonth, day)
-        : 0;
+      const reservationCount = getReservationCount(
+        currentYear,
+        currentMonth,
+        day,
+      );
+      const hasRes = reservationCount > 0;
 
       days.push(
         <div
@@ -109,13 +117,17 @@ const Calendar = ({
               : isToday
                 ? "bg-blue-200 text-blue-800"
                 : hasRes
-                  ? "bg-green-100 text-green-800"
+                  ? "bg-green-100 text-green-800 hover:bg-green-200"
                   : "hover:bg-gray-100"
           }`}
         >
-          {day}
+          <span className="text-sm">{day}</span>
           {hasRes && (
-            <Badge className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center p-0 text-xs">
+            <Badge
+              className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center p-0 text-[10px] ${
+                isSelected ? "bg-white text-blue-500" : ""
+              }`}
+            >
               {reservationCount}
             </Badge>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Calendar from "@/components/calendar";
-import { Plus, Minus, Check, X, AlertCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Plus, Minus, Check, X } from "lucide-react";
 import { ReservationStatus } from "@prisma/client";
 
 interface MenuItem {
@@ -74,6 +73,7 @@ export default function ReservationPage() {
   const [statusActionType, setStatusActionType] = useState<
     "confirm" | "cancel" | "complete" | null
   >(null);
+  const [monthlyStats, setMonthlyStats] = useState([]);
 
   const [formData, setFormData] = useState({
     groupName: "",
@@ -160,15 +160,30 @@ export default function ReservationPage() {
     }
   };
 
+  // 월별 통계 데이터 가져오기
+  const fetchMonthlyStats = async (date: string) => {
+    try {
+      const response = await fetch(
+        `/api/reservations/stats/monthly?date=${date}`,
+      );
+      if (!response.ok) throw new Error("Failed to fetch monthly stats");
+      const data = await response.json();
+      setMonthlyStats(data.dailyStats);
+    } catch (error) {
+      console.error("Error fetching monthly stats:", error);
+    }
+  };
+
   // Initial data load
   const loadInitialData = async () => {
     await Promise.all([fetchReservations(selectedDate), fetchMenuItems()]);
   };
 
   // Call loadInitialData on component mount
-  useState(() => {
-    loadInitialData();
-  });
+  useEffect(() => {
+    const currentDate = new Date().toISOString().split("T")[0];
+    fetchMonthlyStats(currentDate);
+  }, []);
 
   const calculateTotalPrice = (menu: MenuItem[]) => {
     return menu.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -528,6 +543,7 @@ export default function ReservationPage() {
               </div>
               <Calendar
                 reservations={reservations}
+                monthlyStats={monthlyStats}
                 onDateSelect={handleDateSelect}
                 initialYear={new Date().getFullYear()}
                 initialMonth={new Date().getMonth()}
