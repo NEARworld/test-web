@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   LineChart,
   Line,
@@ -19,6 +27,9 @@ interface DailyStat {
 }
 
 export default function StatisticsPage() {
+  const today = new Date();
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [monthlyStats, setMonthlyStats] = useState<DailyStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,24 +47,20 @@ export default function StatisticsPage() {
     });
   };
 
-  const fetchMonthlyStats = async () => {
+  const fetchMonthlyStats = async (year: number, month: number) => {
     try {
       setIsLoading(true);
-      const today = new Date();
-      const currentDate = today.toISOString().split("T")[0];
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const response = await fetch(
-        `/api/reservations/stats/monthly?date=${currentDate}`,
+        `/api/reservations/stats/monthly?date=${dateStr}`,
       );
 
       if (!response.ok) throw new Error("Failed to fetch statistics");
 
       const data = await response.json();
 
-      // 현재 월의 모든 날짜 데이터 생성
-      const allDates = generateMonthDates(
-        today.getFullYear(),
-        today.getMonth(),
-      );
+      // 선택된 월의 모든 날짜 데이터 생성
+      const allDates = generateMonthDates(year, month);
 
       // 실제 예약 데이터와 병합
       const mergedData = allDates.map((dateData) => {
@@ -75,8 +82,32 @@ export default function StatisticsPage() {
   };
 
   useEffect(() => {
-    fetchMonthlyStats();
-  }, []);
+    fetchMonthlyStats(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth]);
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedYear((prev) => prev - 1);
+      setSelectedMonth(11);
+    } else {
+      setSelectedMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedYear((prev) => prev + 1);
+      setSelectedMonth(0);
+    } else {
+      setSelectedMonth((prev) => prev + 1);
+    }
+  };
+
+  // 연도 선택 옵션 생성 (현재 연도 기준 전후 5년)
+  const yearOptions = Array.from(
+    { length: 11 },
+    (_, i) => today.getFullYear() - 5 + i,
+  );
 
   if (isLoading) {
     return (
@@ -93,7 +124,37 @@ export default function StatisticsPage() {
     <div className="p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{new Date().getMonth() + 1}월 일별 예약 현황</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>일별 예약 현황</CardTitle>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}년
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handlePrevMonth}>
+                  ◀ 이전
+                </Button>
+                <span className="min-w-[80px] text-center font-medium">
+                  {selectedMonth + 1}월
+                </span>
+                <Button variant="outline" size="sm" onClick={handleNextMonth}>
+                  다음 ▶
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-[400px] w-full">
