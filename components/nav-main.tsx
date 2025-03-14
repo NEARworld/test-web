@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Monitor,
   NotebookText,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,6 +64,16 @@ export function NavMain({
           >
             <NotebookText />
             <span>예약 관리</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip={"예약 통계"}
+            className="cursor-pointer"
+            onClick={() => router.replace("/dashboard/statistics")}
+          >
+            <BarChart3 />
+            <span>예약 통계</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
