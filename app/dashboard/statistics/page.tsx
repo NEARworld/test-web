@@ -109,16 +109,55 @@ export default function StatisticsPage() {
     (_, i) => today.getFullYear() - 5 + i,
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[400px] items-center justify-center">
-        <div className="text-muted-foreground flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-sm">통계 데이터를 불러오는 중...</p>
+  const renderChart = () => {
+    if (isLoading) {
+      return (
+        <div className="flex h-[400px] items-center justify-center">
+          <div className="text-muted-foreground flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <p className="text-sm">통계 데이터를 불러오는 중...</p>
+          </div>
         </div>
-      </div>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={monthlyStats}
+          margin={{
+            top: 20,
+            right: 30,
+            left: 20,
+            bottom: 20,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            allowDecimals={false}
+            domain={[0, "auto"]}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+            }}
+            formatter={(value) => [`${value}건`, "예약 수"]}
+          />
+          <Line
+            type="linear"
+            dataKey="totalReservations"
+            stroke="#2563eb"
+            strokeWidth={2}
+            dot={{ fill: "#2563eb", r: 4 }}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     );
-  }
+  };
 
   return (
     <div className="p-6">
@@ -157,42 +196,7 @@ export default function StatisticsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={monthlyStats}
-                margin={{
-                  top: 20,
-                  right: 30,
-                  left: 20,
-                  bottom: 20,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  allowDecimals={false}
-                  domain={[0, "auto"]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "white",
-                    border: "1px solid #ccc",
-                  }}
-                  formatter={(value) => [`${value}건`, "예약 수"]}
-                />
-                <Line
-                  type="linear"
-                  dataKey="totalReservations"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  dot={{ fill: "#2563eb", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <div className="h-[400px] w-full">{renderChart()}</div>
         </CardContent>
       </Card>
     </div>
