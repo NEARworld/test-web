@@ -210,6 +210,7 @@ export default function ReservationPage() {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     setSelectedDate(dateStr);
     fetchReservations(dateStr);
+    fetchMonthlyStats(dateStr);
   };
 
   const handleAddReservation = () => {
@@ -546,7 +547,6 @@ export default function ReservationPage() {
                 </Button>
               </div>
               <Calendar
-                reservations={reservations}
                 monthlyStats={monthlyStats}
                 onDateSelect={handleDateSelect}
                 initialYear={new Date().getFullYear()}

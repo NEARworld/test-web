@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface CalendarProps {
-  reservations: any[];
   monthlyStats?: {
     date: string;
     totalReservations: number;
@@ -16,7 +15,6 @@ interface CalendarProps {
 }
 
 const Calendar = ({
-  reservations,
   monthlyStats = [], // 월별 통계 추가
   onDateSelect,
   initialYear = new Date().getFullYear(),
@@ -29,12 +27,6 @@ const Calendar = ({
     month: number;
     day: number;
   } | null>(null);
-
-  // 달력에 예약 데이터를 반영하기 위해 예약 데이터를 활용
-  const hasReservations = (year: number, month: number, day: number) => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return reservations.some((r) => r.dateTime.startsWith(dateStr));
-  };
 
   const getReservationCount = (year: number, month: number, day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -51,21 +43,39 @@ const Calendar = ({
   };
 
   const prevMonth = () => {
+    let newYear = currentYear;
+    let newMonth = currentMonth;
+
     if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
+      newMonth = 11;
+      newYear = currentYear - 1;
     } else {
-      setCurrentMonth(currentMonth - 1);
+      newMonth = currentMonth - 1;
     }
+
+    setCurrentMonth(newMonth);
+    setCurrentYear(newYear);
+
+    // 새로운 월의 첫날을 기준으로 API 요청
+    onDateSelect?.(newYear, newMonth, 1);
   };
 
   const nextMonth = () => {
+    let newYear = currentYear;
+    let newMonth = currentMonth;
+
     if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
+      newMonth = 0;
+      newYear = currentYear + 1;
     } else {
-      setCurrentMonth(currentMonth + 1);
+      newMonth = currentMonth + 1;
     }
+
+    setCurrentMonth(newMonth);
+    setCurrentYear(newYear);
+
+    // 새로운 월의 첫날을 기준으로 API 요청
+    onDateSelect?.(newYear, newMonth, 1);
   };
 
   const handleDateClick = (day: number) => {
