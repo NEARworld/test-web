@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient, ReservationStatus } from "@prisma/client";
 import { auth } from "@/auth";
+import prisma from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+const prismaClient = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(`${date}T23:59:59.999Z`);
 
     // Query reservations for the specified date
-    const reservations = await prisma.reservation.findMany({
+    const reservations = await prismaClient.reservation.findMany({
       where: {
         dateTime: {
           gte: startDate,
@@ -59,116 +60,81 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    // Check authentication using App Router auth
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user ID from session
-    const userId = session.user.id;
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID not found in session" },
-        { status: 401 },
-      );
-    }
+    const data = await req.json();
+    const { groupName, totalPeople, dateTime, seatNumber, menuItems } = data;
 
-    // Parse request body
-    const data = await request.json();
-    const { groupName, totalPeople, dateTime, seatNumber, menuItems, status } =
-      data;
-
-    // Validate required fields
+    // 기본 유효성 검사
     if (!groupName || !totalPeople || !dateTime || !seatNumber || !menuItems) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { message: "Missing required fields" },
         { status: 400 },
       );
     }
 
-    // Check if seat is already booked for the given time
-    const reservationTime = new Date(dateTime);
-    // Calculate a time window (e.g., +/- 2 hours) to prevent overlapping reservations
-    const timeWindowStart = new Date(reservationTime);
-    const timeWindowEnd = new Date(reservationTime);
-    timeWindowStart.setHours(timeWindowStart.getHours() - 2);
-    timeWindowEnd.setHours(timeWindowEnd.getHours() + 2);
+    // 날짜 문자열 생성 (YYYY-MM-DD 형식)
+    const date = new Date(dateTime).toISOString().split("T")[0];
 
-    const existingReservation = await prisma.reservation.findFirst({
-      where: {
-        seatNumber,
-        dateTime: {
-          gte: timeWindowStart,
-          lte: timeWindowEnd,
-        },
-        status: {
-          in: ["CONFIRMED", "PENDING"],
-        },
-      },
-    });
-
-    if (existingReservation) {
-      return NextResponse.json(
-        {
-          error: "This seat is already reserved for the selected time window",
-        },
-        { status: 409 },
-      );
-    }
-
-    // Create the reservation with related menu items in a transaction
+    // 트랜잭션으로 예약과 통계를 함께 처리
     const reservation = await prisma.$transaction(async (tx) => {
-      // Create the reservation
+      // 1. 해당 날짜의 통계 데이터 upsert
+      await tx.dailyReservationStats.upsert({
+        where: {
+          date: date,
+        },
+        create: {
+          date: date,
+          totalReservations: 1,
+        },
+        update: {
+          totalReservations: {
+            increment: 1,
+          },
+        },
+      });
+
+      // 2. 예약 생성
       const newReservation = await tx.reservation.create({
         data: {
           groupName,
           totalPeople,
-          dateTime: reservationTime,
+          dateTime: new Date(dateTime),
           seatNumber,
-          status: (status as ReservationStatus) || "CONFIRMED",
-          createdById: userId,
+          status: "CONFIRMED",
+          createdById: session.user.id,
+          date: date, // DailyReservationStats와 연결할 날짜
+          menuItems: {
+            create: menuItems.map((item: any) => ({
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+          },
+        },
+        include: {
+          menuItems: true,
+          createdBy: {
+            select: {
+              name: true,
+            },
+          },
         },
       });
 
-      // Create menu items for the reservation
-      for (const item of menuItems) {
-        await tx.menuItem.create({
-          data: {
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            reservationId: newReservation.id,
-          },
-        });
-      }
-
-      // Return the created reservation
       return newReservation;
     });
 
-    // Fetch the complete reservation with included relations
-    const completeReservation = await prisma.reservation.findUnique({
-      where: {
-        id: reservation.id,
-      },
-      include: {
-        menuItems: true,
-        createdBy: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(completeReservation, { status: 201 });
+    return NextResponse.json(reservation, { status: 201 });
   } catch (error) {
-    console.error("Error creating reservation:", error);
+    console.error("Reservation creation error:", error);
     return NextResponse.json(
-      { error: "Failed to create reservation" },
+      { message: "Failed to create reservation" },
       { status: 500 },
     );
   }
