@@ -95,8 +95,13 @@ model Reservation {
   // 상태 관리
   status        ReservationStatus @default(CONFIRMED)
 
+  // 예약 날짜별 통계 연결
+  dailyStats    DailyReservationStats @relation(fields: [date], references: [date])
+  date          String               // YYYY-MM-DD 형식
+
   @@index([dateTime])
   @@index([createdById])
+  @@index([date])
 }
 
 model MenuItem {
@@ -124,4 +129,12 @@ model Menu {
   isAvailable   Boolean      @default(true)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+}
+
+model DailyReservationStats {
+  date              String      @id // YYYY-MM-DD 형식
+  totalReservations Int         @default(0)
+  reservations      Reservation[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 }
