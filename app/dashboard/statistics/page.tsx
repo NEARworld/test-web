@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Loader2 } from "lucide-react";
 
 interface DailyStat {
   date: string;
@@ -78,7 +79,14 @@ export default function StatisticsPage() {
   }, []);
 
   if (isLoading) {
-    return <div>Loading statistics...</div>;
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <div className="text-muted-foreground flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <p className="text-sm">통계 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
