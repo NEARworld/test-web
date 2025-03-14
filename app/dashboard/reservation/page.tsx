@@ -171,6 +171,7 @@ export default function ReservationPage() {
       setMonthlyStats(data.dailyStats);
     } catch (error) {
       console.error("Error fetching monthly stats:", error);
+      showAlert("Error", "Failed to update calendar statistics");
     }
   };
 
@@ -183,6 +184,7 @@ export default function ReservationPage() {
   useEffect(() => {
     const currentDate = new Date().toISOString().split("T")[0];
     fetchMonthlyStats(currentDate);
+    loadInitialData();
   }, []);
 
   const calculateTotalPrice = (menu: MenuItem[]) => {
@@ -265,24 +267,22 @@ export default function ReservationPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create reservation");
+        throw new Error("Failed to create reservation");
       }
 
-      // Success - refresh the reservations list
+      // 예약 생성 성공 후:
+      // 1. 해당 날짜의 예약 목록 새로고침
       await fetchReservations(selectedDate);
 
-      // Close modal and reset form
-      setIsModalOpen(false);
+      // 2. 월별 통계 데이터 새로고침
+      await fetchMonthlyStats(selectedDate);
 
-      // Show success message
+      // 모달 닫기 및 성공 메시지
+      setIsModalOpen(false);
       showAlert("Success", "Reservation created successfully!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating reservation:", error);
-      showAlert(
-        "Error",
-        error.message || "Failed to create reservation. Please try again.",
-      );
+      showAlert("Error", "Failed to create reservation");
     } finally {
       setIsLoading(false);
     }
