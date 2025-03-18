@@ -67,7 +67,6 @@ interface MenuItem {
 interface Reservation {
   id: string;
   groupName: string;
-  totalPeople: number;
   dateTime: string;
   seatNumber: string;
   menuItems: MenuItem[];
@@ -82,6 +81,9 @@ export default function ReservationPage() {
     new Date().toISOString().split("T")[0],
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedReservationDetail, setSelectedReservationDetail] =
+    useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [availableMenus, setAvailableMenus] = useState<
@@ -99,7 +101,6 @@ export default function ReservationPage() {
 
   const [formData, setFormData] = useState({
     groupName: "",
-    totalPeople: 2,
     time: "12:00",
     seatNumber: "A-1",
     menuItems: [{ name: "", price: 0, quantity: 1 }],
@@ -239,7 +240,6 @@ export default function ReservationPage() {
     // Reset form data
     setFormData({
       groupName: "",
-      totalPeople: 2,
       time: "12:00",
       seatNumber: "A-1",
       menuItems: [
@@ -263,14 +263,6 @@ export default function ReservationPage() {
         return;
       }
 
-      if (formData.totalPeople < 1) {
-        showAlert(
-          "Invalid Information",
-          "Number of people must be at least 1.",
-        );
-        return;
-      }
-
       if (formData.menuItems.some((item) => item.quantity < 1 || !item.name)) {
         showAlert("Invalid Menu", "Please check your menu items.");
         return;
@@ -281,7 +273,6 @@ export default function ReservationPage() {
 
       const reservationData = {
         groupName: formData.groupName,
-        totalPeople: formData.totalPeople,
         dateTime: korDateTime.toISOString(), // 자동으로 UTC로 변환됨
         seatNumber: formData.seatNumber,
         menuItems: formData.menuItems,
@@ -490,7 +481,14 @@ export default function ReservationPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p>인원: {reservation.totalPeople}명</p>
+          <p>
+            인원:{" "}
+            {reservation.menuItems.reduce(
+              (sum, item) => sum + item.quantity,
+              0,
+            )}
+            명
+          </p>
           <p>예약석: {reservation.seatNumber}</p>
           <div>
             <p className="font-medium">예약 메뉴:</p>
@@ -563,6 +561,11 @@ export default function ReservationPage() {
     return `${month}월 ${day}일`;
   };
 
+  const handleReservationClick = (reservation: Reservation) => {
+    setSelectedReservationDetail(reservation);
+    setIsDetailModalOpen(true);
+  };
+
   return (
     <div className="p-6">
       <div className="container mx-auto">
@@ -612,7 +615,7 @@ export default function ReservationPage() {
                       <TableRow>
                         <TableHead>시간</TableHead>
                         <TableHead>예약자</TableHead>
-                        <TableHead>인원</TableHead>
+                        <TableHead>예약석</TableHead>
                         <TableHead>상태</TableHead>
                         <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
@@ -640,6 +643,7 @@ export default function ReservationPage() {
                             key={reservation.id}
                             reservation={reservation}
                             onStatusChange={handleStatusChange}
+                            onRowClick={handleReservationClick}
                           />
                         ))
                       )}
@@ -657,7 +661,7 @@ export default function ReservationPage() {
                       <TableRow>
                         <TableHead>시간</TableHead>
                         <TableHead>예약자</TableHead>
-                        <TableHead>인원</TableHead>
+                        <TableHead>예약석</TableHead>
                         <TableHead>상태</TableHead>
                         <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
@@ -685,6 +689,7 @@ export default function ReservationPage() {
                             key={reservation.id}
                             reservation={reservation}
                             onStatusChange={handleStatusChange}
+                            onRowClick={handleReservationClick}
                           />
                         ))
                       )}
@@ -722,22 +727,6 @@ export default function ReservationPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="totalPeople">인원 수</Label>
-                <Input
-                  id="totalPeople"
-                  type="number"
-                  min="1"
-                  value={formData.totalPeople}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      totalPeople: parseInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="grid gap-2">
                 <Label htmlFor="time">예약 시간</Label>
                 <Select
                   value={formData.time}
@@ -757,27 +746,27 @@ export default function ReservationPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="seatNumber">예약석</Label>
-              <Select
-                value={formData.seatNumber}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, seatNumber: value })
-                }
-              >
-                <SelectTrigger id="seatNumber">
-                  <SelectValue placeholder="좌석 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSeats.map((seat) => (
-                    <SelectItem key={seat} value={seat}>
-                      {seat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid gap-2">
+                <Label htmlFor="seatNumber">예약석</Label>
+                <Select
+                  value={formData.seatNumber}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, seatNumber: value })
+                  }
+                >
+                  <SelectTrigger id="seatNumber">
+                    <SelectValue placeholder="좌석 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSeats.map((seat) => (
+                      <SelectItem key={seat} value={seat}>
+                        {seat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid gap-2">
@@ -881,6 +870,92 @@ export default function ReservationPage() {
         </DialogContent>
       </Dialog>
 
+      {/* 예약 상세 모달 */}
+      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>예약 상세 정보</DialogTitle>
+            <DialogDescription>
+              {selectedReservationDetail &&
+                formatDateTime(selectedReservationDetail.dateTime)}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedReservationDetail && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    예약자
+                  </Label>
+                  <p className="mt-1">{selectedReservationDetail.groupName}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    예약석
+                  </Label>
+                  <p className="mt-1">{selectedReservationDetail.seatNumber}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    상태
+                  </Label>
+                  <div className="mt-1">
+                    <Badge
+                      variant={
+                        getStatusBadge(selectedReservationDetail.status).variant
+                      }
+                      className={
+                        selectedReservationDetail.status === "COMPLETED"
+                          ? "bg-green-500 hover:bg-green-600"
+                          : ""
+                      }
+                    >
+                      {getStatusBadge(selectedReservationDetail.status).text}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  예약 메뉴
+                </Label>
+                <div className="mt-2 space-y-2">
+                  {selectedReservationDetail.menuItems.map((item, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <span>{item.name}</span>
+                      <span className="text-gray-600">
+                        {item.quantity}개 × {item.price.toLocaleString()}원
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-right">
+                  <span className="font-semibold">
+                    총 가격:{" "}
+                    {calculateTotalPrice(
+                      selectedReservationDetail.menuItems,
+                    ).toLocaleString()}
+                    원
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDetailModalOpen(false)}
+            >
+              닫기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Alert Dialog for confirmations and notifications */}
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
@@ -921,12 +996,14 @@ export default function ReservationPage() {
 function ReservationRow({
   reservation,
   onStatusChange,
+  onRowClick,
 }: {
   reservation: Reservation;
   onStatusChange: (
     id: string,
     action: "confirm" | "cancel" | "complete",
   ) => void;
+  onRowClick: (reservation: Reservation) => void;
 }) {
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
@@ -955,40 +1032,53 @@ function ReservationRow({
   const statusBadge = getStatusBadge(reservation.status);
 
   return (
-    <TableRow>
+    <TableRow
+      className="cursor-pointer hover:bg-gray-50"
+      onClick={(e) => {
+        // 이벤트 전파 중단을 위한 체크 (드롭다운 메뉴 내부 요소 클릭 시)
+        if ((e.target as HTMLElement).closest(".dropdown-ignore")) return;
+        onRowClick(reservation);
+      }}
+    >
       <TableCell>{formatDateTime(reservation.dateTime)}</TableCell>
       <TableCell>{reservation.groupName}</TableCell>
-      <TableCell>{reservation.totalPeople}명</TableCell>
-      <TableCell>
+      <TableCell>{reservation.seatNumber}</TableCell>
+      <TableCell className="dropdown-ignore">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8">
-              <div className="flex items-center gap-1">
+            <Button variant="ghost" className="dropdown-ignore h-8">
+              <div className="dropdown-ignore flex items-center gap-1">
                 <Badge
                   variant={statusBadge.variant}
-                  className={
+                  className={`dropdown-ignore ${
                     reservation.status === "COMPLETED"
                       ? "bg-green-500 hover:bg-green-600"
                       : ""
-                  }
+                  }`}
                 >
                   {statusBadge.text}
                 </Badge>
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="dropdown-ignore h-4 w-4" />
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {reservation.status !== "CONFIRMED" && (
               <DropdownMenuItem
-                onClick={() => onStatusChange(reservation.id, "confirm")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(reservation.id, "confirm");
+                }}
               >
                 <Check className="mr-2 h-4 w-4" /> 확정
               </DropdownMenuItem>
             )}
             {reservation.status !== "COMPLETED" && (
               <DropdownMenuItem
-                onClick={() => onStatusChange(reservation.id, "complete")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(reservation.id, "complete");
+                }}
               >
                 <Check className="mr-2 h-4 w-4" /> 완료
               </DropdownMenuItem>
@@ -996,7 +1086,10 @@ function ReservationRow({
             {reservation.status !== "CANCELED" && (
               <DropdownMenuItem
                 className="text-red-600"
-                onClick={() => onStatusChange(reservation.id, "cancel")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(reservation.id, "cancel");
+                }}
               >
                 <X className="mr-2 h-4 w-4" /> 취소
               </DropdownMenuItem>
@@ -1007,13 +1100,23 @@ function ReservationRow({
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" className="dropdown-ignore h-8 w-8 p-0">
+              <MoreHorizontal className="dropdown-ignore h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>예약 상세</DropdownMenuItem>
-            <DropdownMenuItem>예약 수정</DropdownMenuItem>
+          <DropdownMenuContent align="end" className="dropdown-ignore">
+            <DropdownMenuItem
+              className="dropdown-ignore"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRowClick(reservation);
+              }}
+            >
+              예약 상세
+            </DropdownMenuItem>
+            <DropdownMenuItem className="dropdown-ignore">
+              예약 수정
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

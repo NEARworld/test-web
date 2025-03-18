@@ -79,7 +79,6 @@ model VerificationToken {
 model Reservation {
   id            String       @id @default(cuid())
   groupName     String       // 예약자/단체명
-  totalPeople   Int          // 인원 수
   dateTime      DateTime     // 예약 날짜 및 시간
   seatNumber    String       // 예약석 번호
   createdAt     DateTime     @default(now())

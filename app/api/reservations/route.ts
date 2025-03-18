@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
-    const { groupName, totalPeople, dateTime, seatNumber, menuItems } = data;
+    const { groupName, dateTime, seatNumber, menuItems } = data;
 
     // 기본 유효성 검사
-    if (!groupName || !totalPeople || !dateTime || !seatNumber || !menuItems) {
+    if (!groupName || !dateTime || !seatNumber || !menuItems) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 },
@@ -103,7 +103,6 @@ export async function POST(req: NextRequest) {
       const newReservation = await tx.reservation.create({
         data: {
           groupName,
-          totalPeople,
           dateTime: new Date(dateTime),
           seatNumber,
           status: "CONFIRMED",
