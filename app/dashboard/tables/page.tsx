@@ -11,6 +11,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
   rectIntersection,
   Modifier,
 } from "@dnd-kit/core";
@@ -49,6 +51,9 @@ const createSnapModifier = (gridSize: number): Modifier => {
 
 export default function TablesPage() {
   const [tables, setTables] = useState<Table[]>([]);
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [gridSize, setGridSize] = useState(32); // Default grid size
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -139,12 +144,115 @@ export default function TablesPage() {
     return position;
   };
 
+  const handleTableSelect = (id: string, event: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent selection when dragging
+    if (event.target instanceof Element && event.target.closest('[data-drag-handle]')) {
+      return;
+    }
+    
+    event.stopPropagation();
+    
+    if (event.ctrlKey || event.metaKey) {
+      // Toggle selection with Ctrl/Cmd key
+      setSelectedTables(prev => 
+        prev.includes(id) 
+          ? prev.filter(tableId => tableId !== id) 
+          : [...prev, id]
+      );
+    } else if (event.shiftKey && selectedTables.length > 0) {
+      // Range selection with Shift key
+      const tableIds = tables.map(table => table.id);
+      const lastSelectedIndex = tableIds.indexOf(selectedTables[selectedTables.length - 1]);
+      const currentIndex = tableIds.indexOf(id);
+      
+      const start = Math.min(lastSelectedIndex, currentIndex);
+      const end = Math.max(lastSelectedIndex, currentIndex);
+      
+      const rangeSelection = tableIds.slice(start, end + 1);
+      setSelectedTables(prev => {
+        const uniqueSelection = Array.from(new Set([...prev, ...rangeSelection]));
+        return uniqueSelection;
+      });
+    } else {
+      // Regular click - deselect others and select this one
+      setSelectedTables(selectedTables.includes(id) && selectedTables.length === 1 ? [] : [id]);
+    }
+  };
+
+  const clearSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Only clear if clicking directly on the container (not on a table)
+    if (event.target === event.currentTarget) {
+      setSelectedTables([]);
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveDragId(active.id as string);
+  };
+
+  const handleDragMove = (event: DragMoveEvent) => {
+    if (!activeDragId) return;
+    
+    const { delta } = event;
+    setDragDelta({ x: delta.x, y: delta.y });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, delta } = event;
     
+    // Reset drag state
+    setActiveDragId(null);
+    setDragDelta({ x: 0, y: 0 });
+    
+    // If we're dragging a selected table and there are multiple selections,
+    // move all selected tables
+    const isMovingSelectedGroup = selectedTables.includes(active.id as string) && selectedTables.length > 1;
+    
     setTables((items) => {
       return items.map((item) => {
-        if (item.id === active.id) {
+        // If moving a group and this item is selected, move it
+        if (isMovingSelectedGroup && selectedTables.includes(item.id)) {
+          // Calculate new position
+          const newX = Math.round((item.position.x + delta.x) / gridSize) * gridSize;
+          const newY = Math.round((item.position.y + delta.y) / gridSize) * gridSize;
+
+          // Check container boundaries
+          const maxX = containerRef.current ? containerRef.current.clientWidth - CARD_SIZE : 0;
+          const maxY = containerRef.current ? containerRef.current.clientHeight - CARD_SIZE : 0;
+          
+          // Apply boundary constraints
+          const boundedX = Math.max(0, Math.min(newX, maxX));
+          const boundedY = Math.max(0, Math.min(newY, maxY));
+
+          // Here we should add collision detection for group movement,
+          // but simplifying for now as it's complex to check all potential collisions
+
+          const updatedPosition = { x: boundedX, y: boundedY };
+          
+          // API call for position update
+          fetch('/api/tables', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: item.id,
+              position: updatedPosition,
+            }),
+          })
+            .then(response => response.json())
+            .catch(error => {
+              console.error('Error updating table position:', error);
+            });
+          
+          return {
+            ...item,
+            position: updatedPosition,
+          };
+        } 
+        // For the actively dragged item or when not moving as a group
+        else if (item.id === active.id) {
           // Calculate new position
           const newX = Math.round((item.position.x + delta.x) / gridSize) * gridSize;
           const newY = Math.round((item.position.y + delta.y) / gridSize) * gridSize;
@@ -225,6 +333,11 @@ export default function TablesPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">테이블 관리</h1>
         <div className="flex items-center gap-4">
+          {selectedTables.length > 0 && (
+            <div className="text-sm">
+              {selectedTables.length} 테이블 선택됨
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <label htmlFor="gridSize" className="text-sm">그리드 크기:</label>
             <input
@@ -249,21 +362,38 @@ export default function TablesPage() {
       <div 
         ref={containerRef}
         className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50"
+        onClick={clearSelection}
       >
         <DndContext
           sensors={sensors}
           collisionDetection={rectIntersection}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
           modifiers={[snapToGrid]}
         >
-          {tables.map((table) => (
-            <TableCard
-              key={table.id}
-              id={table.id}
-              number={table.number}
-              position={table.position}
-            />
-          ))}
+          {tables.map((table) => {
+            // Calculate additional transform for selected tables during drag
+            const isSelected = selectedTables.includes(table.id);
+            const isBeingDragged = activeDragId === table.id;
+            
+            // Only apply additional transform to selected tables that are not being directly dragged
+            const additionalTransform = (isSelected && activeDragId && !isBeingDragged && selectedTables.includes(activeDragId)) 
+              ? { x: dragDelta.x, y: dragDelta.y } 
+              : { x: 0, y: 0 };
+              
+            return (
+              <TableCard
+                key={table.id}
+                id={table.id}
+                number={table.number}
+                position={table.position}
+                isSelected={isSelected}
+                onClick={(e) => handleTableSelect(table.id, e)}
+                additionalTransform={additionalTransform}
+              />
+            );
+          })}
         </DndContext>
       </div>
     </div>
