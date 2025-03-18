@@ -9,9 +9,10 @@ interface TableCardProps {
     x: number;
     y: number;
   };
+  status?: "empty" | "occupied";
 }
 
-export function TableCard({ id, number, position }: TableCardProps) {
+export function TableCard({ id, number, position, status = "empty" }: TableCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id,
   });
@@ -29,7 +30,9 @@ export function TableCard({ id, number, position }: TableCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
+      className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-4 shadow-sm ${
+        status === "occupied" ? "bg-blue-50" : "bg-white"
+      }`}
     >
       <div
         {...attributes}
@@ -40,7 +43,9 @@ export function TableCard({ id, number, position }: TableCardProps) {
       </div>
       <div className="text-center">
         <div className="text-xl font-bold">테이블 {number}</div>
-        <div className="mt-1 text-xs text-gray-500">비어있음</div>
+        <div className="mt-1 text-xs text-gray-500">
+          {status === "occupied" ? "사용중" : "비어있음"}
+        </div>
       </div>
     </div>
   );
