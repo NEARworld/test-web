@@ -16,6 +16,7 @@ import {
   rectIntersection,
   Modifier,
 } from "@dnd-kit/core";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 interface Table {
   id: string;
@@ -55,6 +56,7 @@ export default function TablesPage() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [gridSize, setGridSize] = useState(32); // Default grid size
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -328,6 +330,68 @@ export default function TablesPage() {
       });
   }, []);
 
+  // Delete 키 감지 로직
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 테이블이 선택된 상태에서 Delete 키가 눌렸을 때만 처리
+      if (selectedTables.length > 0 && (e.key === "Delete" || e.key === "Backspace")) {
+        // 입력 요소에 포커스가 없을 때만 활성화
+        if (
+          document.activeElement?.tagName !== "INPUT" &&
+          document.activeElement?.tagName !== "TEXTAREA" &&
+          document.activeElement?.tagName !== "SELECT"
+        ) {
+          e.preventDefault();
+          setIsDeleteDialogOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedTables]);
+
+  // 삭제 확인 처리
+  const handleDeleteConfirm = () => {
+    // 선택된 테이블 삭제
+    const deletedIds = [...selectedTables];
+    
+    // 데이터베이스에서 각 테이블 삭제
+    const deletePromises = deletedIds.map(id => 
+      fetch(`/api/tables/${id}`, {
+        method: 'DELETE',
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to delete table with ID: ${id}`);
+        }
+        return response.json();
+      })
+    );
+    
+    // 모든 삭제 처리 후
+    Promise.all(deletePromises)
+      .then(() => {
+        // 상태에서 삭제된 테이블 제거
+        setTables(prevTables => prevTables.filter(table => !deletedIds.includes(table.id)));
+        // 선택 초기화
+        setSelectedTables([]);
+        // 대화상자 닫기
+        setIsDeleteDialogOpen(false);
+      })
+      .catch(error => {
+        console.error('테이블 삭제 중 오류 발생:', error);
+        // 오류가 발생해도 대화상자 닫기
+        setIsDeleteDialogOpen(false);
+      });
+  };
+
+  // 삭제 취소
+  const handleDeleteCancel = () => {
+    setIsDeleteDialogOpen(false);
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -396,6 +460,13 @@ export default function TablesPage() {
           })}
         </DndContext>
       </div>
+
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        selectedCount={selectedTables.length}
+      />
     </div>
   );
 } 
