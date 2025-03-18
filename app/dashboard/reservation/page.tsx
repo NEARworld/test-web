@@ -615,9 +615,13 @@ export default function ReservationPage() {
                       <TableRow>
                         <TableHead>시간</TableHead>
                         <TableHead>예약자</TableHead>
-                        <TableHead>예약석</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          예약석
+                        </TableHead>
                         <TableHead>인원</TableHead>
-                        <TableHead>가격</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          가격
+                        </TableHead>
                         <TableHead>상태</TableHead>
                         <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
@@ -625,7 +629,15 @@ export default function ReservationPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7}>
+                          <TableCell colSpan={7} className="md:hidden">
+                            <div className="flex justify-center py-4">
+                              <Skeleton className="h-4 w-[200px]" />
+                            </div>
+                          </TableCell>
+                          <TableCell
+                            colSpan={7}
+                            className="hidden md:table-cell"
+                          >
                             <div className="flex justify-center py-4">
                               <Skeleton className="h-4 w-[200px]" />
                             </div>
@@ -633,7 +645,15 @@ export default function ReservationPage() {
                         </TableRow>
                       ) : lunchReservations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7}>
+                          <TableCell colSpan={5} className="md:hidden">
+                            <div className="flex justify-center py-4 text-gray-500">
+                              점심 예약이 없습니다.
+                            </div>
+                          </TableCell>
+                          <TableCell
+                            colSpan={7}
+                            className="hidden md:table-cell"
+                          >
                             <div className="flex justify-center py-4 text-gray-500">
                               점심 예약이 없습니다.
                             </div>
@@ -664,9 +684,13 @@ export default function ReservationPage() {
                       <TableRow>
                         <TableHead>시간</TableHead>
                         <TableHead>예약자</TableHead>
-                        <TableHead>예약석</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          예약석
+                        </TableHead>
                         <TableHead>인원</TableHead>
-                        <TableHead>가격</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          가격
+                        </TableHead>
                         <TableHead>상태</TableHead>
                         <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
@@ -674,7 +698,15 @@ export default function ReservationPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7}>
+                          <TableCell colSpan={5} className="md:hidden">
+                            <div className="flex justify-center py-4">
+                              <Skeleton className="h-4 w-[200px]" />
+                            </div>
+                          </TableCell>
+                          <TableCell
+                            colSpan={7}
+                            className="hidden md:table-cell"
+                          >
                             <div className="flex justify-center py-4">
                               <Skeleton className="h-4 w-[200px]" />
                             </div>
@@ -682,7 +714,15 @@ export default function ReservationPage() {
                         </TableRow>
                       ) : dinnerReservations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7}>
+                          <TableCell colSpan={5} className="md:hidden">
+                            <div className="flex justify-center py-4 text-gray-500">
+                              저녁 예약이 없습니다.
+                            </div>
+                          </TableCell>
+                          <TableCell
+                            colSpan={7}
+                            className="hidden md:table-cell"
+                          >
                             <div className="flex justify-center py-4 text-gray-500">
                               저녁 예약이 없습니다.
                             </div>
@@ -1050,11 +1090,13 @@ function ReservationRow({
     >
       <TableCell>{formatDateTime(reservation.dateTime)}</TableCell>
       <TableCell>{reservation.groupName}</TableCell>
-      <TableCell>{reservation.seatNumber}</TableCell>
+      <TableCell className="hidden md:table-cell">
+        {reservation.seatNumber}
+      </TableCell>
       <TableCell>
         {reservation.menuItems.reduce((sum, item) => sum + item.quantity, 0)}명
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden md:table-cell">
         {calculateTotalPrice(reservation.menuItems).toLocaleString()} 원
       </TableCell>
       <TableCell className="dropdown-ignore">
