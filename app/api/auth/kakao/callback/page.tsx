@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function KakaoCallback() {
+function KakaoCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
@@ -35,5 +36,13 @@ export default function KakaoCallback() {
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <p className="text-lg text-gray-600">로그인 처리 중...</p>
     </div>
+  );
+}
+
+export default function KakaoCallback() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <KakaoCallbackContent />
+    </Suspense>
   );
 }
