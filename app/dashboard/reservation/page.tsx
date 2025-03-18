@@ -616,6 +616,8 @@ export default function ReservationPage() {
                         <TableHead>시간</TableHead>
                         <TableHead>예약자</TableHead>
                         <TableHead>예약석</TableHead>
+                        <TableHead>인원</TableHead>
+                        <TableHead>가격</TableHead>
                         <TableHead>상태</TableHead>
                         <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
@@ -623,7 +625,7 @@ export default function ReservationPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={5}>
+                          <TableCell colSpan={7}>
                             <div className="flex justify-center py-4">
                               <Skeleton className="h-4 w-[200px]" />
                             </div>
@@ -631,7 +633,7 @@ export default function ReservationPage() {
                         </TableRow>
                       ) : lunchReservations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5}>
+                          <TableCell colSpan={7}>
                             <div className="flex justify-center py-4 text-gray-500">
                               점심 예약이 없습니다.
                             </div>
@@ -644,6 +646,7 @@ export default function ReservationPage() {
                             reservation={reservation}
                             onStatusChange={handleStatusChange}
                             onRowClick={handleReservationClick}
+                            calculateTotalPrice={calculateTotalPrice}
                           />
                         ))
                       )}
@@ -662,6 +665,8 @@ export default function ReservationPage() {
                         <TableHead>시간</TableHead>
                         <TableHead>예약자</TableHead>
                         <TableHead>예약석</TableHead>
+                        <TableHead>인원</TableHead>
+                        <TableHead>가격</TableHead>
                         <TableHead>상태</TableHead>
                         <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
@@ -669,7 +674,7 @@ export default function ReservationPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={5}>
+                          <TableCell colSpan={7}>
                             <div className="flex justify-center py-4">
                               <Skeleton className="h-4 w-[200px]" />
                             </div>
@@ -677,7 +682,7 @@ export default function ReservationPage() {
                         </TableRow>
                       ) : dinnerReservations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5}>
+                          <TableCell colSpan={7}>
                             <div className="flex justify-center py-4 text-gray-500">
                               저녁 예약이 없습니다.
                             </div>
@@ -690,6 +695,7 @@ export default function ReservationPage() {
                             reservation={reservation}
                             onStatusChange={handleStatusChange}
                             onRowClick={handleReservationClick}
+                            calculateTotalPrice={calculateTotalPrice}
                           />
                         ))
                       )}
@@ -997,6 +1003,7 @@ function ReservationRow({
   reservation,
   onStatusChange,
   onRowClick,
+  calculateTotalPrice,
 }: {
   reservation: Reservation;
   onStatusChange: (
@@ -1004,6 +1011,7 @@ function ReservationRow({
     action: "confirm" | "cancel" | "complete",
   ) => void;
   onRowClick: (reservation: Reservation) => void;
+  calculateTotalPrice: (menu: MenuItem[]) => number;
 }) {
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
@@ -1043,6 +1051,12 @@ function ReservationRow({
       <TableCell>{formatDateTime(reservation.dateTime)}</TableCell>
       <TableCell>{reservation.groupName}</TableCell>
       <TableCell>{reservation.seatNumber}</TableCell>
+      <TableCell>
+        {reservation.menuItems.reduce((sum, item) => sum + item.quantity, 0)}명
+      </TableCell>
+      <TableCell>
+        {calculateTotalPrice(reservation.menuItems).toLocaleString()} 원
+      </TableCell>
       <TableCell className="dropdown-ignore">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
