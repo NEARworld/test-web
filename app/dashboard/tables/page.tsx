@@ -24,6 +24,15 @@ interface Table {
   };
 }
 
+// Interface for the table data returned from the API
+interface TableFromApi {
+  id: string;
+  seats: number;
+  positionX: number;
+  positionY: number;
+  status?: string;
+}
+
 const CARD_SIZE = 128; // 8rem = 128px
 
 // Grid snapping modifier
@@ -78,7 +87,23 @@ export default function TablesPage() {
         y: Math.round(newPosition.y / gridSize) * gridSize,
       },
     };
-    setTables([...tables, newTable]);
+    
+    // 테이블 생성 API 호출
+    fetch('/api/tables', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newTable),
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Table saved to database:', data);
+        setTables([...tables, newTable]);
+      })
+      .catch(error => {
+        console.error('Error saving table:', error);
+      });
   };
 
   const findAvailablePosition = (existingTables: Table[]) => {
@@ -145,9 +170,27 @@ export default function TablesPage() {
           });
 
           if (!hasCollision) {
+            const updatedPosition = { x: boundedX, y: boundedY };
+            
+            // 위치가 변경되었을 때 API 호출
+            fetch('/api/tables', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                id: item.id,
+                position: updatedPosition,
+              }),
+            })
+              .then(response => response.json())
+              .catch(error => {
+                console.error('Error updating table position:', error);
+              });
+            
             return {
               ...item,
-              position: { x: boundedX, y: boundedY },
+              position: updatedPosition,
             };
           }
         }
@@ -155,6 +198,27 @@ export default function TablesPage() {
       });
     });
   };
+
+  // 페이지 로드 시 테이블 데이터 가져오기
+  useEffect(() => {
+    fetch('/api/tables')
+      .then(response => response.json())
+      .then(data => {
+        // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환
+        const formattedTables = data.map((table: TableFromApi) => ({
+          id: table.id,
+          number: table.seats, // seats를 number로 사용
+          position: {
+            x: table.positionX,
+            y: table.positionY,
+          },
+        }));
+        setTables(formattedTables);
+      })
+      .catch(error => {
+        console.error('Error fetching tables:', error);
+      });
+  }, []);
 
   return (
     <div className="p-6">
