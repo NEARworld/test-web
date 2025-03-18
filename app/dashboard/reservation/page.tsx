@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +36,6 @@ import {
   Minus,
   Check,
   X,
-  MoreHorizontal,
   ChevronDown,
 } from "lucide-react";
 import { ReservationStatus } from "@prisma/client";
@@ -62,6 +60,13 @@ interface MenuItem {
   name: string;
   price: number;
   quantity: number;
+}
+
+interface MenuData {
+  id: string;
+  name: string;
+  price: number;
+  isAvailable: boolean;
 }
 
 interface Reservation {
@@ -167,7 +172,7 @@ export default function ReservationPage() {
       if (!response.ok) throw new Error("Failed to fetch menu items");
 
       const data = await response.json();
-      setAvailableMenus(data.filter((item: any) => item.isAvailable));
+      setAvailableMenus(data.filter((item: MenuData) => item.isAvailable));
 
       // Initialize form with first menu item if available
       if (data.length > 0) {
@@ -309,7 +314,11 @@ export default function ReservationPage() {
     }
   };
 
-  const handleMenuItemChange = (index: number, field: string, value: any) => {
+  const handleMenuItemChange = (
+    index: number,
+    field: 'name' | 'price' | 'quantity',
+    value: string | number
+  ) => {
     const newMenuItems = [...formData.menuItems];
 
     if (field === "name") {
@@ -317,13 +326,12 @@ export default function ReservationPage() {
       if (selectedItem) {
         newMenuItems[index] = {
           ...newMenuItems[index],
-          name: value,
+          name: value as string,
           price: selectedItem.price,
         };
       }
-    } else {
-      // @ts-ignore
-      newMenuItems[index][field] = value;
+    } else if (field === "price" || field === "quantity") {
+      newMenuItems[index][field] = value as number;
     }
 
     setFormData({
