@@ -534,7 +534,6 @@ export default function ReservationPage() {
                           가격
                         </TableHead>
                         <TableHead>상태</TableHead>
-                        <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -603,7 +602,6 @@ export default function ReservationPage() {
                           가격
                         </TableHead>
                         <TableHead>상태</TableHead>
-                        <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1057,29 +1055,6 @@ function ReservationRow({
                 <X className="mr-2 h-4 w-4" /> 취소
               </DropdownMenuItem>
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-      <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="dropdown-ignore h-8 w-8 p-0">
-              <MoreHorizontal className="dropdown-ignore h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="dropdown-ignore">
-            <DropdownMenuItem
-              className="dropdown-ignore"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRowClick(reservation);
-              }}
-            >
-              예약 상세
-            </DropdownMenuItem>
-            <DropdownMenuItem className="dropdown-ignore">
-              예약 수정
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
