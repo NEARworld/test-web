@@ -1,8 +1,14 @@
 // app/api/reservation/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, ReservationStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+
+interface MenuItem {
+  name: string;
+  price: number;
+  quantity: number;
+}
 
 const prismaClient = new PrismaClient();
 
@@ -109,7 +115,7 @@ export async function POST(req: NextRequest) {
           createdById: session.user.id,
           date: date, // DailyReservationStats와 연결할 날짜
           menuItems: {
-            create: menuItems.map((item: any) => ({
+            create: menuItems.map((item: MenuItem) => ({
               name: item.name,
               price: item.price,
               quantity: item.quantity,
