@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCard } from "@/components/table-card";
@@ -41,6 +41,7 @@ const createSnapModifier = (gridSize: number): Modifier => {
 export default function TablesPage() {
   const [tables, setTables] = useState<Table[]>([]);
   const [gridSize, setGridSize] = useState(32); // Default grid size
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -52,6 +53,19 @@ export default function TablesPage() {
   );
 
   const snapToGrid = useMemo(() => createSnapModifier(gridSize), [gridSize]);
+
+  // Update container dimensions when window resizes
+  useEffect(() => {
+    const updateContainerSize = () => {
+      // This function still runs on resize but we don't need to store the value in state
+    };
+
+    window.addEventListener('resize', updateContainerSize);
+    
+    return () => {
+      window.removeEventListener('resize', updateContainerSize);
+    };
+  }, []);
 
   const addTable = () => {
     const newPosition = findAvailablePosition(tables);
@@ -106,15 +120,25 @@ export default function TablesPage() {
     setTables((items) => {
       return items.map((item) => {
         if (item.id === active.id) {
+          // Calculate new position
           const newX = Math.round((item.position.x + delta.x) / gridSize) * gridSize;
           const newY = Math.round((item.position.y + delta.y) / gridSize) * gridSize;
 
+          // Check container boundaries
+          const maxX = containerRef.current ? containerRef.current.clientWidth - CARD_SIZE : 0;
+          const maxY = containerRef.current ? containerRef.current.clientHeight - CARD_SIZE : 0;
+          
+          // Apply boundary constraints
+          const boundedX = Math.max(0, Math.min(newX, maxX));
+          const boundedY = Math.max(0, Math.min(newY, maxY));
+
+          // Check collision with other tables
           const hasCollision = items.some((otherItem) => {
             if (otherItem.id === item.id) return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.position.x - newX, 2) + 
-              Math.pow(otherItem.position.y - newY, 2)
+              Math.pow(otherItem.position.x - boundedX, 2) + 
+              Math.pow(otherItem.position.y - boundedY, 2)
             );
 
             return distance < gridSize;
@@ -123,7 +147,7 @@ export default function TablesPage() {
           if (!hasCollision) {
             return {
               ...item,
-              position: { x: newX, y: newY },
+              position: { x: boundedX, y: boundedY },
             };
           }
         }
@@ -158,7 +182,10 @@ export default function TablesPage() {
         </div>
       </div>
 
-      <div className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50">
+      <div 
+        ref={containerRef}
+        className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50"
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={rectIntersection}
