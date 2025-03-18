@@ -1,31 +1,35 @@
 import { GripVertical } from "lucide-react";
-import { useSortable } from "@dnd-kit/sortable";
+import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 
 interface TableCardProps {
   id: string;
   number: number;
+  position: {
+    x: number;
+    y: number;
+  };
 }
 
-export function TableCard({ id, number }: TableCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id });
+export function TableCard({ id, number, position }: TableCardProps) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id,
+  });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Transform.toString({
+      x: (transform?.x || 0) + position.x,
+      y: (transform?.y || 0) + position.y,
+      scaleX: 1,
+      scaleY: 1,
+    }),
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex h-32 w-32 flex-col items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
+      className="absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
     >
       <div
         {...attributes}

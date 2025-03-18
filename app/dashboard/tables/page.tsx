@@ -13,22 +13,25 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
 
 interface Table {
   id: string;
   number: number;
+  position: {
+    x: number;
+    y: number;
+  };
 }
 
 export default function TablesPage() {
   const [tables, setTables] = useState<Table[]>([]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor)
   );
 
@@ -36,19 +39,28 @@ export default function TablesPage() {
     const newTable = {
       id: crypto.randomUUID(),
       number: tables.length + 1,
+      position: { x: 0, y: 0 },
     };
     setTables([...tables, newTable]);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      setTables((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over?.id);
-        return arrayMove(items, oldIndex, newIndex);
+    const { active, delta } = event;
+    
+    setTables((items) => {
+      return items.map((item) => {
+        if (item.id === active.id) {
+          return {
+            ...item,
+            position: {
+              x: (item.position.x || 0) + delta.x,
+              y: (item.position.y || 0) + delta.y,
+            },
+          };
+        }
+        return item;
       });
-    }
+    });
   };
 
   return (
@@ -61,19 +73,22 @@ export default function TablesPage() {
         </Button>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={tables} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-            {tables.map((table) => (
-              <TableCard key={table.id} id={table.id} number={table.number} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          {tables.map((table) => (
+            <TableCard
+              key={table.id}
+              id={table.id}
+              number={table.number}
+              position={table.position}
+            />
+          ))}
+        </DndContext>
+      </div>
     </div>
   );
 } 
