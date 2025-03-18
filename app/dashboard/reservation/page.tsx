@@ -32,8 +32,30 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Calendar from "@/components/calendar";
-import { Plus, Minus, Check, X } from "lucide-react";
+import {
+  Plus,
+  Minus,
+  Check,
+  X,
+  MoreHorizontal,
+  ChevronDown,
+} from "lucide-react";
 import { ReservationStatus } from "@prisma/client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MenuItem {
   id?: string;
@@ -432,11 +454,11 @@ export default function ReservationPage() {
       case "CONFIRMED":
         return { variant: "default" as const, text: "확정됨" };
       case "PENDING":
-        return { variant: "outline" as const, text: "대기중" };
+        return { variant: "secondary" as const, text: "대기중" };
       case "CANCELED":
         return { variant: "destructive" as const, text: "취소됨" };
       case "COMPLETED":
-        return { variant: "secondary" as const, text: "완료됨" };
+        return { variant: "default" as const, text: "완료됨" };
     }
   };
 
@@ -450,7 +472,16 @@ export default function ReservationPage() {
             <div className="flex items-center gap-2">
               <CardTitle>{reservation.groupName}</CardTitle>
               <div className="flex gap-2">
-                <Badge variant={statusBadge.variant}>{statusBadge.text}</Badge>
+                <Badge
+                  variant={statusBadge.variant}
+                  className={
+                    reservation.status === "COMPLETED"
+                      ? "bg-green-500 hover:bg-green-600"
+                      : ""
+                  }
+                >
+                  {statusBadge.text}
+                </Badge>
               </div>
             </div>
             <Badge variant="secondary" className="absolute top-4 right-4">
@@ -560,65 +591,107 @@ export default function ReservationPage() {
 
           {/* 선택한 날짜의 예약 섹션 - 달력 아래 배치 */}
           <section className="w-full">
-            <h2 className="mb-4 text-2xl font-bold">
-              {formatDisplayDate(selectedDate)}의 예약
-              {isLoading && (
-                <span className="ml-2 text-sm text-gray-500">Loading...</span>
-              )}
-            </h2>
-            {/* 고정된 높이와 항상 스크롤바가 보이도록 설정 */}
-            <div className="scrollbar-gutter-stable h-[500px] overflow-x-hidden overflow-y-auto rounded-lg bg-white p-4 shadow">
-              {isLoading ? (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-gray-500">로딩 중...</p>
-                </div>
-              ) : reservations.length === 0 ? (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-gray-500">
-                    선택한 날짜에 예약이 없습니다.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {/* 점심 예약 섹션 */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-blue-600">
-                      점심 예약
-                    </h3>
-                    {lunchReservations.length === 0 ? (
-                      <p className="text-sm text-gray-500">
-                        점심 예약이 없습니다.
-                      </p>
-                    ) : (
-                      lunchReservations.map((reservation) => (
-                        <ReservationCard
-                          key={reservation.id}
-                          reservation={reservation}
-                        />
-                      ))
-                    )}
-                  </div>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold">
+                {formatDisplayDate(selectedDate)}의 예약
+                {isLoading && (
+                  <span className="ml-2 text-sm text-gray-500">Loading...</span>
+                )}
+              </h2>
+            </div>
 
-                  {/* 저녁 예약 섹션 */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-orange-600">
-                      저녁 예약
-                    </h3>
-                    {dinnerReservations.length === 0 ? (
-                      <p className="text-sm text-gray-500">
-                        저녁 예약이 없습니다.
-                      </p>
-                    ) : (
-                      dinnerReservations.map((reservation) => (
-                        <ReservationCard
-                          key={reservation.id}
-                          reservation={reservation}
-                        />
-                      ))
-                    )}
-                  </div>
+            <div className="rounded-lg border bg-white">
+              <div className="grid grid-cols-1 gap-6 p-4 md:grid-cols-2">
+                {/* 점심 예약 섹션 */}
+                <div>
+                  <h3 className="mb-4 text-lg font-medium text-blue-600">
+                    점심 예약
+                  </h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>시간</TableHead>
+                        <TableHead>예약자</TableHead>
+                        <TableHead>인원</TableHead>
+                        <TableHead>상태</TableHead>
+                        <TableHead className="w-[80px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <div className="flex justify-center py-4">
+                              <Skeleton className="h-4 w-[200px]" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : lunchReservations.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <div className="flex justify-center py-4 text-gray-500">
+                              점심 예약이 없습니다.
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        lunchReservations.map((reservation) => (
+                          <ReservationRow
+                            key={reservation.id}
+                            reservation={reservation}
+                            onStatusChange={handleStatusChange}
+                          />
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
+
+                {/* 저녁 예약 섹션 */}
+                <div>
+                  <h3 className="mb-4 text-lg font-medium text-orange-600">
+                    저녁 예약
+                  </h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>시간</TableHead>
+                        <TableHead>예약자</TableHead>
+                        <TableHead>인원</TableHead>
+                        <TableHead>상태</TableHead>
+                        <TableHead className="w-[80px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <div className="flex justify-center py-4">
+                              <Skeleton className="h-4 w-[200px]" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : dinnerReservations.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <div className="flex justify-center py-4 text-gray-500">
+                              저녁 예약이 없습니다.
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        dinnerReservations.map((reservation) => (
+                          <ReservationRow
+                            key={reservation.id}
+                            reservation={reservation}
+                            onStatusChange={handleStatusChange}
+                          />
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -841,5 +914,109 @@ export default function ReservationPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+// 예약 행 컴포넌트
+function ReservationRow({
+  reservation,
+  onStatusChange,
+}: {
+  reservation: Reservation;
+  onStatusChange: (
+    id: string,
+    action: "confirm" | "cancel" | "complete",
+  ) => void;
+}) {
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+    const weekday = weekdays[date.getDay()];
+    return `${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`;
+  };
+
+  const getStatusBadge = (status: ReservationStatus) => {
+    switch (status) {
+      case "CONFIRMED":
+        return { variant: "default" as const, text: "확정됨" };
+      case "PENDING":
+        return { variant: "secondary" as const, text: "대기중" };
+      case "CANCELED":
+        return { variant: "destructive" as const, text: "취소됨" };
+      case "COMPLETED":
+        return { variant: "default" as const, text: "완료됨" };
+    }
+  };
+
+  const statusBadge = getStatusBadge(reservation.status);
+
+  return (
+    <TableRow>
+      <TableCell>{formatDateTime(reservation.dateTime)}</TableCell>
+      <TableCell>{reservation.groupName}</TableCell>
+      <TableCell>{reservation.totalPeople}명</TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8">
+              <div className="flex items-center gap-1">
+                <Badge
+                  variant={statusBadge.variant}
+                  className={
+                    reservation.status === "COMPLETED"
+                      ? "bg-green-500 hover:bg-green-600"
+                      : ""
+                  }
+                >
+                  {statusBadge.text}
+                </Badge>
+                <ChevronDown className="h-4 w-4" />
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {reservation.status !== "CONFIRMED" && (
+              <DropdownMenuItem
+                onClick={() => onStatusChange(reservation.id, "confirm")}
+              >
+                <Check className="mr-2 h-4 w-4" /> 확정
+              </DropdownMenuItem>
+            )}
+            {reservation.status !== "COMPLETED" && (
+              <DropdownMenuItem
+                onClick={() => onStatusChange(reservation.id, "complete")}
+              >
+                <Check className="mr-2 h-4 w-4" /> 완료
+              </DropdownMenuItem>
+            )}
+            {reservation.status !== "CANCELED" && (
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => onStatusChange(reservation.id, "cancel")}
+              >
+                <X className="mr-2 h-4 w-4" /> 취소
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>예약 상세</DropdownMenuItem>
+            <DropdownMenuItem>예약 수정</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 }
