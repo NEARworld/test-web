@@ -137,3 +137,22 @@ model DailyReservationStats {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 }
+
+// 테이블 모델
+model Table {
+  id          String       @id @default(uuid())
+  seats       Int          // 좌석 수
+  status      TableStatus  @default(AVAILABLE) // 테이블 상태
+  positionX   Float        // X 좌표
+  positionY   Float        // Y 좌표
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// 테이블 상태 열거형
+enum TableStatus {
+  AVAILABLE   // 이용 가능
+  OCCUPIED    // 사용 중
+  RESERVED    // 예약됨
+  UNAVAILABLE // 이용 불가
+}
