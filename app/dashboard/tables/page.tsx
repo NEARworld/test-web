@@ -17,6 +17,7 @@ import {
   Modifier,
 } from "@dnd-kit/core";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { Dialog, DialogTitle, DialogFooter, DialogHeader, DialogContent, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 interface Table {
   id: string;
@@ -58,6 +59,8 @@ export default function TablesPage() {
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [gridSize, setGridSize] = useState(32); // Default grid size
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentTableNumber, setCurrentTableNumber] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -394,9 +397,13 @@ export default function TablesPage() {
   };
 
   const handleTableDoubleClick = (id: string) => {
-    console.log(`Table with ID ${id} was double-clicked`);
-    // Add your logic here for what should happen on double-click
+    const table = tables.find((table) => table.id === id);
+    if (table) {
+      setCurrentTableNumber(table.number);
+      setIsDialogOpen(true);
+    }
   };
+
 
   return (
     <div className="p-6">
@@ -467,6 +474,23 @@ export default function TablesPage() {
           })}
         </DndContext>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">Open Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>테이블 {currentTableNumber}</DialogTitle>
+          <DialogDescription>
+            Details about table number {currentTableNumber}.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
