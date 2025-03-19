@@ -86,6 +86,16 @@ export function NavMain({
             <span>재고 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip={"테이블 관리"}
+            className="cursor-pointer"
+            onClick={() => router.replace("/dashboard/tables")}
+          >
+            <Monitor />
+            <span>테이블 관리</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
         {items.map((item) => (
           <Collapsible
             key={item.title}
