@@ -31,6 +31,7 @@ interface Table {
 interface TableFromApi {
   id: string;
   seats: number;
+  number: number;
   positionX: number;
   positionY: number;
   status?: string;
@@ -317,7 +318,7 @@ export default function TablesPage() {
         // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환
         const formattedTables = data.map((table: TableFromApi) => ({
           id: table.id,
-          number: table.seats, // seats를 number로 사용
+          number: table.number, // Use number directly
           position: {
             x: table.positionX,
             y: table.positionY,
@@ -392,6 +393,11 @@ export default function TablesPage() {
     setIsDeleteDialogOpen(false);
   };
 
+  const handleTableDoubleClick = (id: string) => {
+    console.log(`Table with ID ${id} was double-clicked`);
+    // Add your logic here for what should happen on double-click
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -454,6 +460,7 @@ export default function TablesPage() {
                 position={table.position}
                 isSelected={isSelected}
                 onClick={(e) => handleTableSelect(table.id, e)}
+                onDoubleClick={() => handleTableDoubleClick(table.id)}
                 additionalTransform={additionalTransform}
               />
             );

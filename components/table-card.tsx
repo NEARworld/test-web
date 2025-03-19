@@ -1,6 +1,7 @@
 import { GripVertical } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import React from 'react';
 
 interface TableCardProps {
   id: string;
@@ -12,6 +13,7 @@ interface TableCardProps {
   status?: "empty" | "occupied";
   isSelected?: boolean;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onDoubleClick: () => void;
   additionalTransform?: {
     x: number;
     y: number;
@@ -25,6 +27,7 @@ export function TableCard({
   status = "empty", 
   isSelected = false, 
   onClick,
+  onDoubleClick,
   additionalTransform = { x: 0, y: 0 }
 }: TableCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -45,13 +48,14 @@ export function TableCard({
       ref={setNodeRef}
       style={style}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-4 shadow-sm ${
         isSelected 
           ? "bg-blue-100 border border-blue-500 ring-1 ring-blue-500" 
           : status === "occupied" 
             ? "bg-blue-50" 
             : "bg-white"
-      }`}
+      } select-none`}
     >
       <div
         {...attributes}
