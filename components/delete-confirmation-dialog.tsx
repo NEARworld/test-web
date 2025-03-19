@@ -32,17 +32,19 @@ export function DeleteConfirmationDialog({
             {selectedCount === 1
               ? "선택한 테이블을 정말 삭제하시겠습니까?"
               : `선택한 ${selectedCount}개의 테이블을 정말 삭제하시겠습니까?`}
-            <br />
-            이 작업은 되돌릴 수 없습니다.
+            <br />이 작업은 되돌릴 수 없습니다.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>취소</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-700"
+          >
             삭제
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
-} 
+}

@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     console.error("Error creating table:", error);
     return NextResponse.json(
       { error: "Failed to create table" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -44,7 +44,7 @@ export async function PUT(req: Request) {
     console.error("Error updating table:", error);
     return NextResponse.json(
       { error: "Failed to update table" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -57,7 +57,7 @@ export async function GET() {
     console.error("Error fetching tables:", error);
     return NextResponse.json(
       { error: "Failed to fetch tables" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

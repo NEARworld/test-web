@@ -31,13 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Calendar from "@/components/calendar";
-import {
-  Plus,
-  Minus,
-  Check,
-  X,
-  ChevronDown,
-} from "lucide-react";
+import { Plus, Minus, Check, X, ChevronDown } from "lucide-react";
 import { ReservationStatus } from "@prisma/client";
 import {
   Table,
@@ -316,8 +310,8 @@ export default function ReservationPage() {
 
   const handleMenuItemChange = (
     index: number,
-    field: 'name' | 'price' | 'quantity',
-    value: string | number
+    field: "name" | "price" | "quantity",
+    value: string | number,
   ) => {
     const newMenuItems = [...formData.menuItems];
 

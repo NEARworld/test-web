@@ -1,7 +1,7 @@
 import { GripVertical } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import React from 'react';
+import React from "react";
 
 interface TableCardProps {
   id: string;
@@ -21,16 +21,16 @@ interface TableCardProps {
   };
 }
 
-export function TableCard({ 
-  id, 
+export function TableCard({
+  id,
   seats,
-  number, 
-  position, 
-  status = "empty", 
-  isSelected = false, 
+  number,
+  position,
+  status = "empty",
+  isSelected = false,
   onClick,
   onDoubleClick,
-  additionalTransform = { x: 0, y: 0 }
+  additionalTransform = { x: 0, y: 0 },
 }: TableCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id,
@@ -45,8 +45,13 @@ export function TableCard({
     }),
   };
 
-   // Determine border color based on the number of seats
-   const borderColor = seats === 4 ? "border-green-500" : seats === 6 ? "border-purple-500" : "border-gray-300";
+  // Determine border color based on the number of seats
+  const borderColor =
+    seats === 4
+      ? "border-green-500"
+      : seats === 6
+        ? "border-purple-500"
+        : "border-gray-300";
 
   console.log(seats);
 
@@ -57,10 +62,10 @@ export function TableCard({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-4 shadow-sm ${borderColor} ${
-        isSelected 
-          ? "bg-blue-100 border border-blue-500 ring-1 ring-blue-500" 
-          : status === "occupied" 
-            ? "bg-blue-50" 
+        isSelected
+          ? "border border-blue-500 bg-blue-100 ring-1 ring-blue-500"
+          : status === "occupied"
+            ? "bg-blue-50"
             : "bg-white"
       } select-none`}
     >

@@ -1,5 +1,12 @@
 {
-  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+
+  "plugins": ["prettier"],
   "rules": {
     // 기본 코드 스타일
     "no-unused-vars": "error",
@@ -33,6 +40,7 @@
     "indent": ["error", 2],
     "semi": ["error", "always"],
     "quotes": ["error", "double"],
-    "comma-dangle": ["error", "always-multiline"]
+    "comma-dangle": ["error", "always-multiline"],
+    "prettier/prettier": "error"
   }
 }

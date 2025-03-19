@@ -1,0 +1,12 @@
+# Ignore all files in the build directory
+build/
+
+# Ignore specific files
+src/legacy-code.js
+src/experimental/*.js
+
+# Ignore all JavaScript files in a specific directory
+public/**/*.js
+
+# Ignore node_modules (though it's ignored by default)
+node_modules/

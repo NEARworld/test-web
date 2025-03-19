@@ -17,7 +17,14 @@ import {
   Modifier,
 } from "@dnd-kit/core";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { Dialog, DialogTitle, DialogFooter, DialogHeader, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTitle,
+  DialogFooter,
+  DialogHeader,
+  DialogContent,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Table {
   id: string;
@@ -61,7 +68,9 @@ export default function TablesPage() {
   const [gridSize, setGridSize] = useState(32); // Default grid size
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTableNumber, setCurrentTableNumber] = useState<number | null>(null);
+  const [currentTableNumber, setCurrentTableNumber] = useState<number | null>(
+    null,
+  );
   const containerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -70,7 +79,7 @@ export default function TablesPage() {
         distance: 8,
       },
     }),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
 
   const snapToGrid = useMemo(() => createSnapModifier(gridSize), [gridSize]);
@@ -81,16 +90,16 @@ export default function TablesPage() {
       // This function still runs on resize but we don't need to store the value in state
     };
 
-    window.addEventListener('resize', updateContainerSize);
-    
+    window.addEventListener("resize", updateContainerSize);
+
     return () => {
-      window.removeEventListener('resize', updateContainerSize);
+      window.removeEventListener("resize", updateContainerSize);
     };
   }, []);
 
   const addTable = () => {
     const newPosition = findAvailablePosition(tables);
-    
+
     const newTable = {
       id: crypto.randomUUID(),
       seats: 0,
@@ -100,22 +109,22 @@ export default function TablesPage() {
         y: Math.round(newPosition.y / gridSize) * gridSize,
       },
     };
-    
+
     // 테이블 생성 API 호출
-    fetch('/api/tables', {
-      method: 'POST',
+    fetch("/api/tables", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(newTable),
     })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Table saved to database:', data);
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Table saved to database:", data);
         setTables([...tables, newTable]);
       })
-      .catch(error => {
-        console.error('Error saving table:', error);
+      .catch((error) => {
+        console.error("Error saving table:", error);
       });
   };
 
@@ -125,13 +134,13 @@ export default function TablesPage() {
 
     while (!found) {
       let hasCollision = false;
-      
+
       for (const table of existingTables) {
         const distance = Math.sqrt(
-          Math.pow(table.position.x - position.x, 2) + 
-          Math.pow(table.position.y - position.y, 2)
+          Math.pow(table.position.x - position.x, 2) +
+            Math.pow(table.position.y - position.y, 2),
         );
-        
+
         if (distance < gridSize) {
           hasCollision = true;
           break;
@@ -152,38 +161,50 @@ export default function TablesPage() {
     return position;
   };
 
-  const handleTableSelect = (id: string, event: React.MouseEvent<HTMLDivElement>) => {
+  const handleTableSelect = (
+    id: string,
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
     // Prevent selection when dragging
-    if (event.target instanceof Element && event.target.closest('[data-drag-handle]')) {
+    if (
+      event.target instanceof Element &&
+      event.target.closest("[data-drag-handle]")
+    ) {
       return;
     }
-    
+
     event.stopPropagation();
-    
+
     if (event.ctrlKey || event.metaKey) {
       // Toggle selection with Ctrl/Cmd key
-      setSelectedTables(prev => 
-        prev.includes(id) 
-          ? prev.filter(tableId => tableId !== id) 
-          : [...prev, id]
+      setSelectedTables((prev) =>
+        prev.includes(id)
+          ? prev.filter((tableId) => tableId !== id)
+          : [...prev, id],
       );
     } else if (event.shiftKey && selectedTables.length > 0) {
       // Range selection with Shift key
-      const tableIds = tables.map(table => table.id);
-      const lastSelectedIndex = tableIds.indexOf(selectedTables[selectedTables.length - 1]);
+      const tableIds = tables.map((table) => table.id);
+      const lastSelectedIndex = tableIds.indexOf(
+        selectedTables[selectedTables.length - 1],
+      );
       const currentIndex = tableIds.indexOf(id);
-      
+
       const start = Math.min(lastSelectedIndex, currentIndex);
       const end = Math.max(lastSelectedIndex, currentIndex);
-      
+
       const rangeSelection = tableIds.slice(start, end + 1);
-      setSelectedTables(prev => {
-        const uniqueSelection = Array.from(new Set([...prev, ...rangeSelection]));
+      setSelectedTables((prev) => {
+        const uniqueSelection = Array.from(
+          new Set([...prev, ...rangeSelection]),
+        );
         return uniqueSelection;
       });
     } else {
       // Regular click - deselect others and select this one
-      setSelectedTables(selectedTables.includes(id) && selectedTables.length === 1 ? [] : [id]);
+      setSelectedTables(
+        selectedTables.includes(id) && selectedTables.length === 1 ? [] : [id],
+      );
     }
   };
 
@@ -201,34 +222,41 @@ export default function TablesPage() {
 
   const handleDragMove = (event: DragMoveEvent) => {
     if (!activeDragId) return;
-    
+
     const { delta } = event;
     setDragDelta({ x: delta.x, y: delta.y });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, delta } = event;
-    
+
     // Reset drag state
     setActiveDragId(null);
     setDragDelta({ x: 0, y: 0 });
-    
+
     // If we're dragging a selected table and there are multiple selections,
     // move all selected tables
-    const isMovingSelectedGroup = selectedTables.includes(active.id as string) && selectedTables.length > 1;
-    
+    const isMovingSelectedGroup =
+      selectedTables.includes(active.id as string) && selectedTables.length > 1;
+
     setTables((items) => {
       return items.map((item) => {
         // If moving a group and this item is selected, move it
         if (isMovingSelectedGroup && selectedTables.includes(item.id)) {
           // Calculate new position
-          const newX = Math.round((item.position.x + delta.x) / gridSize) * gridSize;
-          const newY = Math.round((item.position.y + delta.y) / gridSize) * gridSize;
+          const newX =
+            Math.round((item.position.x + delta.x) / gridSize) * gridSize;
+          const newY =
+            Math.round((item.position.y + delta.y) / gridSize) * gridSize;
 
           // Check container boundaries
-          const maxX = containerRef.current ? containerRef.current.clientWidth - CARD_SIZE : 0;
-          const maxY = containerRef.current ? containerRef.current.clientHeight - CARD_SIZE : 0;
-          
+          const maxX = containerRef.current
+            ? containerRef.current.clientWidth - CARD_SIZE
+            : 0;
+          const maxY = containerRef.current
+            ? containerRef.current.clientHeight - CARD_SIZE
+            : 0;
+
           // Apply boundary constraints
           const boundedX = Math.max(0, Math.min(newX, maxX));
           const boundedY = Math.max(0, Math.min(newY, maxY));
@@ -237,38 +265,44 @@ export default function TablesPage() {
           // but simplifying for now as it's complex to check all potential collisions
 
           const updatedPosition = { x: boundedX, y: boundedY };
-          
+
           // API call for position update
-          fetch('/api/tables', {
-            method: 'PUT',
+          fetch("/api/tables", {
+            method: "PUT",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               id: item.id,
               position: updatedPosition,
             }),
           })
-            .then(response => response.json())
-            .catch(error => {
-              console.error('Error updating table position:', error);
+            .then((response) => response.json())
+            .catch((error) => {
+              console.error("Error updating table position:", error);
             });
-          
+
           return {
             ...item,
             position: updatedPosition,
           };
-        } 
+        }
         // For the actively dragged item or when not moving as a group
         else if (item.id === active.id) {
           // Calculate new position
-          const newX = Math.round((item.position.x + delta.x) / gridSize) * gridSize;
-          const newY = Math.round((item.position.y + delta.y) / gridSize) * gridSize;
+          const newX =
+            Math.round((item.position.x + delta.x) / gridSize) * gridSize;
+          const newY =
+            Math.round((item.position.y + delta.y) / gridSize) * gridSize;
 
           // Check container boundaries
-          const maxX = containerRef.current ? containerRef.current.clientWidth - CARD_SIZE : 0;
-          const maxY = containerRef.current ? containerRef.current.clientHeight - CARD_SIZE : 0;
-          
+          const maxX = containerRef.current
+            ? containerRef.current.clientWidth - CARD_SIZE
+            : 0;
+          const maxY = containerRef.current
+            ? containerRef.current.clientHeight - CARD_SIZE
+            : 0;
+
           // Apply boundary constraints
           const boundedX = Math.max(0, Math.min(newX, maxX));
           const boundedY = Math.max(0, Math.min(newY, maxY));
@@ -278,8 +312,8 @@ export default function TablesPage() {
             if (otherItem.id === item.id) return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.position.x - boundedX, 2) + 
-              Math.pow(otherItem.position.y - boundedY, 2)
+              Math.pow(otherItem.position.x - boundedX, 2) +
+                Math.pow(otherItem.position.y - boundedY, 2),
             );
 
             return distance < gridSize;
@@ -287,23 +321,23 @@ export default function TablesPage() {
 
           if (!hasCollision) {
             const updatedPosition = { x: boundedX, y: boundedY };
-            
+
             // 위치가 변경되었을 때 API 호출
-            fetch('/api/tables', {
-              method: 'PUT',
+            fetch("/api/tables", {
+              method: "PUT",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 id: item.id,
                 position: updatedPosition,
               }),
             })
-              .then(response => response.json())
-              .catch(error => {
-                console.error('Error updating table position:', error);
+              .then((response) => response.json())
+              .catch((error) => {
+                console.error("Error updating table position:", error);
               });
-            
+
             return {
               ...item,
               position: updatedPosition,
@@ -317,9 +351,9 @@ export default function TablesPage() {
 
   // 페이지 로드 시 테이블 데이터 가져오기
   useEffect(() => {
-    fetch('/api/tables')
-      .then(response => response.json())
-      .then(data => {
+    fetch("/api/tables")
+      .then((response) => response.json())
+      .then((data) => {
         // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환
         const formattedTables = data.map((table: TableFromApi) => ({
           id: table.id,
@@ -332,8 +366,8 @@ export default function TablesPage() {
         }));
         setTables(formattedTables);
       })
-      .catch(error => {
-        console.error('Error fetching tables:', error);
+      .catch((error) => {
+        console.error("Error fetching tables:", error);
       });
   }, []);
 
@@ -341,7 +375,10 @@ export default function TablesPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 테이블이 선택된 상태에서 Delete 키가 눌렸을 때만 처리
-      if (selectedTables.length > 0 && (e.key === "Delete" || e.key === "Backspace")) {
+      if (
+        selectedTables.length > 0 &&
+        (e.key === "Delete" || e.key === "Backspace")
+      ) {
         // 입력 요소에 포커스가 없을 때만 활성화
         if (
           document.activeElement?.tagName !== "INPUT" &&
@@ -364,31 +401,33 @@ export default function TablesPage() {
   const handleDeleteConfirm = () => {
     // 선택된 테이블 삭제
     const deletedIds = [...selectedTables];
-    
+
     // 데이터베이스에서 각 테이블 삭제
-    const deletePromises = deletedIds.map(id => 
+    const deletePromises = deletedIds.map((id) =>
       fetch(`/api/tables/${id}`, {
-        method: 'DELETE',
-      }).then(response => {
+        method: "DELETE",
+      }).then((response) => {
         if (!response.ok) {
           throw new Error(`Failed to delete table with ID: ${id}`);
         }
         return response.json();
-      })
+      }),
     );
-    
+
     // 모든 삭제 처리 후
     Promise.all(deletePromises)
       .then(() => {
         // 상태에서 삭제된 테이블 제거
-        setTables(prevTables => prevTables.filter(table => !deletedIds.includes(table.id)));
+        setTables((prevTables) =>
+          prevTables.filter((table) => !deletedIds.includes(table.id)),
+        );
         // 선택 초기화
         setSelectedTables([]);
         // 대화상자 닫기
         setIsDeleteDialogOpen(false);
       })
-      .catch(error => {
-        console.error('테이블 삭제 중 오류 발생:', error);
+      .catch((error) => {
+        console.error("테이블 삭제 중 오류 발생:", error);
         // 오류가 발생해도 대화상자 닫기
         setIsDeleteDialogOpen(false);
       });
@@ -407,19 +446,18 @@ export default function TablesPage() {
     }
   };
 
-
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">테이블 관리</h1>
         <div className="flex items-center gap-4">
           {selectedTables.length > 0 && (
-            <div className="text-sm">
-              {selectedTables.length} 테이블 선택됨
-            </div>
+            <div className="text-sm">{selectedTables.length} 테이블 선택됨</div>
           )}
           <div className="flex items-center gap-2">
-            <label htmlFor="gridSize" className="text-sm">그리드 크기:</label>
+            <label htmlFor="gridSize" className="text-sm">
+              그리드 크기:
+            </label>
             <input
               id="gridSize"
               type="range"
@@ -439,7 +477,7 @@ export default function TablesPage() {
         </div>
       </div>
 
-      <div 
+      <div
         ref={containerRef}
         className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50"
         onClick={clearSelection}
@@ -456,12 +494,16 @@ export default function TablesPage() {
             // Calculate additional transform for selected tables during drag
             const isSelected = selectedTables.includes(table.id);
             const isBeingDragged = activeDragId === table.id;
-            
+
             // Only apply additional transform to selected tables that are not being directly dragged
-            const additionalTransform = (isSelected && activeDragId && !isBeingDragged && selectedTables.includes(activeDragId)) 
-              ? { x: dragDelta.x, y: dragDelta.y } 
-              : { x: 0, y: 0 };
-              console.log(table);
+            const additionalTransform =
+              isSelected &&
+              activeDragId &&
+              !isBeingDragged &&
+              selectedTables.includes(activeDragId)
+                ? { x: dragDelta.x, y: dragDelta.y }
+                : { x: 0, y: 0 };
+            console.log(table);
             return (
               <TableCard
                 key={table.id}
@@ -480,18 +522,18 @@ export default function TablesPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>테이블 {currentTableNumber}</DialogTitle>
-          <DialogDescription>
-            Details about table number {currentTableNumber}.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>테이블 {currentTableNumber}</DialogTitle>
+            <DialogDescription>
+              Details about table number {currentTableNumber}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
@@ -501,4 +543,4 @@ export default function TablesPage() {
       />
     </div>
   );
-} 
+}
