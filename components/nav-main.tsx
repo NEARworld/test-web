@@ -7,6 +7,7 @@ import {
   NotebookText,
   BarChart3,
   type LucideIcon,
+  LayoutGrid,
 } from "lucide-react";
 
 import {
@@ -92,7 +93,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/tables")}
           >
-            <Monitor />
+            <LayoutGrid />
             <span>테이블 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
