@@ -3,10 +3,10 @@ import prisma from "@/lib/prisma"; // 데이터베이스 연결 (prisma 또는 �
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const data = await req.json();
 
     if (!id) {
