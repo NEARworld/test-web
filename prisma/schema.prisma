@@ -141,6 +141,7 @@ model DailyReservationStats {
 // 테이블 모델
 model Table {
   id          String       @id @default(uuid())
+  number      Int          @default(0) //테이블 번호
   seats       Int          // 좌석 수
   status      TableStatus  @default(AVAILABLE) // 테이블 상태
   positionX   Float        // X 좌표
