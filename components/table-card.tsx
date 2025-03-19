@@ -53,8 +53,6 @@ export function TableCard({
         ? "border-purple-500"
         : "border-gray-300";
 
-  console.log(seats);
-
   return (
     <div
       ref={setNodeRef}

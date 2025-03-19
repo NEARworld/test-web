@@ -19,12 +19,13 @@ import {
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
   Dialog,
-  DialogTitle,
   DialogFooter,
   DialogHeader,
   DialogContent,
   DialogDescription,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface Table {
   id: string;
@@ -68,9 +69,7 @@ export default function TablesPage() {
   const [gridSize, setGridSize] = useState(32); // Default grid size
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTableNumber, setCurrentTableNumber] = useState<number | null>(
-    null,
-  );
+  const [doubleClickedTable, setDoubleClickedTable] = useState<Table>();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -441,7 +440,7 @@ export default function TablesPage() {
   const handleTableDoubleClick = (id: string) => {
     const table = tables.find((table) => table.id === id);
     if (table) {
-      setCurrentTableNumber(table.number);
+      setDoubleClickedTable(table);
       setIsDialogOpen(true);
     }
   };
@@ -503,7 +502,6 @@ export default function TablesPage() {
               selectedTables.includes(activeDragId)
                 ? { x: dragDelta.x, y: dragDelta.y }
                 : { x: 0, y: 0 };
-            console.log(table);
             return (
               <TableCard
                 key={table.id}
@@ -524,13 +522,65 @@ export default function TablesPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>테이블 {currentTableNumber}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>테이블</DialogTitle>
+              <Input
+                type="number"
+                value={doubleClickedTable?.number}
+                onChange={(e) => {
+                  // Only allow positive numbers
+                  const value = Math.max(0, parseInt(e.target.value) || 0);
+                  if (doubleClickedTable)
+                    setDoubleClickedTable({
+                      ...doubleClickedTable,
+                      number: value,
+                    });
+                }}
+                className="w-32"
+              />
+              <Button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(
+                      `/api/tables/${doubleClickedTable?.id}`,
+                      {
+                        method: "PATCH",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          number: doubleClickedTable?.number,
+                        }),
+                      },
+                    );
+
+                    if (!response.ok) {
+                      throw new Error("Failed to update table number");
+                    }
+
+                    // Update the local state with the new table number
+                    setTables((prevTables) =>
+                      prevTables.map((table) =>
+                        table.id === doubleClickedTable?.id
+                          ? { ...table, number: doubleClickedTable?.number }
+                          : table,
+                      ),
+                    );
+                  } catch (error) {
+                    console.error("Error updating table number:", error);
+                  }
+                }}
+                size="sm"
+              >
+                수정
+              </Button>
+            </div>
             <DialogDescription>
-              Details about table number {currentTableNumber}.
+              테이블 번호를 수정할 수 있습니다.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+            <Button onClick={() => setIsDialogOpen(false)}>닫기</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
