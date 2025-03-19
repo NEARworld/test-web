@@ -17,7 +17,7 @@ import {
   Modifier,
 } from "@dnd-kit/core";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { Dialog, DialogTitle, DialogFooter, DialogHeader, DialogContent, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogTitle, DialogFooter, DialogHeader, DialogContent, DialogDescription } from "@/components/ui/dialog";
 
 interface Table {
   id: string;
@@ -480,9 +480,6 @@ export default function TablesPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">Open Dialog</Button>
-      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>테이블 {currentTableNumber}</DialogTitle>
