@@ -9,7 +9,8 @@ export async function POST(req: Request) {
     const table = await prisma.table.create({
       data: {
         id,
-        seats: number,
+        seats: 0,
+        number: number,
         positionX: position.x,
         positionY: position.y,
       },

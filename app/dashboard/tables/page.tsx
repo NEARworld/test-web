@@ -22,6 +22,7 @@ import { Dialog, DialogTitle, DialogFooter, DialogHeader, DialogContent, DialogT
 interface Table {
   id: string;
   number: number;
+  seats: number;
   position: {
     x: number;
     y: number;
@@ -92,6 +93,7 @@ export default function TablesPage() {
     
     const newTable = {
       id: crypto.randomUUID(),
+      seats: 0,
       number: tables.length + 1,
       position: {
         x: Math.round(newPosition.x / gridSize) * gridSize,
@@ -321,6 +323,7 @@ export default function TablesPage() {
         // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환
         const formattedTables = data.map((table: TableFromApi) => ({
           id: table.id,
+          seats: table.seats,
           number: table.number, // Use number directly
           position: {
             x: table.positionX,
@@ -458,11 +461,12 @@ export default function TablesPage() {
             const additionalTransform = (isSelected && activeDragId && !isBeingDragged && selectedTables.includes(activeDragId)) 
               ? { x: dragDelta.x, y: dragDelta.y } 
               : { x: 0, y: 0 };
-              
+              console.log(table);
             return (
               <TableCard
                 key={table.id}
                 id={table.id}
+                seats={table.seats}
                 number={table.number}
                 position={table.position}
                 isSelected={isSelected}
