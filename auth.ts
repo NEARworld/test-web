@@ -2,7 +2,7 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
 import authConfig from "./auth.config";
 
 // NextAuth 설정 타입 정의
@@ -30,6 +30,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // JWT 토큰 커스터마이징
     async jwt({ token, user, account }) {
       if (user) {
+        console.log(user);
+
         token.id = user.id;
         token.image = user.image;
 
@@ -56,11 +58,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // 세션 커스터마이징
     async session({ session, token }) {
-      if (token.id) {
-        session.user.id = token.sub as string; // 유저를 디비에서 조회할때 사용
-        session.user.name = token.name as string; // 세션에 ID 추가
+      if (typeof token.id === "string") {
+        const user = await prisma.user.findUnique({
+          where: { id: token.id },
+        });
+
+        session.user.id = token.id;
+        session.user.name = token.name as string;
         session.user.email = token.email as string;
-        session.user.image = token.image as string; // 프로필 이미지 추가
+        session.user.image = token.image as string;
+        session.user.role = user?.role || "UNKNOWN";
       }
       return session;
     },
@@ -83,14 +90,15 @@ export { handlers as GET, handlers as POST };
 declare module "next-auth" {
   interface Session {
     user: {
-      id: string; // 기본 타입에 id 추가
+      id: string;
       name?: string | null;
       email?: string | null;
       image?: string | null;
+      role: UserRole;
     };
   }
 
   interface JWT {
-    id?: string; // JWT 토큰에 id 추가
+    id?: string;
   }
 }
