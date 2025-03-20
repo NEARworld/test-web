@@ -65,7 +65,10 @@ export async function PATCH(
   }
 }
 
-export async function GET({ params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     // Check authentication
     const session = await auth();
