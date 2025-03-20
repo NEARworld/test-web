@@ -65,7 +65,7 @@ export async function PATCH(
   }
 }
 
-export async function GET({ params }: { params: { id: string } }) {
+export async function GET({ params }: { params: Promise<{ id: string }> }) {
   try {
     // Check authentication
     const session = await auth();
@@ -73,7 +73,8 @@ export async function GET({ params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tableId = params.id;
+    const { id } = await params;
+    const tableId = id;
 
     // Get reservations linked to this table
     const reservation = await prisma.reservation.findFirst({
