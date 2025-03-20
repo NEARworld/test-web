@@ -12,6 +12,7 @@ enum UserRole {
   ADMIN
   MANAGER
   STAFF
+  UNKNOWN
 }
 
 enum ReservationStatus {
@@ -30,7 +31,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
  
-  role          UserRole     @default(STAFF)
+  role          UserRole     @default(UNKNOWN)
   reservations  Reservation[] // Reservations created by this user
 
   createdAt DateTime @default(now())
