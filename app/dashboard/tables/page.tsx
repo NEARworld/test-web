@@ -454,7 +454,21 @@ export default function TablesPage() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">테이블 관리</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">테이블 관리</h1>
+
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-1">
+              <div className="h-4 w-4 rounded-full bg-green-500"></div>
+              <span>4인석</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-4 w-4 rounded-full bg-purple-500"></div>
+              <span>6인석</span>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-4">
           {selectedTables.length > 0 && (
             <div className="text-sm">{selectedTables.length} 테이블 선택됨</div>
