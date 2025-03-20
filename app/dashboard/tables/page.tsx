@@ -536,11 +536,32 @@ export default function TablesPage() {
     setIsReservationUpdateSuccessful(false);
 
     try {
-      // 예약 ID 설정 (none이면 undefined, 아니면 해당 ID)
+      // 현재 테이블의 예약 정보 가져오기
+      const currentTable = tables.find((t) => t.id === tableId);
+      if (!currentTable) {
+        throw new Error("테이블을 찾을 수 없습니다.");
+      }
+
+      // 기존 예약이 있고, 새로운 예약이 다른 경우
+      if (
+        currentTable.reservationId &&
+        currentTable.reservationId !== reservationValue
+      ) {
+        // 기존 예약 연결 해제
+        await fetch(`/api/tables/${tableId}/reservation`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reservationId: null,
+          }),
+        });
+      }
+
+      // 새로운 예약 연결
       const reservationId =
         reservationValue === "none" ? undefined : reservationValue;
-
-      // API 호출할 때는 null로 전송 (API에서는 null을 받음)
       const response = await fetch(`/api/tables/${tableId}/reservation`, {
         method: "PATCH",
         headers: {
