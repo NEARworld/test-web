@@ -2,19 +2,21 @@
 
 import { DailyChart } from "./components/daily-chart";
 import { MonthlyChart } from "./components/monthly-chart";
+import { MenuPieChart } from "./components/menu-pie-chart";
 
 export default function StatisticsPage() {
   // 연도 선택 옵션 생성 (현재 연도 기준 전후 5년)
   const today = new Date();
-  const yearOptions = Array.from(
-    { length: 11 },
-    (_, i) => today.getFullYear() - 5 + i,
-  );
+  const currentYear = today.getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   return (
-    <div className="grid grid-cols-2 gap-2 p-6">
-      <DailyChart yearOptions={yearOptions} />
-      <MonthlyChart yearOptions={yearOptions} />
+    <div className="space-y-6 px-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        <DailyChart yearOptions={yearOptions} />
+        <MonthlyChart yearOptions={yearOptions} />
+      </div>
+      <MenuPieChart yearOptions={yearOptions} />
     </div>
   );
 }

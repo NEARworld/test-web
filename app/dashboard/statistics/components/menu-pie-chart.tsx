@@ -10,14 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Loader2 } from "lucide-react";
 
 interface MenuStat {
@@ -116,9 +109,8 @@ export function MenuPieChart({ yearOptions }: MenuPieChartProps) {
             outerRadius={150}
             fill="#8884d8"
             dataKey="value"
-            label
           >
-            {menuStats.map((entry, index) => (
+            {menuStats.map((_entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={COLORS[index % COLORS.length]}
