@@ -59,7 +59,7 @@ export function TableCard({
       style={style}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
-      className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-4 shadow-sm ${borderColor} ${
+      className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-2 shadow-sm ${borderColor} ${
         isSelected
           ? "border border-blue-500 bg-blue-100 ring-1 ring-blue-500"
           : status === "occupied"
@@ -67,16 +67,20 @@ export function TableCard({
             : "bg-white"
       } select-none`}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        data-drag-handle
-        className="cursor-move self-start text-gray-400 hover:text-gray-600"
-      >
-        <GripVertical className="h-4 w-4" />
+      <div className="flex w-full items-center justify-between">
+        <div
+          {...attributes}
+          {...listeners}
+          data-drag-handle
+          className="cursor-move text-gray-400 hover:text-gray-600"
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+        <div className="font-bold">{number}</div>
       </div>
+
       <div className="text-center">
-        <div className="text-xl font-bold">테이블 {number}</div>
+        <div className="text-lg">테이블</div>
         <div className="mt-1 text-xs text-gray-500">
           {status === "occupied" ? "사용중" : "비어있음"}
         </div>
