@@ -12,7 +12,7 @@ export default function StatisticsPage() {
   );
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="grid grid-cols-2 gap-2 p-6">
       <DailyChart yearOptions={yearOptions} />
       <MonthlyChart yearOptions={yearOptions} />
     </div>

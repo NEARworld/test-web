@@ -11,83 +11,66 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
   ResponsiveContainer,
+  Tooltip,
+  Legend,
 } from "recharts";
 import { Loader2 } from "lucide-react";
 
-interface DailyStat {
-  date: string;
-  totalReservations: number;
+interface MenuStat {
+  name: string;
+  value: number;
 }
 
-interface DailyChartProps {
+interface MenuPieChartProps {
   yearOptions: number[];
 }
 
-export function DailyChart({ yearOptions }: DailyChartProps) {
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+  "#FFC658",
+  "#FF7C43",
+  "#A4DE6C",
+  "#D0ED57",
+];
+
+export function MenuPieChart({ yearOptions }: MenuPieChartProps) {
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
-  const [monthlyStats, setMonthlyStats] = useState<DailyStat[]>([]);
+  const [menuStats, setMenuStats] = useState<MenuStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 해당 월의 모든 날짜 생성
-  const generateMonthDates = (year: number, month: number) => {
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    return Array.from({ length: daysInMonth }, (_, i) => {
-      const day = i + 1;
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      return {
-        date: `${day}일`,
-        originalDate: dateStr,
-        totalReservations: 0,
-      };
-    });
-  };
-
-  const fetchMonthlyStats = useCallback(async (year: number, month: number) => {
+  const fetchMenuStats = useCallback(async (year: number, month: number) => {
     try {
       setIsLoading(true);
       const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const response = await fetch(
-        `/api/reservations/stats/monthly?date=${dateStr}`,
+        `/api/reservations/stats/menu?date=${dateStr}`,
       );
 
-      if (!response.ok) throw new Error("Failed to fetch statistics");
+      if (!response.ok) throw new Error("Failed to fetch menu statistics");
 
       const data = await response.json();
-
-      // 선택된 월의 모든 날짜 데이터 생성
-      const allDates = generateMonthDates(year, month);
-
-      // 실제 예약 데이터와 병합
-      const mergedData = allDates.map((dateData) => {
-        const stat = data.dailyStats.find(
-          (s: DailyStat) => s.date === dateData.originalDate,
-        );
-        return {
-          date: dateData.date,
-          totalReservations: stat ? stat.totalReservations : 0,
-        };
-      });
-
-      setMonthlyStats(mergedData);
+      setMenuStats(data.menuStats);
     } catch (error) {
-      console.error("Error fetching statistics:", error);
+      console.error("Error fetching menu statistics:", error);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchMonthlyStats(selectedYear, selectedMonth);
-  }, [selectedYear, selectedMonth, fetchMonthlyStats]);
+    fetchMenuStats(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth, fetchMenuStats]);
 
   const handlePrevMonth = () => {
     if (selectedMonth === 0) {
@@ -113,7 +96,7 @@ export function DailyChart({ yearOptions }: DailyChartProps) {
         <div className="flex h-[400px] items-center justify-center">
           <div className="text-muted-foreground flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <p className="text-sm">통계 데이터를 불러오는 중...</p>
+            <p className="text-sm">메뉴 통계 데이터를 불러오는 중...</p>
           </div>
         </div>
       );
@@ -121,38 +104,35 @@ export function DailyChart({ yearOptions }: DailyChartProps) {
 
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={monthlyStats}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 20,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            allowDecimals={false}
-            domain={[0, "auto"]}
-          />
+        <PieChart>
+          <Pie
+            data={menuStats}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) =>
+              `${name} ${(percent * 100).toFixed(0)}%`
+            }
+            outerRadius={150}
+            fill="#8884d8"
+            dataKey="value"
+            label
+          >
+            {menuStats.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
+            ))}
+          </Pie>
           <Tooltip
+            formatter={(value: number) => [`${value}건`, "예약 수"]}
             contentStyle={{
               backgroundColor: "white",
               border: "1px solid #ccc",
             }}
-            formatter={(value) => [`${value}건`, "예약 수"]}
           />
-          <Line
-            type="linear"
-            dataKey="totalReservations"
-            stroke="#2563eb"
-            strokeWidth={2}
-            dot={{ fill: "#2563eb", r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-        </LineChart>
+        </PieChart>
       </ResponsiveContainer>
     );
   };
@@ -161,7 +141,7 @@ export function DailyChart({ yearOptions }: DailyChartProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>일별 예약 현황</CardTitle>
+          <CardTitle>메뉴별 예약 점유율</CardTitle>
           <div className="flex items-center gap-2">
             <Select
               value={selectedYear.toString()}
