@@ -543,27 +543,40 @@ export default function TablesPage() {
         <DialogContent>
           <DialogHeader>
             <div className="flex items-center gap-2">
-              <DialogTitle>테이블</DialogTitle>
-              <Input
-                type="text"
-                value={doubleClickedTable?.number}
-                onChange={(e) => {
-                  // Only allow positive numbers
-                  const value = Math.max(0, parseInt(e.target.value) || 0);
-                  if (doubleClickedTable)
-                    setDoubleClickedTable({
-                      ...doubleClickedTable,
-                      number: value,
-                    });
-                }}
-                className="w-32"
-              />
-              <div className="flex items-center gap-2">
+              <DialogTitle>테이블 {doubleClickedTable?.number}</DialogTitle>
+            </div>
+            <DialogDescription>
+              테이블 정보를 확인하고 수정할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label
+                htmlFor="tableNumber"
+                className="text-right text-sm font-medium"
+              >
+                테이블 번호
+              </label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input
+                  id="tableNumber"
+                  type="number"
+                  value={doubleClickedTable?.number}
+                  onChange={(e) => {
+                    // Only allow positive numbers
+                    const value = Math.max(0, parseInt(e.target.value) || 0);
+                    if (doubleClickedTable)
+                      setDoubleClickedTable({
+                        ...doubleClickedTable,
+                        number: value,
+                      });
+                  }}
+                  className="w-32"
+                />
                 <Button
                   onClick={async () => {
-                    // Disable the button immediately
                     setIsTableNumberUpdateButtonDisabled(true);
-                    // Hide any previous success indicator
                     setIsTableNumberUpdateSuccessful(false);
 
                     try {
@@ -584,7 +597,6 @@ export default function TablesPage() {
                         throw new Error("테이블 번호 업데이트에 실패했습니다.");
                       }
 
-                      // Update the local state with the new table number
                       setTables((prevTables) =>
                         prevTables.map((table) =>
                           table.id === doubleClickedTable?.id
@@ -593,18 +605,15 @@ export default function TablesPage() {
                         ),
                       );
 
-                      // Show success check mark
                       setIsTableNumberUpdateSuccessful(true);
                     } catch (error) {
                       console.error("Error updating table number:", error);
-                      // Show error alert
                       alert(
                         error instanceof Error
                           ? error.message
                           : "테이블 번호 업데이트 중 오류가 발생했습니다.",
                       );
                     } finally {
-                      // Re-enable the button after 1 second
                       setTimeout(() => {
                         setIsTableNumberUpdateButtonDisabled(false);
                       }, 1000);
@@ -620,10 +629,75 @@ export default function TablesPage() {
                 )}
               </div>
             </div>
-            <DialogDescription>
-              테이블 번호를 수정할 수 있습니다.
-            </DialogDescription>
-          </DialogHeader>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label
+                htmlFor="tableSeats"
+                className="text-right text-sm font-medium"
+              >
+                좌석 수
+              </label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input
+                  id="tableSeats"
+                  type="number"
+                  value={doubleClickedTable?.seats}
+                  onChange={(e) => {
+                    const value = Math.max(0, parseInt(e.target.value) || 0);
+                    if (doubleClickedTable)
+                      setDoubleClickedTable({
+                        ...doubleClickedTable,
+                        seats: value,
+                      });
+                  }}
+                  className="w-32"
+                />
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(
+                        `/api/tables/${doubleClickedTable?.id}`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            seats: doubleClickedTable?.seats,
+                          }),
+                        },
+                      );
+
+                      if (!response.ok) {
+                        throw new Error("좌석 수 업데이트에 실패했습니다.");
+                      }
+
+                      setTables((prevTables) =>
+                        prevTables.map((table) =>
+                          table.id === doubleClickedTable?.id
+                            ? { ...table, seats: doubleClickedTable?.seats }
+                            : table,
+                        ),
+                      );
+
+                      alert("좌석 수가 업데이트되었습니다.");
+                    } catch (error) {
+                      console.error("Error updating seats:", error);
+                      alert(
+                        error instanceof Error
+                          ? error.message
+                          : "좌석 수 업데이트 중 오류가 발생했습니다.",
+                      );
+                    }
+                  }}
+                  size="sm"
+                >
+                  수정
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <DialogFooter>
             <Button onClick={() => setIsDialogOpen(false)}>닫기</Button>
           </DialogFooter>
