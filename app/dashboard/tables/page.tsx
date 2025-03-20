@@ -6,10 +6,6 @@ import { Button } from "@/components/ui/button";
 import { TableCard } from "@/components/table-card";
 import {
   DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragEndEvent,
   DragStartEvent,
   DragMoveEvent,
@@ -33,6 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  useSensor,
+  useSensors,
+  PointerSensor,
+  KeyboardSensor,
+} from "@dnd-kit/core";
 
 interface Table {
   id: string;
@@ -98,10 +100,6 @@ export default function TablesPage() {
   const [selectedReservation, setSelectedReservation] = useState<string>("");
   const [isReservationUpdateSuccessful, setIsReservationUpdateSuccessful] =
     useState(false);
-  const [
-    isReservationUpdateButtonDisabled,
-    setIsReservationUpdateButtonDisabled,
-  ] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -759,7 +757,67 @@ export default function TablesPage() {
               <div className="col-span-3 flex items-center gap-2">
                 <Select
                   value={selectedReservation}
-                  onValueChange={setSelectedReservation}
+                  onValueChange={(value) => {
+                    setSelectedReservation(value);
+
+                    // Automatically update the reservation when selected
+                    if (doubleClickedTable) {
+                      setIsReservationUpdateSuccessful(false);
+
+                      fetch(
+                        `/api/tables/${doubleClickedTable.id}/reservation`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            reservationId: value === "none" ? null : value,
+                          }),
+                        },
+                      )
+                        .then((response) => {
+                          if (!response.ok) {
+                            throw new Error(
+                              "예약 연결 업데이트에 실패했습니다.",
+                            );
+                          }
+                          return response.json();
+                        })
+                        .then(() => {
+                          setIsReservationUpdateSuccessful(true);
+
+                          // Update the tables state to reflect the change
+                          setTables((prevTables) =>
+                            prevTables.map((table) =>
+                              table.id === doubleClickedTable.id
+                                ? {
+                                    ...table,
+                                    reservationId:
+                                      value === "none" ? undefined : value,
+                                  }
+                                : table,
+                            ),
+                          );
+
+                          // Hide success indicator after 1.5 seconds
+                          setTimeout(() => {
+                            setIsReservationUpdateSuccessful(false);
+                          }, 1500);
+                        })
+                        .catch((error) => {
+                          console.error(
+                            "Error updating reservation link:",
+                            error,
+                          );
+                          alert(
+                            error instanceof Error
+                              ? error.message
+                              : "예약 연결 업데이트 중 오류가 발생했습니다.",
+                          );
+                        });
+                    }
+                  }}
                 >
                   <SelectTrigger className="w-64">
                     <SelectValue placeholder="예약 선택" />
@@ -788,48 +846,6 @@ export default function TablesPage() {
                     )}
                   </SelectContent>
                 </Select>
-                <Button
-                  onClick={async () => {
-                    setIsReservationUpdateButtonDisabled(true);
-                    setIsReservationUpdateSuccessful(false);
-
-                    try {
-                      const response = await fetch(
-                        `/api/tables/${doubleClickedTable?.id}/reservation`,
-                        {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            reservationId: selectedReservation || null,
-                          }),
-                        },
-                      );
-
-                      if (!response.ok) {
-                        throw new Error("예약 연결 업데이트에 실패했습니다.");
-                      }
-
-                      setIsReservationUpdateSuccessful(true);
-                    } catch (error) {
-                      console.error("Error updating reservation link:", error);
-                      alert(
-                        error instanceof Error
-                          ? error.message
-                          : "예약 연결 업데이트 중 오류가 발생했습니다.",
-                      );
-                    } finally {
-                      setTimeout(() => {
-                        setIsReservationUpdateButtonDisabled(false);
-                      }, 1000);
-                    }
-                  }}
-                  size="sm"
-                  disabled={isReservationUpdateButtonDisabled}
-                >
-                  연결
-                </Button>
                 {isReservationUpdateSuccessful && (
                   <Check className="h-5 w-5 text-green-500" />
                 )}
