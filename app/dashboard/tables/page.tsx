@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCard } from "@/components/table-card";
 import {
@@ -75,6 +75,8 @@ export default function TablesPage() {
     isTableNumberUpdateButtonDisabled,
     setIsTableNumberUpdateButtonDisabled,
   ] = useState(false);
+  const [isTableNumberUpdateSuccessful, setIsTableNumberUpdateSuccessful] =
+    useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -542,51 +544,67 @@ export default function TablesPage() {
                 }}
                 className="w-32"
               />
-              <Button
-                onClick={async () => {
-                  // Disable the button immediately
-                  setIsTableNumberUpdateButtonDisabled(true);
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={async () => {
+                    // Disable the button immediately
+                    setIsTableNumberUpdateButtonDisabled(true);
+                    // Hide any previous success indicator
+                    setIsTableNumberUpdateSuccessful(false);
 
-                  try {
-                    const response = await fetch(
-                      `/api/tables/${doubleClickedTable?.id}`,
-                      {
-                        method: "PATCH",
-                        headers: {
-                          "Content-Type": "application/json",
+                    try {
+                      const response = await fetch(
+                        `/api/tables/${doubleClickedTable?.id}`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            number: doubleClickedTable?.number,
+                          }),
                         },
-                        body: JSON.stringify({
-                          number: doubleClickedTable?.number,
-                        }),
-                      },
-                    );
+                      );
 
-                    if (!response.ok) {
-                      throw new Error("Failed to update table number");
+                      if (!response.ok) {
+                        throw new Error("테이블 번호 업데이트에 실패했습니다.");
+                      }
+
+                      // Update the local state with the new table number
+                      setTables((prevTables) =>
+                        prevTables.map((table) =>
+                          table.id === doubleClickedTable?.id
+                            ? { ...table, number: doubleClickedTable?.number }
+                            : table,
+                        ),
+                      );
+
+                      // Show success check mark
+                      setIsTableNumberUpdateSuccessful(true);
+                    } catch (error) {
+                      console.error("Error updating table number:", error);
+                      // Show error alert
+                      alert(
+                        error instanceof Error
+                          ? error.message
+                          : "테이블 번호 업데이트 중 오류가 발생했습니다.",
+                      );
+                    } finally {
+                      // Re-enable the button after 1 second
+                      setTimeout(() => {
+                        setIsTableNumberUpdateButtonDisabled(false);
+                      }, 1000);
                     }
-
-                    // Update the local state with the new table number
-                    setTables((prevTables) =>
-                      prevTables.map((table) =>
-                        table.id === doubleClickedTable?.id
-                          ? { ...table, number: doubleClickedTable?.number }
-                          : table,
-                      ),
-                    );
-                  } catch (error) {
-                    console.error("Error updating table number:", error);
-                  } finally {
-                    // Re-enable the button after 1 second
-                    setTimeout(() => {
-                      setIsTableNumberUpdateButtonDisabled(false);
-                    }, 1000);
-                  }
-                }}
-                size="sm"
-                disabled={isTableNumberUpdateButtonDisabled}
-              >
-                수정
-              </Button>
+                  }}
+                  size="sm"
+                  disabled={isTableNumberUpdateButtonDisabled}
+                >
+                  수정
+                </Button>
+                {isTableNumberUpdateSuccessful && (
+                  <Check className="h-5 w-5 text-green-500" />
+                )}
+              </div>
             </div>
             <DialogDescription>
               테이블 번호를 수정할 수 있습니다.
