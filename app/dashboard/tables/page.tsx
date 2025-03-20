@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCard } from "@/components/table-card";
 import {
@@ -102,6 +102,7 @@ export default function TablesPage() {
   const [selectedReservation, setSelectedReservation] = useState<string>("");
   const [isReservationUpdateSuccessful, setIsReservationUpdateSuccessful] =
     useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -383,11 +384,11 @@ export default function TablesPage() {
 
   // 페이지 로드 시 테이블 데이터와 예약 데이터 가져오기
   useEffect(() => {
+    setIsLoading(true);
     // 오늘 날짜를 YYYY-MM-DD 형식으로 구하기
     const today = new Date().toISOString().split("T")[0];
 
     // 먼저 모든 예약 데이터를 가져온 다음 테이블을 처리합니다
-    // 이렇게 하면 테이블에 예약 정보를 바로 연결할 수 있습니다
     fetch(`/api/reservations?date=${today}`)
       .then((response) => response.json())
       .then((allReservationsData) => {
@@ -404,7 +405,6 @@ export default function TablesPage() {
         return fetch("/api/tables")
           .then((response) => response.json())
           .then((data) => {
-            console.log("data", data);
             // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환하고 예약 정보 연결
             const formattedTables = data.map((table: TableFromApi) => {
               const tableData = {
@@ -435,10 +435,12 @@ export default function TablesPage() {
             });
 
             setTables(formattedTables);
+            setIsLoading(false);
           });
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
+        setIsLoading(false);
       });
   }, []);
 
@@ -712,43 +714,52 @@ export default function TablesPage() {
         className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50"
         onClick={clearSelection}
       >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={rectIntersection}
-          onDragStart={handleDragStart}
-          onDragMove={handleDragMove}
-          onDragEnd={handleDragEnd}
-          modifiers={[snapToGrid]}
-        >
-          {tables.map((table) => {
-            // Calculate additional transform for selected tables during drag
-            const isSelected = selectedTables.includes(table.id);
-            const isBeingDragged = activeDragId === table.id;
+        {isLoading ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <p className="text-sm text-gray-500">
+              테이블 정보를 불러오고 있습니다.
+            </p>
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={rectIntersection}
+            onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+            modifiers={[snapToGrid]}
+          >
+            {tables.map((table) => {
+              // Calculate additional transform for selected tables during drag
+              const isSelected = selectedTables.includes(table.id);
+              const isBeingDragged = activeDragId === table.id;
 
-            // Only apply additional transform to selected tables that are not being directly dragged
-            const additionalTransform =
-              isSelected &&
-              activeDragId &&
-              !isBeingDragged &&
-              selectedTables.includes(activeDragId)
-                ? { x: dragDelta.x, y: dragDelta.y }
-                : { x: 0, y: 0 };
-            return (
-              <TableCard
-                key={table.id}
-                id={table.id}
-                seats={table.seats}
-                number={table.number}
-                position={table.position}
-                isSelected={isSelected}
-                onClick={(e) => handleTableSelect(table.id, e)}
-                onDoubleClick={() => handleTableDoubleClick(table.id)}
-                additionalTransform={additionalTransform}
-                reservation={table.reservation}
-              />
-            );
-          })}
-        </DndContext>
+              // Only apply additional transform to selected tables that are not being directly dragged
+              const additionalTransform =
+                isSelected &&
+                activeDragId &&
+                !isBeingDragged &&
+                selectedTables.includes(activeDragId)
+                  ? { x: dragDelta.x, y: dragDelta.y }
+                  : { x: 0, y: 0 };
+              return (
+                <TableCard
+                  key={table.id}
+                  id={table.id}
+                  seats={table.seats}
+                  number={table.number}
+                  position={table.position}
+                  isSelected={isSelected}
+                  onClick={(e) => handleTableSelect(table.id, e)}
+                  onDoubleClick={() => handleTableDoubleClick(table.id)}
+                  additionalTransform={additionalTransform}
+                  reservation={table.reservation}
+                />
+              );
+            })}
+          </DndContext>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
