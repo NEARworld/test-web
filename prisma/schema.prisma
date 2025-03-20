@@ -98,9 +98,14 @@ model Reservation {
   dailyStats    DailyReservationStats @relation(fields: [date], references: [date])
   date          String               // YYYY-MM-DD 형식
 
+  // 테이블 정보 추가
+  tableId       String?
+  table         Table?        @relation(fields: [tableId], references: [id])
+
   @@index([dateTime])
   @@index([createdById])
   @@index([date])
+  @@index([tableId])
 }
 
 model MenuItem {
@@ -148,6 +153,9 @@ model Table {
   positionY   Float        // Y 좌표
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  
+  // 테이블에 연결된 예약 정보
+  reservations Reservation[]
 }
 
 // 테이블 상태 열거형
