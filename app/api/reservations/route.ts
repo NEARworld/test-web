@@ -1,6 +1,6 @@
 // app/api/reservation/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma, $Enums } from "@prisma/client";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 
@@ -20,9 +20,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get date from query parameters
+    // Get query parameters
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
+    const status = searchParams.get("status") as $Enums.ReservationStatus; // Get status parameter if present
 
     if (!date) {
       return NextResponse.json(
@@ -35,14 +36,22 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(`${date}T00:00:00.000Z`);
     const endDate = new Date(`${date}T23:59:59.999Z`);
 
-    // Query reservations for the specified date
-    const reservations = await prismaClient.reservation.findMany({
-      where: {
-        dateTime: {
-          gte: startDate,
-          lte: endDate,
-        },
+    // Build the where clause with date range
+    const whereClause: Prisma.ReservationWhereInput = {
+      dateTime: {
+        gte: startDate,
+        lte: endDate,
       },
+    };
+
+    // Add status filter if provided
+    if (status) {
+      whereClause.status = status;
+    }
+
+    // Query reservations with the constructed where clause
+    const reservations = await prismaClient.reservation.findMany({
+      where: whereClause,
       include: {
         menuItems: true,
         createdBy: {

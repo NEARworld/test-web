@@ -26,6 +26,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Table {
   id: string;
@@ -35,6 +42,7 @@ interface Table {
     x: number;
     y: number;
   };
+  reservationId?: string;
 }
 
 // Interface for the table data returned from the API
@@ -45,6 +53,15 @@ interface TableFromApi {
   positionX: number;
   positionY: number;
   status?: string;
+  reservationId?: string;
+}
+
+// 예약 인터페이스 추가
+interface Reservation {
+  id: string;
+  groupName: string;
+  dateTime: string;
+  status: string;
 }
 
 const CARD_SIZE = 128; // 8rem = 128px
@@ -77,6 +94,14 @@ export default function TablesPage() {
   ] = useState(false);
   const [isTableNumberUpdateSuccessful, setIsTableNumberUpdateSuccessful] =
     useState(false);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [selectedReservation, setSelectedReservation] = useState<string>("");
+  const [isReservationUpdateSuccessful, setIsReservationUpdateSuccessful] =
+    useState(false);
+  const [
+    isReservationUpdateButtonDisabled,
+    setIsReservationUpdateButtonDisabled,
+  ] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -368,11 +393,29 @@ export default function TablesPage() {
             x: table.positionX,
             y: table.positionY,
           },
+          reservationId: table.reservationId,
         }));
         setTables(formattedTables);
       })
       .catch((error) => {
         console.error("Error fetching tables:", error);
+      });
+  }, []);
+
+  // 페이지 로드 시 예약 데이터 가져오기
+  useEffect(() => {
+    // 오늘 날짜를 YYYY-MM-DD 형식으로 구하기
+    const today = new Date().toISOString().split("T")[0];
+
+    // 오늘 날짜의 확정된 예약만 요청
+    fetch(`/api/reservations?date=${today}&status=CONFIRMED`)
+      .then((response) => response.json())
+      .then((data) => {
+        setReservations(data);
+        console.log(`오늘(${today}) 확정된 예약 ${data.length}건 로드됨`);
+      })
+      .catch((error) => {
+        console.error("Error fetching reservations:", error);
       });
   }, []);
 
@@ -447,6 +490,14 @@ export default function TablesPage() {
     const table = tables.find((table) => table.id === id);
     if (table) {
       setDoubleClickedTable(table);
+
+      // Set selected reservation from table data if exists
+      if (table.reservationId) {
+        setSelectedReservation(table.reservationId);
+      } else {
+        setSelectedReservation("none");
+      }
+
       setIsDialogOpen(true);
     }
   };
@@ -554,7 +605,7 @@ export default function TablesPage() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="tableNumber"
-                className="text-right text-sm font-medium"
+                className="text-left text-sm font-medium"
               >
                 테이블 번호
               </label>
@@ -633,7 +684,7 @@ export default function TablesPage() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="tableSeats"
-                className="text-right text-sm font-medium"
+                className="text-left text-sm font-medium"
               >
                 좌석 수
               </label>
@@ -696,6 +747,138 @@ export default function TablesPage() {
                 </Button>
               </div>
             </div>
+
+            {/* 예약 선택 드롭다운 추가 */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label
+                htmlFor="reservation"
+                className="text-left text-sm font-medium"
+              >
+                연결된 예약
+              </label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Select
+                  value={selectedReservation}
+                  onValueChange={setSelectedReservation}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="예약 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">예약 없음</SelectItem>
+                    {reservations.length > 0 ? (
+                      reservations.map((reservation) => (
+                        <SelectItem key={reservation.id} value={reservation.id}>
+                          {reservation.groupName} -{" "}
+                          {new Date(reservation.dateTime).toLocaleString(
+                            "ko-KR",
+                            {
+                              month: "numeric",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "numeric",
+                            },
+                          )}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-reservations" disabled>
+                        확정된 예약이 없습니다
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={async () => {
+                    setIsReservationUpdateButtonDisabled(true);
+                    setIsReservationUpdateSuccessful(false);
+
+                    try {
+                      const response = await fetch(
+                        `/api/tables/${doubleClickedTable?.id}/reservation`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            reservationId: selectedReservation || null,
+                          }),
+                        },
+                      );
+
+                      if (!response.ok) {
+                        throw new Error("예약 연결 업데이트에 실패했습니다.");
+                      }
+
+                      setIsReservationUpdateSuccessful(true);
+                    } catch (error) {
+                      console.error("Error updating reservation link:", error);
+                      alert(
+                        error instanceof Error
+                          ? error.message
+                          : "예약 연결 업데이트 중 오류가 발생했습니다.",
+                      );
+                    } finally {
+                      setTimeout(() => {
+                        setIsReservationUpdateButtonDisabled(false);
+                      }, 1000);
+                    }
+                  }}
+                  size="sm"
+                  disabled={isReservationUpdateButtonDisabled}
+                >
+                  연결
+                </Button>
+                {isReservationUpdateSuccessful && (
+                  <Check className="h-5 w-5 text-green-500" />
+                )}
+              </div>
+            </div>
+
+            {/* 선택된 예약 정보 표시 */}
+            {selectedReservation && selectedReservation !== "none" && (
+              <div className="mt-2 rounded-md bg-gray-50 p-3">
+                {(() => {
+                  const reservation = reservations.find(
+                    (r) => r.id === selectedReservation,
+                  );
+                  if (!reservation) return null;
+
+                  return (
+                    <div className="text-sm">
+                      <div className="font-medium">{reservation.groupName}</div>
+                      <div className="text-gray-600">
+                        {new Date(reservation.dateTime).toLocaleString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "numeric",
+                            weekday: "long",
+                          },
+                        )}
+                      </div>
+                      <div className="mt-1">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                            reservation.status === "CONFIRMED"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {reservation.status === "CONFIRMED"
+                            ? "예약 확정"
+                            : "예약 대기중"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
