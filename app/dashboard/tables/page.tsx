@@ -525,7 +525,7 @@ export default function TablesPage() {
             <div className="flex items-center gap-2">
               <DialogTitle>테이블</DialogTitle>
               <Input
-                type="number"
+                type="text"
                 value={doubleClickedTable?.number}
                 onChange={(e) => {
                   // Only allow positive numbers
