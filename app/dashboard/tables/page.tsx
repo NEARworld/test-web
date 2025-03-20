@@ -71,6 +71,10 @@ export default function TablesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [doubleClickedTable, setDoubleClickedTable] = useState<Table>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [
+    isTableNumberUpdateButtonDisabled,
+    setIsTableNumberUpdateButtonDisabled,
+  ] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -540,6 +544,9 @@ export default function TablesPage() {
               />
               <Button
                 onClick={async () => {
+                  // Disable the button immediately
+                  setIsTableNumberUpdateButtonDisabled(true);
+
                   try {
                     const response = await fetch(
                       `/api/tables/${doubleClickedTable?.id}`,
@@ -568,9 +575,15 @@ export default function TablesPage() {
                     );
                   } catch (error) {
                     console.error("Error updating table number:", error);
+                  } finally {
+                    // Re-enable the button after 1 second
+                    setTimeout(() => {
+                      setIsTableNumberUpdateButtonDisabled(false);
+                    }, 1000);
                   }
                 }}
                 size="sm"
+                disabled={isTableNumberUpdateButtonDisabled}
               >
                 수정
               </Button>
