@@ -561,7 +561,7 @@ export default function TablesPage() {
               <div className="col-span-3 flex items-center gap-2">
                 <Input
                   id="tableNumber"
-                  type="number"
+                  type="text"
                   value={doubleClickedTable?.number}
                   onChange={(e) => {
                     // Only allow positive numbers
