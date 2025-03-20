@@ -45,6 +45,7 @@ interface Table {
     y: number;
   };
   reservationId?: string;
+  reservation?: Reservation;
 }
 
 // Interface for the table data returned from the API
@@ -56,6 +57,7 @@ interface TableFromApi {
   positionY: number;
   status?: string;
   reservationId?: string;
+  reservation?: Reservation;
 }
 
 // 예약 인터페이스 추가
@@ -136,6 +138,8 @@ export default function TablesPage() {
         x: Math.round(newPosition.x / gridSize) * gridSize,
         y: Math.round(newPosition.y / gridSize) * gridSize,
       },
+      reservationId: undefined,
+      reservation: undefined,
     };
 
     // 테이블 생성 API 호출
@@ -377,43 +381,64 @@ export default function TablesPage() {
     });
   };
 
-  // 페이지 로드 시 테이블 데이터 가져오기
-  useEffect(() => {
-    fetch("/api/tables")
-      .then((response) => response.json())
-      .then((data) => {
-        // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환
-        const formattedTables = data.map((table: TableFromApi) => ({
-          id: table.id,
-          seats: table.seats,
-          number: table.number, // Use number directly
-          position: {
-            x: table.positionX,
-            y: table.positionY,
-          },
-          reservationId: table.reservationId,
-        }));
-        setTables(formattedTables);
-      })
-      .catch((error) => {
-        console.error("Error fetching tables:", error);
-      });
-  }, []);
-
-  // 페이지 로드 시 예약 데이터 가져오기
+  // 페이지 로드 시 테이블 데이터와 예약 데이터 가져오기
   useEffect(() => {
     // 오늘 날짜를 YYYY-MM-DD 형식으로 구하기
     const today = new Date().toISOString().split("T")[0];
 
-    // 오늘 날짜의 확정된 예약만 요청
-    fetch(`/api/reservations?date=${today}&status=CONFIRMED`)
+    // 먼저 모든 예약 데이터를 가져온 다음 테이블을 처리합니다
+    // 이렇게 하면 테이블에 예약 정보를 바로 연결할 수 있습니다
+    fetch(`/api/reservations?date=${today}`)
       .then((response) => response.json())
-      .then((data) => {
-        setReservations(data);
-        console.log(`오늘(${today}) 확정된 예약 ${data.length}건 로드됨`);
+      .then((allReservationsData) => {
+        // 확정된 예약만 필터링해서 상태에 저장
+        const confirmedReservations = allReservationsData.filter(
+          (r: Reservation) => r.status === "CONFIRMED",
+        );
+        setReservations(confirmedReservations);
+        console.log(
+          `오늘(${today}) 확정된 예약 ${confirmedReservations.length}건 로드됨`,
+        );
+
+        // 예약 데이터를 가져온 후 테이블 데이터를 가져옵니다
+        return fetch("/api/tables")
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("data", data);
+            // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환하고 예약 정보 연결
+            const formattedTables = data.map((table: TableFromApi) => {
+              const tableData = {
+                id: table.id,
+                seats: table.seats,
+                number: table.number,
+                position: {
+                  x: table.positionX,
+                  y: table.positionY,
+                },
+                reservationId: table.reservationId,
+              };
+
+              // 테이블에 연관된 예약 정보가 있다면 연결
+              if (table.reservationId) {
+                const matchingReservation = allReservationsData.find(
+                  (r: Reservation) => r.id === table.reservationId,
+                );
+                if (matchingReservation) {
+                  return {
+                    ...tableData,
+                    reservation: matchingReservation,
+                  };
+                }
+              }
+
+              return tableData;
+            });
+
+            setTables(formattedTables);
+          });
       })
       .catch((error) => {
-        console.error("Error fetching reservations:", error);
+        console.error("Error fetching data:", error);
       });
   }, []);
 
@@ -500,6 +525,143 @@ export default function TablesPage() {
     }
   };
 
+  // 테이블에 예약 연결하는 함수
+  const connectReservationToTable = async (
+    tableId: string,
+    reservationValue: string,
+  ) => {
+    // 예약 성공 표시 초기화
+    setIsReservationUpdateSuccessful(false);
+
+    try {
+      // 예약 ID 설정 (none이면 undefined, 아니면 해당 ID)
+      const reservationId =
+        reservationValue === "none" ? undefined : reservationValue;
+
+      // API 호출할 때는 null로 전송 (API에서는 null을 받음)
+      const response = await fetch(`/api/tables/${tableId}/reservation`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reservationId: reservationValue === "none" ? null : reservationValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("예약 연결 업데이트에 실패했습니다.");
+      }
+
+      const data = await response.json();
+
+      // 예약 테이블 전체를 다시 조회하여 테이블 상태 업데이트
+      try {
+        const tablesResponse = await fetch("/api/tables");
+        if (tablesResponse.ok) {
+          const tablesData = await tablesResponse.json();
+
+          // 받아온 테이블 데이터를 UI에 맞게 변환
+          const updatedTables = tablesData.map((table: TableFromApi) => {
+            return {
+              id: table.id,
+              number: table.number,
+              seats: table.seats,
+              position: {
+                x: table.positionX,
+                y: table.positionY,
+              },
+              reservationId: table.reservationId,
+              reservation: table.reservation as unknown as Reservation,
+            };
+          });
+
+          // 테이블 상태 업데이트
+          setTables(updatedTables);
+
+          // 선택된 테이블도 업데이트
+          if (doubleClickedTable) {
+            const updatedTable = updatedTables.find(
+              (t: Table) => t.id === tableId,
+            );
+            if (updatedTable) {
+              setDoubleClickedTable(updatedTable);
+            }
+          }
+
+          // 성공 표시
+          setIsReservationUpdateSuccessful(true);
+
+          // 1.5초 후 성공 표시 제거
+          setTimeout(() => {
+            setIsReservationUpdateSuccessful(false);
+          }, 1500);
+
+          return { success: true, data };
+        }
+      } catch (error) {
+        console.error("테이블 목록 새로고침 실패:", error);
+      }
+
+      // API 호출 실패 시 폴백 로직 - 로컬 상태만 업데이트
+      console.log("테이블 목록 조회 실패, 로컬 상태만 업데이트합니다.");
+      const matchingReservation =
+        reservationValue !== "none"
+          ? reservations.find((r) => r.id === reservationValue)
+          : undefined;
+
+      // 테이블 상태 업데이트
+      setTables((prevTables) =>
+        prevTables.map((table) =>
+          table.id === tableId
+            ? {
+                ...table,
+                reservationId: reservationId,
+                reservation: matchingReservation,
+              }
+            : table,
+        ),
+      );
+
+      // 성공 표시
+      setIsReservationUpdateSuccessful(true);
+
+      // 현재 선택된 테이블이면 해당 테이블 정보도 업데이트
+      if (doubleClickedTable && doubleClickedTable.id === tableId) {
+        setDoubleClickedTable({
+          ...doubleClickedTable,
+          reservationId: reservationId,
+          reservation: matchingReservation,
+        });
+      }
+
+      // 1.5초 후 성공 표시 제거
+      setTimeout(() => {
+        setIsReservationUpdateSuccessful(false);
+      }, 1500);
+
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error updating reservation link:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "예약 연결 업데이트 중 오류가 발생했습니다.",
+      );
+      return { success: false, error };
+    }
+  };
+
+  // 예약 드롭다운 변경 핸들러
+  const handleReservationChange = (value: string) => {
+    setSelectedReservation(value);
+
+    // 테이블이 선택되어 있으면 예약 연결
+    if (doubleClickedTable) {
+      connectReservationToTable(doubleClickedTable.id, value);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -582,6 +744,7 @@ export default function TablesPage() {
                 onClick={(e) => handleTableSelect(table.id, e)}
                 onDoubleClick={() => handleTableDoubleClick(table.id)}
                 additionalTransform={additionalTransform}
+                reservation={table.reservation}
               />
             );
           })}
@@ -757,67 +920,7 @@ export default function TablesPage() {
               <div className="col-span-3 flex items-center gap-2">
                 <Select
                   value={selectedReservation}
-                  onValueChange={(value) => {
-                    setSelectedReservation(value);
-
-                    // Automatically update the reservation when selected
-                    if (doubleClickedTable) {
-                      setIsReservationUpdateSuccessful(false);
-
-                      fetch(
-                        `/api/tables/${doubleClickedTable.id}/reservation`,
-                        {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            reservationId: value === "none" ? null : value,
-                          }),
-                        },
-                      )
-                        .then((response) => {
-                          if (!response.ok) {
-                            throw new Error(
-                              "예약 연결 업데이트에 실패했습니다.",
-                            );
-                          }
-                          return response.json();
-                        })
-                        .then(() => {
-                          setIsReservationUpdateSuccessful(true);
-
-                          // Update the tables state to reflect the change
-                          setTables((prevTables) =>
-                            prevTables.map((table) =>
-                              table.id === doubleClickedTable.id
-                                ? {
-                                    ...table,
-                                    reservationId:
-                                      value === "none" ? undefined : value,
-                                  }
-                                : table,
-                            ),
-                          );
-
-                          // Hide success indicator after 1.5 seconds
-                          setTimeout(() => {
-                            setIsReservationUpdateSuccessful(false);
-                          }, 1500);
-                        })
-                        .catch((error) => {
-                          console.error(
-                            "Error updating reservation link:",
-                            error,
-                          );
-                          alert(
-                            error instanceof Error
-                              ? error.message
-                              : "예약 연결 업데이트 중 오류가 발생했습니다.",
-                          );
-                        });
-                    }
-                  }}
+                  onValueChange={handleReservationChange}
                 >
                   <SelectTrigger className="w-64">
                     <SelectValue placeholder="예약 선택" />

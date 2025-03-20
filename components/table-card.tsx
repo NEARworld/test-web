@@ -3,6 +3,14 @@ import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import React from "react";
 
+// Define Reservation interface
+interface Reservation {
+  id: string;
+  groupName: string;
+  dateTime: string;
+  status: string;
+}
+
 interface TableCardProps {
   id: string;
   seats: number;
@@ -19,6 +27,7 @@ interface TableCardProps {
     x: number;
     y: number;
   };
+  reservation?: Reservation;
 }
 
 export function TableCard({
@@ -31,10 +40,16 @@ export function TableCard({
   onClick,
   onDoubleClick,
   additionalTransform = { x: 0, y: 0 },
+  reservation,
 }: TableCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id,
   });
+
+  console.log(number, reservation);
+
+  // If table has reservation, set status to occupied
+  const tableStatus = reservation ? "occupied" : status;
 
   const style = {
     transform: CSS.Transform.toString({
@@ -62,7 +77,7 @@ export function TableCard({
       className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-2 shadow-sm ${borderColor} ${
         isSelected
           ? "border border-blue-500 bg-blue-100 ring-1 ring-blue-500"
-          : status === "occupied"
+          : tableStatus === "occupied"
             ? "bg-blue-50"
             : "bg-white"
       } select-none`}
@@ -81,9 +96,23 @@ export function TableCard({
 
       <div className="text-center">
         <div className="text-lg">테이블</div>
-        <div className="mt-1 text-xs text-gray-500">
-          {status === "occupied" ? "사용중" : "비어있음"}
-        </div>
+        {reservation ? (
+          <div className="mt-1 text-xs">
+            <div className="font-semibold text-blue-600">
+              {reservation.groupName}
+            </div>
+            <div className="text-gray-600">
+              {new Date(reservation.dateTime).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1 text-xs text-gray-500">
+            {tableStatus === "occupied" ? "사용중" : "비어있음"}
+          </div>
+        )}
       </div>
     </div>
   );
