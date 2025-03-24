@@ -38,3 +38,24 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  _: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+
+    await prisma.table.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting table:", error);
+    return NextResponse.json(
+      { error: "Failed to delete table" },
+      { status: 500 },
+    );
+  }
+}
