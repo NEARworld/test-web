@@ -48,7 +48,6 @@ interface Table {
   reservation?: Reservation;
 }
 
-// Interface for the table data returned from the API
 interface TableFromApi {
   id: string;
   seats: number;
@@ -60,7 +59,6 @@ interface TableFromApi {
   reservation?: Reservation;
 }
 
-// 예약 인터페이스 추가
 interface Reservation {
   id: string;
   groupName: string;
@@ -68,9 +66,8 @@ interface Reservation {
   status: string;
 }
 
-const CARD_SIZE = 128; // 8rem = 128px
+const CARD_SIZE = 128;
 
-// Grid snapping modifier
 const createSnapModifier = (gridSize: number): Modifier => {
   return ({ transform }) => {
     const { x, y } = transform;
@@ -87,12 +84,13 @@ export default function TablesPage() {
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
-  const [gridSize, setGridSize] = useState(32); // Default grid size
+  const [gridSize, setGridSize] = useState(32);
+  const [isGridSizeVisible] = useState(false); // 그리드 크기 표시 여부 상태 추가
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [doubleClickedTable, setDoubleClickedTable] = useState<Table>();
   const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null); // 내용물을 감싸는 div의 ref
+  const contentRef = useRef<HTMLDivElement>(null);
   const [
     isTableNumberUpdateButtonDisabled,
     setIsTableNumberUpdateButtonDisabled,
@@ -105,9 +103,9 @@ export default function TablesPage() {
     useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [containerPosition, setContainerPosition] = useState({ x: 0, y: 0 }); // 팬 위치 상태 추가
-  const [isPanning, setIsPanning] = useState(false); // 팬 상태 추가
-  const panningStartPoint = useRef({ x: 0, y: 0 }); // 팬 시작점
+  const [containerPosition, setContainerPosition] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panningStartPoint = useRef({ x: 0, y: 0 });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -120,17 +118,11 @@ export default function TablesPage() {
 
   const snapToGrid = useMemo(() => createSnapModifier(gridSize), [gridSize]);
 
-  // Update container dimensions when window resizes
   useEffect(() => {
-    const updateContainerSize = () => {
-      // This function still runs on resize but we don't need to store the value in state
-    };
+    const updateContainerSize = () => {};
 
     window.addEventListener("resize", updateContainerSize);
-
-    return () => {
-      window.removeEventListener("resize", updateContainerSize);
-    };
+    return () => window.removeEventListener("resize", updateContainerSize);
   }, []);
 
   const addTable = () => {
@@ -148,7 +140,6 @@ export default function TablesPage() {
       reservation: undefined,
     };
 
-    // 테이블 생성 API 호출
     fetch("/api/tables", {
       method: "POST",
       headers: {
@@ -203,7 +194,6 @@ export default function TablesPage() {
     id: string,
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
-    // Prevent selection when dragging
     if (
       event.target instanceof Element &&
       event.target.closest("[data-drag-handle]")
@@ -214,14 +204,12 @@ export default function TablesPage() {
     event.stopPropagation();
 
     if (event.ctrlKey || event.metaKey) {
-      // Toggle selection with Ctrl/Cmd key
       setSelectedTables((prev) =>
         prev.includes(id)
           ? prev.filter((tableId) => tableId !== id)
           : [...prev, id],
       );
     } else if (event.shiftKey && selectedTables.length > 0) {
-      // Range selection with Shift key
       const tableIds = tables.map((table) => table.id);
       const lastSelectedIndex = tableIds.indexOf(
         selectedTables[selectedTables.length - 1],
@@ -239,7 +227,6 @@ export default function TablesPage() {
         return uniqueSelection;
       });
     } else {
-      // Regular click - deselect others and select this one
       setSelectedTables(
         selectedTables.includes(id) && selectedTables.length === 1 ? [] : [id],
       );
@@ -247,7 +234,6 @@ export default function TablesPage() {
   };
 
   const clearSelection = (event: React.MouseEvent<HTMLDivElement>) => {
-    // Only clear if clicking directly on the container (not on a table)
     if (event.target === event.currentTarget) {
       setSelectedTables([]);
     }
@@ -268,26 +254,20 @@ export default function TablesPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, delta } = event;
 
-    // Reset drag state
     setActiveDragId(null);
     setDragDelta({ x: 0, y: 0 });
 
-    // If we're dragging a selected table and there are multiple selections,
-    // move all selected tables
     const isMovingSelectedGroup =
       selectedTables.includes(active.id as string) && selectedTables.length > 1;
 
     setTables((items) => {
       return items.map((item) => {
-        // If moving a group and this item is selected, move it
         if (isMovingSelectedGroup && selectedTables.includes(item.id)) {
-          // Calculate new position
           const newX =
             Math.round((item.position.x + delta.x) / gridSize) * gridSize;
           const newY =
             Math.round((item.position.y + delta.y) / gridSize) * gridSize;
 
-          // Check container boundaries
           const maxX = containerRef.current
             ? containerRef.current.clientWidth - CARD_SIZE
             : 0;
@@ -295,16 +275,11 @@ export default function TablesPage() {
             ? containerRef.current.clientHeight - CARD_SIZE
             : 0;
 
-          // Apply boundary constraints
           const boundedX = Math.max(0, Math.min(newX, maxX));
           const boundedY = Math.max(0, Math.min(newY, maxY));
 
-          // Here we should add collision detection for group movement,
-          // but simplifying for now as it's complex to check all potential collisions
-
           const updatedPosition = { x: boundedX, y: boundedY };
 
-          // API call for position update
           fetch("/api/tables", {
             method: "PUT",
             headers: {
@@ -324,16 +299,12 @@ export default function TablesPage() {
             ...item,
             position: updatedPosition,
           };
-        }
-        // For the actively dragged item or when not moving as a group
-        else if (item.id === active.id) {
-          // Calculate new position
+        } else if (item.id === active.id) {
           const newX =
             Math.round((item.position.x + delta.x) / gridSize) * gridSize;
           const newY =
             Math.round((item.position.y + delta.y) / gridSize) * gridSize;
 
-          // Check container boundaries
           const maxX = containerRef.current
             ? containerRef.current.clientWidth - CARD_SIZE
             : 0;
@@ -341,11 +312,9 @@ export default function TablesPage() {
             ? containerRef.current.clientHeight - CARD_SIZE
             : 0;
 
-          // Apply boundary constraints
           const boundedX = Math.max(0, Math.min(newX, maxX));
           const boundedY = Math.max(0, Math.min(newY, maxY));
 
-          // Check collision with other tables
           const hasCollision = items.some((otherItem) => {
             if (otherItem.id === item.id) return false;
 
@@ -360,7 +329,6 @@ export default function TablesPage() {
           if (!hasCollision) {
             const updatedPosition = { x: boundedX, y: boundedY };
 
-            // 위치가 변경되었을 때 API 호출
             fetch("/api/tables", {
               method: "PUT",
               headers: {
@@ -387,17 +355,13 @@ export default function TablesPage() {
     });
   };
 
-  // 페이지 로드 시 테이블 데이터와 예약 데이터 가져오기
   useEffect(() => {
     setIsLoading(true);
-    // 오늘 날짜를 YYYY-MM-DD 형식으로 구하기
     const today = new Date().toISOString().split("T")[0];
 
-    // 먼저 모든 예약 데이터를 가져온 다음 테이블을 처리합니다
     fetch(`/api/reservations?date=${today}`)
       .then((response) => response.json())
       .then((allReservationsData) => {
-        // 확정된 예약만 필터링해서 상태에 저장
         const confirmedReservations = allReservationsData.filter(
           (r: Reservation) => r.status === "CONFIRMED",
         );
@@ -406,11 +370,9 @@ export default function TablesPage() {
           `오늘(${today}) 확정된 예약 ${confirmedReservations.length}건 로드됨`,
         );
 
-        // 예약 데이터를 가져온 후 테이블 데이터를 가져옵니다
         return fetch("/api/tables")
           .then((response) => response.json())
           .then((data) => {
-            // 데이터베이스에서 가져온 테이블 형식을 UI에 맞게 변환하고 예약 정보 연결
             const formattedTables = data.map((table: TableFromApi) => {
               const tableData = {
                 id: table.id,
@@ -423,7 +385,6 @@ export default function TablesPage() {
                 reservationId: table.reservationId,
               };
 
-              // 테이블에 연관된 예약 정보가 있다면 연결
               if (table.reservationId) {
                 const matchingReservation = allReservationsData.find(
                   (r: Reservation) => r.id === table.reservationId,
@@ -449,15 +410,12 @@ export default function TablesPage() {
       });
   }, []);
 
-  // Delete 키 감지 로직
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 테이블이 선택된 상태에서 Delete 키가 눌렸을 때만 처리
       if (
         selectedTables.length > 0 &&
         (e.key === "Delete" || e.key === "Backspace")
       ) {
-        // 입력 요소에 포커스가 없을 때만 활성화
         if (
           document.activeElement?.tagName !== "INPUT" &&
           document.activeElement?.tagName !== "TEXTAREA" &&
@@ -470,17 +428,12 @@ export default function TablesPage() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedTables]);
 
-  // 삭제 확인 처리
   const handleDeleteConfirm = () => {
-    // 선택된 테이블 삭제
     const deletedIds = [...selectedTables];
 
-    // 데이터베이스에서 각 테이블 삭제
     const deletePromises = deletedIds.map((id) =>
       fetch(`/api/tables/${id}`, {
         method: "DELETE",
@@ -492,26 +445,20 @@ export default function TablesPage() {
       }),
     );
 
-    // 모든 삭제 처리 후
     Promise.all(deletePromises)
       .then(() => {
-        // 상태에서 삭제된 테이블 제거
         setTables((prevTables) =>
           prevTables.filter((table) => !deletedIds.includes(table.id)),
         );
-        // 선택 초기화
         setSelectedTables([]);
-        // 대화상자 닫기
         setIsDeleteDialogOpen(false);
       })
       .catch((error) => {
         console.error("테이블 삭제 중 오류 발생:", error);
-        // 오류가 발생해도 대화상자 닫기
         setIsDeleteDialogOpen(false);
       });
   };
 
-  // 삭제 취소
   const handleDeleteCancel = () => {
     setIsDeleteDialogOpen(false);
   };
@@ -520,39 +467,27 @@ export default function TablesPage() {
     const table = tables.find((table) => table.id === id);
     if (table) {
       setDoubleClickedTable(table);
-
-      // Set selected reservation from table data if exists
-      if (table.reservationId) {
-        setSelectedReservation(table.reservationId);
-      } else {
-        setSelectedReservation("none");
-      }
-
+      setSelectedReservation(table.reservationId || "none");
       setIsDialogOpen(true);
     }
   };
 
-  // 테이블에 예약 연결하는 함수
   const connectReservationToTable = async (
     tableId: string,
     reservationValue: string,
   ) => {
-    // 예약 성공 표시 초기화
     setIsReservationUpdateSuccessful(false);
 
     try {
-      // 현재 테이블의 예약 정보 가져오기
       const currentTable = tables.find((t) => t.id === tableId);
       if (!currentTable) {
         throw new Error("테이블을 찾을 수 없습니다.");
       }
 
-      // 기존 예약이 있고, 새로운 예약이 다른 경우
       if (
         currentTable.reservationId &&
         currentTable.reservationId !== reservationValue
       ) {
-        // 기존 예약 연결 해제
         await fetch(`/api/tables/${tableId}/reservation`, {
           method: "PATCH",
           headers: {
@@ -564,7 +499,6 @@ export default function TablesPage() {
         });
       }
 
-      // 새로운 예약 연결
       const reservationId =
         reservationValue === "none" ? undefined : reservationValue;
       const response = await fetch(`/api/tables/${tableId}/reservation`, {
@@ -583,13 +517,10 @@ export default function TablesPage() {
 
       const data = await response.json();
 
-      // 예약 테이블 전체를 다시 조회하여 테이블 상태 업데이트
       try {
         const tablesResponse = await fetch("/api/tables");
         if (tablesResponse.ok) {
           const tablesData = await tablesResponse.json();
-
-          // 받아온 테이블 데이터를 UI에 맞게 변환
           const updatedTables = tablesData.map((table: TableFromApi) => {
             return {
               id: table.id,
@@ -604,10 +535,8 @@ export default function TablesPage() {
             };
           });
 
-          // 테이블 상태 업데이트
           setTables(updatedTables);
 
-          // 선택된 테이블도 업데이트
           if (doubleClickedTable) {
             const updatedTable = updatedTables.find(
               (t: Table) => t.id === tableId,
@@ -617,13 +546,8 @@ export default function TablesPage() {
             }
           }
 
-          // 성공 표시
           setIsReservationUpdateSuccessful(true);
-
-          // 1.5초 후 성공 표시 제거
-          setTimeout(() => {
-            setIsReservationUpdateSuccessful(false);
-          }, 1500);
+          setTimeout(() => setIsReservationUpdateSuccessful(false), 1500);
 
           return { success: true, data };
         }
@@ -631,14 +555,12 @@ export default function TablesPage() {
         console.error("테이블 목록 새로고침 실패:", error);
       }
 
-      // API 호출 실패 시 폴백 로직 - 로컬 상태만 업데이트
       console.log("테이블 목록 조회 실패, 로컬 상태만 업데이트합니다.");
       const matchingReservation =
         reservationValue !== "none"
           ? reservations.find((r) => r.id === reservationValue)
           : undefined;
 
-      // 테이블 상태 업데이트
       setTables((prevTables) =>
         prevTables.map((table) =>
           table.id === tableId
@@ -651,10 +573,8 @@ export default function TablesPage() {
         ),
       );
 
-      // 성공 표시
       setIsReservationUpdateSuccessful(true);
 
-      // 현재 선택된 테이블이면 해당 테이블 정보도 업데이트
       if (doubleClickedTable && doubleClickedTable.id === tableId) {
         setDoubleClickedTable({
           ...doubleClickedTable,
@@ -663,10 +583,7 @@ export default function TablesPage() {
         });
       }
 
-      // 1.5초 후 성공 표시 제거
-      setTimeout(() => {
-        setIsReservationUpdateSuccessful(false);
-      }, 1500);
+      setTimeout(() => setIsReservationUpdateSuccessful(false), 1500);
 
       return { success: true, data };
     } catch (error) {
@@ -680,11 +597,8 @@ export default function TablesPage() {
     }
   };
 
-  // 예약 드롭다운 변경 핸들러
   const handleReservationChange = (value: string) => {
     setSelectedReservation(value);
-
-    // 테이블이 선택되어 있으면 예약 연결
     if (doubleClickedTable) {
       connectReservationToTable(doubleClickedTable.id, value);
     }
@@ -698,17 +612,15 @@ export default function TablesPage() {
     setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 0.5));
   };
 
-  // 팬 시작
   const handlePanStart = (event: React.MouseEvent<HTMLDivElement>) => {
     setIsPanning(true);
     panningStartPoint.current = {
       x: event.clientX,
       y: event.clientY,
     };
-    containerRef.current?.classList.add("cursor-grab"); // 커서 스타일 변경
+    containerRef.current?.classList.add("cursor-grab");
   };
 
-  // 팬 이동
   const handlePanMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isPanning) return;
 
@@ -726,10 +638,9 @@ export default function TablesPage() {
     };
   };
 
-  // 팬 종료
   const handlePanEnd = () => {
     setIsPanning(false);
-    containerRef.current?.classList.remove("cursor-grab"); // 커서 스타일 복원
+    containerRef.current?.classList.remove("cursor-grab");
   };
 
   return (
@@ -751,9 +662,6 @@ export default function TablesPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {selectedTables.length > 0 && (
-            <div className="text-sm">{selectedTables.length} 테이블 선택됨</div>
-          )}
           <div className="flex items-center gap-2">
             <Button size="icon" onClick={handleZoomIn}>
               <ZoomIn className="h-4 w-4" />
@@ -762,22 +670,24 @@ export default function TablesPage() {
               <ZoomOut className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="gridSize" className="text-sm">
-              그리드 크기:
-            </label>
-            <input
-              id="gridSize"
-              type="range"
-              min="16"
-              max="64"
-              step="8"
-              value={gridSize}
-              onChange={(e) => setGridSize(Number(e.target.value))}
-              className="w-32"
-            />
-            <span className="text-sm">{gridSize}px</span>
-          </div>
+          {isGridSizeVisible && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="gridSize" className="text-sm">
+                그리드 크기:
+              </label>
+              <input
+                id="gridSize"
+                type="range"
+                min="16"
+                max="64"
+                step="8"
+                value={gridSize}
+                onChange={(e) => setGridSize(Number(e.target.value))}
+                className="w-32"
+              />
+              <span className="text-sm">{gridSize}px</span>
+            </div>
+          )}
           <Button onClick={addTable}>
             <Plus className="mr-2 h-4 w-4" />
             테이블 추가
@@ -787,19 +697,18 @@ export default function TablesPage() {
 
       <div
         ref={containerRef}
-        className="relative h-[calc(100vh-12rem)] cursor-default overflow-hidden rounded-lg border bg-gray-50 active:cursor-grabbing" // 팬 커서 스타일 추가
+        className="relative h-[calc(100vh-12rem)] cursor-default overflow-hidden rounded-lg border bg-gray-50 active:cursor-grabbing"
         onClick={clearSelection}
-        onMouseDown={handlePanStart} // 팬 시작 이벤트
-        onMouseMove={handlePanMove} // 팬 이동 이벤트
-        onMouseUp={handlePanEnd} // 팬 종료 이벤트
-        onMouseLeave={handlePanEnd} // 컨테이너 벗어났을 때 팬 종료 이벤트
+        onMouseDown={handlePanStart}
+        onMouseMove={handlePanMove}
+        onMouseUp={handlePanEnd}
+        onMouseLeave={handlePanEnd}
       >
-        {/* 내용물을 감싸는 div */}
         <div
           ref={contentRef}
           style={{
-            transform: `scale(${zoomLevel}) translate(${containerPosition.x}px, ${containerPosition.y}px)`, // 팬 위치 적용
-            transformOrigin: "center center", // 확대/축소 기준점 중앙으로 변경
+            transform: `scale(${zoomLevel}) translate(${containerPosition.x}px, ${containerPosition.y}px)`,
+            transformOrigin: "center center",
           }}
         >
           {isLoading ? (
@@ -819,11 +728,8 @@ export default function TablesPage() {
               modifiers={[snapToGrid]}
             >
               {tables.map((table) => {
-                // Calculate additional transform for selected tables during drag
                 const isSelected = selectedTables.includes(table.id);
                 const isBeingDragged = activeDragId === table.id;
-
-                // Only apply additional transform to selected tables that are not being directly dragged
                 const additionalTransform =
                   isSelected &&
                   activeDragId &&
@@ -877,7 +783,6 @@ export default function TablesPage() {
                     type="text"
                     value={doubleClickedTable?.number}
                     onChange={(e) => {
-                      // Only allow positive numbers
                       const value = Math.max(0, parseInt(e.target.value) || 0);
                       if (doubleClickedTable)
                         setDoubleClickedTable({
@@ -1012,7 +917,6 @@ export default function TablesPage() {
                 </div>
               </div>
 
-              {/* 예약 선택 드롭다운 추가 */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <label
                   htmlFor="reservation"
@@ -1061,7 +965,6 @@ export default function TablesPage() {
                 </div>
               </div>
 
-              {/* 선택된 예약 정보 표시 */}
               {selectedReservation && selectedReservation !== "none" && (
                 <div className="mt-2 rounded-md bg-gray-50 p-3">
                   {(() => {
