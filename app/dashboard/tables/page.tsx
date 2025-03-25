@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Check, Loader2 } from "lucide-react";
+import { Plus, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react"; // ZoomIn, ZoomOut 아이콘 추가
 import { Button } from "@/components/ui/button";
 import { TableCard } from "@/components/table-card";
 import {
@@ -103,6 +103,7 @@ export default function TablesPage() {
   const [isReservationUpdateSuccessful, setIsReservationUpdateSuccessful] =
     useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState(1); // Zoom level 상태 추가
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -685,6 +686,14 @@ export default function TablesPage() {
     }
   };
 
+  const handleZoomIn = () => {
+    setZoomLevel((prevZoom) => Math.min(prevZoom + 0.2, 2)); // 최대 2배 확대
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 0.5)); // 최소 0.5배 축소
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -707,6 +716,18 @@ export default function TablesPage() {
           {selectedTables.length > 0 && (
             <div className="text-sm">{selectedTables.length} 테이블 선택됨</div>
           )}
+          <div className="flex items-center gap-2">
+            <Button size="icon" onClick={handleZoomIn}>
+              {" "}
+              {/* 줌 확대 버튼 */}
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button size="icon" onClick={handleZoomOut}>
+              {" "}
+              {/* 줌 축소 버튼 */}
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <label htmlFor="gridSize" className="text-sm">
               그리드 크기:
@@ -734,6 +755,10 @@ export default function TablesPage() {
         ref={containerRef}
         className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50"
         onClick={clearSelection}
+        style={{
+          transform: `scale(${zoomLevel})`,
+          transformOrigin: "top left",
+        }} // 줌 스타일 적용
       >
         {isLoading ? (
           <div className="flex h-full flex-col items-center justify-center gap-2">
