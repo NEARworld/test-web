@@ -66,12 +66,17 @@ export function TableCard({
         ? "border-purple-500"
         : "border-gray-300";
 
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation(); // 컨테이너로의 전파 차단
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onMouseDown={handleMouseDown}
       className={`absolute flex h-32 w-32 flex-col items-center justify-between rounded-lg border p-2 shadow-sm ${borderColor} ${
         isSelected
           ? "border border-blue-500 bg-blue-100 ring-1 ring-blue-500"
