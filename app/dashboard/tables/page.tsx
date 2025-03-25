@@ -605,11 +605,11 @@ export default function TablesPage() {
   };
 
   const handleZoomIn = () => {
-    setZoomLevel((prevZoom) => Math.min(prevZoom + 0.2, 2));
+    setZoomLevel((prevZoom) => Math.min(prevZoom + 0.1, 2));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 0.5));
+    setZoomLevel((prevZoom) => Math.max(prevZoom - 0.1, 0.5));
   };
 
   const handlePanStart = (event: React.MouseEvent<HTMLDivElement>) => {
