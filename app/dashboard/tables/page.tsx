@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react"; // ZoomIn, ZoomOut 아이콘 추가
+import { Plus, Check, Loader2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCard } from "@/components/table-card";
 import {
@@ -92,6 +92,7 @@ export default function TablesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [doubleClickedTable, setDoubleClickedTable] = useState<Table>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null); // 내용물을 감싸는 div의 ref
   const [
     isTableNumberUpdateButtonDisabled,
     setIsTableNumberUpdateButtonDisabled,
@@ -103,7 +104,10 @@ export default function TablesPage() {
   const [isReservationUpdateSuccessful, setIsReservationUpdateSuccessful] =
     useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [zoomLevel, setZoomLevel] = useState(1); // Zoom level 상태 추가
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [containerPosition, setContainerPosition] = useState({ x: 0, y: 0 }); // 팬 위치 상태 추가
+  const [isPanning, setIsPanning] = useState(false); // 팬 상태 추가
+  const panningStartPoint = useRef({ x: 0, y: 0 }); // 팬 시작점
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -687,11 +691,45 @@ export default function TablesPage() {
   };
 
   const handleZoomIn = () => {
-    setZoomLevel((prevZoom) => Math.min(prevZoom + 0.2, 2)); // 최대 2배 확대
+    setZoomLevel((prevZoom) => Math.min(prevZoom + 0.2, 2));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 0.5)); // 최소 0.5배 축소
+    setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 0.5));
+  };
+
+  // 팬 시작
+  const handlePanStart = (event: React.MouseEvent<HTMLDivElement>) => {
+    setIsPanning(true);
+    panningStartPoint.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+    containerRef.current?.classList.add("cursor-grab"); // 커서 스타일 변경
+  };
+
+  // 팬 이동
+  const handlePanMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPanning) return;
+
+    const deltaX = event.clientX - panningStartPoint.current.x;
+    const deltaY = event.clientY - panningStartPoint.current.y;
+
+    setContainerPosition((prevPosition) => ({
+      x: prevPosition.x + deltaX,
+      y: prevPosition.y + deltaY,
+    }));
+
+    panningStartPoint.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+  };
+
+  // 팬 종료
+  const handlePanEnd = () => {
+    setIsPanning(false);
+    containerRef.current?.classList.remove("cursor-grab"); // 커서 스타일 복원
   };
 
   return (
@@ -718,13 +756,9 @@ export default function TablesPage() {
           )}
           <div className="flex items-center gap-2">
             <Button size="icon" onClick={handleZoomIn}>
-              {" "}
-              {/* 줌 확대 버튼 */}
               <ZoomIn className="h-4 w-4" />
             </Button>
             <Button size="icon" onClick={handleZoomOut}>
-              {" "}
-              {/* 줌 축소 버튼 */}
               <ZoomOut className="h-4 w-4" />
             </Button>
           </div>
@@ -753,59 +787,68 @@ export default function TablesPage() {
 
       <div
         ref={containerRef}
-        className="relative h-[calc(100vh-12rem)] overflow-hidden rounded-lg border bg-gray-50"
+        className="relative h-[calc(100vh-12rem)] cursor-default overflow-hidden rounded-lg border bg-gray-50 active:cursor-grabbing" // 팬 커서 스타일 추가
         onClick={clearSelection}
-        style={{
-          transform: `scale(${zoomLevel})`,
-          transformOrigin: "top left",
-        }} // 줌 스타일 적용
+        onMouseDown={handlePanStart} // 팬 시작 이벤트
+        onMouseMove={handlePanMove} // 팬 이동 이벤트
+        onMouseUp={handlePanEnd} // 팬 종료 이벤트
+        onMouseLeave={handlePanEnd} // 컨테이너 벗어났을 때 팬 종료 이벤트
       >
-        {isLoading ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            <p className="text-sm text-gray-500">
-              테이블 정보를 불러오고 있습니다.
-            </p>
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={rectIntersection}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-            modifiers={[snapToGrid]}
-          >
-            {tables.map((table) => {
-              // Calculate additional transform for selected tables during drag
-              const isSelected = selectedTables.includes(table.id);
-              const isBeingDragged = activeDragId === table.id;
+        {/* 내용물을 감싸는 div */}
+        <div
+          ref={contentRef}
+          style={{
+            transform: `scale(${zoomLevel}) translate(${containerPosition.x}px, ${containerPosition.y}px)`, // 팬 위치 적용
+            transformOrigin: "center center", // 확대/축소 기준점 중앙으로 변경
+          }}
+        >
+          {isLoading ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <p className="text-sm text-gray-500">
+                테이블 정보를 불러오고 있습니다.
+              </p>
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={rectIntersection}
+              onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
+              onDragEnd={handleDragEnd}
+              modifiers={[snapToGrid]}
+            >
+              {tables.map((table) => {
+                // Calculate additional transform for selected tables during drag
+                const isSelected = selectedTables.includes(table.id);
+                const isBeingDragged = activeDragId === table.id;
 
-              // Only apply additional transform to selected tables that are not being directly dragged
-              const additionalTransform =
-                isSelected &&
-                activeDragId &&
-                !isBeingDragged &&
-                selectedTables.includes(activeDragId)
-                  ? { x: dragDelta.x, y: dragDelta.y }
-                  : { x: 0, y: 0 };
-              return (
-                <TableCard
-                  key={table.id}
-                  id={table.id}
-                  seats={table.seats}
-                  number={table.number}
-                  position={table.position}
-                  isSelected={isSelected}
-                  onClick={(e) => handleTableSelect(table.id, e)}
-                  onDoubleClick={() => handleTableDoubleClick(table.id)}
-                  additionalTransform={additionalTransform}
-                  reservation={table.reservation}
-                />
-              );
-            })}
-          </DndContext>
-        )}
+                // Only apply additional transform to selected tables that are not being directly dragged
+                const additionalTransform =
+                  isSelected &&
+                  activeDragId &&
+                  !isBeingDragged &&
+                  selectedTables.includes(activeDragId)
+                    ? { x: dragDelta.x, y: dragDelta.y }
+                    : { x: 0, y: 0 };
+                return (
+                  <TableCard
+                    key={table.id}
+                    id={table.id}
+                    seats={table.seats}
+                    number={table.number}
+                    position={table.position}
+                    isSelected={isSelected}
+                    onClick={(e) => handleTableSelect(table.id, e)}
+                    onDoubleClick={() => handleTableDoubleClick(table.id)}
+                    additionalTransform={additionalTransform}
+                    reservation={table.reservation}
+                  />
+                );
+              })}
+            </DndContext>
+          )}
+        </div>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -819,243 +862,252 @@ export default function TablesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid justify-start gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label
-                htmlFor="tableNumber"
-                className="text-left text-sm font-medium"
-              >
-                테이블 번호
-              </label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="tableNumber"
-                  type="text"
-                  value={doubleClickedTable?.number}
-                  onChange={(e) => {
-                    // Only allow positive numbers
-                    const value = Math.max(0, parseInt(e.target.value) || 0);
-                    if (doubleClickedTable)
-                      setDoubleClickedTable({
-                        ...doubleClickedTable,
-                        number: value,
-                      });
-                  }}
-                  className="w-32"
-                />
-                <Button
-                  onClick={async () => {
-                    setIsTableNumberUpdateButtonDisabled(true);
-                    setIsTableNumberUpdateSuccessful(false);
+          <DialogContent>
+            <div className="grid justify-start gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label
+                  htmlFor="tableNumber"
+                  className="text-left text-sm font-medium"
+                >
+                  테이블 번호
+                </label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Input
+                    id="tableNumber"
+                    type="text"
+                    value={doubleClickedTable?.number}
+                    onChange={(e) => {
+                      // Only allow positive numbers
+                      const value = Math.max(0, parseInt(e.target.value) || 0);
+                      if (doubleClickedTable)
+                        setDoubleClickedTable({
+                          ...doubleClickedTable,
+                          number: value,
+                        });
+                    }}
+                    className="w-32"
+                  />
+                  <Button
+                    onClick={async () => {
+                      setIsTableNumberUpdateButtonDisabled(true);
+                      setIsTableNumberUpdateSuccessful(false);
 
-                    try {
-                      const response = await fetch(
-                        `/api/tables/${doubleClickedTable?.id}`,
-                        {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
+                      try {
+                        const response = await fetch(
+                          `/api/tables/${doubleClickedTable?.id}`,
+                          {
+                            method: "PATCH",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              number: doubleClickedTable?.number,
+                            }),
                           },
-                          body: JSON.stringify({
-                            number: doubleClickedTable?.number,
-                          }),
-                        },
-                      );
+                        );
 
-                      if (!response.ok) {
-                        throw new Error("테이블 번호 업데이트에 실패했습니다.");
+                        if (!response.ok) {
+                          throw new Error(
+                            "테이블 번호 업데이트에 실패했습니다.",
+                          );
+                        }
+
+                        setTables((prevTables) =>
+                          prevTables.map((table) =>
+                            table.id === doubleClickedTable?.id
+                              ? { ...table, number: doubleClickedTable?.number }
+                              : table,
+                          ),
+                        );
+
+                        setIsTableNumberUpdateSuccessful(true);
+                      } catch (error) {
+                        console.error("Error updating table number:", error);
+                        alert(
+                          error instanceof Error
+                            ? error.message
+                            : "테이블 번호 업데이트 중 오류가 발생했습니다.",
+                        );
+                      } finally {
+                        setTimeout(() => {
+                          setIsTableNumberUpdateButtonDisabled(false);
+                        }, 1000);
                       }
-
-                      setTables((prevTables) =>
-                        prevTables.map((table) =>
-                          table.id === doubleClickedTable?.id
-                            ? { ...table, number: doubleClickedTable?.number }
-                            : table,
-                        ),
-                      );
-
-                      setIsTableNumberUpdateSuccessful(true);
-                    } catch (error) {
-                      console.error("Error updating table number:", error);
-                      alert(
-                        error instanceof Error
-                          ? error.message
-                          : "테이블 번호 업데이트 중 오류가 발생했습니다.",
-                      );
-                    } finally {
-                      setTimeout(() => {
-                        setIsTableNumberUpdateButtonDisabled(false);
-                      }, 1000);
-                    }
-                  }}
-                  size="sm"
-                  disabled={isTableNumberUpdateButtonDisabled}
-                >
-                  수정
-                </Button>
-                {isTableNumberUpdateSuccessful && (
-                  <Check className="h-5 w-5 text-green-500" />
-                )}
+                    }}
+                    size="sm"
+                    disabled={isTableNumberUpdateButtonDisabled}
+                  >
+                    수정
+                  </Button>
+                  {isTableNumberUpdateSuccessful && (
+                    <Check className="h-5 w-5 text-green-500" />
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label
-                htmlFor="tableSeats"
-                className="text-left text-sm font-medium"
-              >
-                좌석 수
-              </label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="tableSeats"
-                  type="number"
-                  value={doubleClickedTable?.seats}
-                  onChange={(e) => {
-                    const value = Math.max(0, parseInt(e.target.value) || 0);
-                    if (doubleClickedTable)
-                      setDoubleClickedTable({
-                        ...doubleClickedTable,
-                        seats: value,
-                      });
-                  }}
-                  className="w-32"
-                />
-                <Button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(
-                        `/api/tables/${doubleClickedTable?.id}`,
-                        {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label
+                  htmlFor="tableSeats"
+                  className="text-left text-sm font-medium"
+                >
+                  좌석 수
+                </label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Input
+                    id="tableSeats"
+                    type="number"
+                    value={doubleClickedTable?.seats}
+                    onChange={(e) => {
+                      const value = Math.max(0, parseInt(e.target.value) || 0);
+                      if (doubleClickedTable)
+                        setDoubleClickedTable({
+                          ...doubleClickedTable,
+                          seats: value,
+                        });
+                    }}
+                    className="w-32"
+                  />
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(
+                          `/api/tables/${doubleClickedTable?.id}`,
+                          {
+                            method: "PATCH",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              seats: doubleClickedTable?.seats,
+                            }),
                           },
-                          body: JSON.stringify({
-                            seats: doubleClickedTable?.seats,
-                          }),
-                        },
-                      );
+                        );
 
-                      if (!response.ok) {
-                        throw new Error("좌석 수 업데이트에 실패했습니다.");
+                        if (!response.ok) {
+                          throw new Error("좌석 수 업데이트에 실패했습니다.");
+                        }
+
+                        setTables((prevTables) =>
+                          prevTables.map((table) =>
+                            table.id === doubleClickedTable?.id
+                              ? { ...table, seats: doubleClickedTable?.seats }
+                              : table,
+                          ),
+                        );
+
+                        alert("좌석 수가 업데이트되었습니다.");
+                      } catch (error) {
+                        console.error("Error updating seats:", error);
+                        alert(
+                          error instanceof Error
+                            ? error.message
+                            : "좌석 수 업데이트 중 오류가 발생했습니다.",
+                        );
                       }
-
-                      setTables((prevTables) =>
-                        prevTables.map((table) =>
-                          table.id === doubleClickedTable?.id
-                            ? { ...table, seats: doubleClickedTable?.seats }
-                            : table,
-                        ),
-                      );
-
-                      alert("좌석 수가 업데이트되었습니다.");
-                    } catch (error) {
-                      console.error("Error updating seats:", error);
-                      alert(
-                        error instanceof Error
-                          ? error.message
-                          : "좌석 수 업데이트 중 오류가 발생했습니다.",
-                      );
-                    }
-                  }}
-                  size="sm"
-                >
-                  수정
-                </Button>
+                    }}
+                    size="sm"
+                  >
+                    수정
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* 예약 선택 드롭다운 추가 */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label
-                htmlFor="reservation"
-                className="text-left text-sm font-medium"
-              >
-                연결된 예약
-              </label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Select
-                  value={selectedReservation}
-                  onValueChange={handleReservationChange}
+              {/* 예약 선택 드롭다운 추가 */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label
+                  htmlFor="reservation"
+                  className="text-left text-sm font-medium"
                 >
-                  <SelectTrigger className="w-64">
-                    <SelectValue placeholder="예약 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">예약 없음</SelectItem>
-                    {reservations.length > 0 ? (
-                      reservations.map((reservation) => (
-                        <SelectItem key={reservation.id} value={reservation.id}>
-                          {reservation.groupName} -{" "}
+                  연결된 예약
+                </label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Select
+                    value={selectedReservation}
+                    onValueChange={handleReservationChange}
+                  >
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="예약 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">예약 없음</SelectItem>
+                      {reservations.length > 0 ? (
+                        reservations.map((reservation) => (
+                          <SelectItem
+                            key={reservation.id}
+                            value={reservation.id}
+                          >
+                            {reservation.groupName} -{" "}
+                            {new Date(reservation.dateTime).toLocaleString(
+                              "ko-KR",
+                              {
+                                month: "numeric",
+                                day: "numeric",
+                                hour: "numeric",
+                                minute: "numeric",
+                              },
+                            )}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-reservations" disabled>
+                          확정된 예약이 없습니다
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {isReservationUpdateSuccessful && (
+                    <Check className="h-5 w-5 text-green-500" />
+                  )}
+                </div>
+              </div>
+
+              {/* 선택된 예약 정보 표시 */}
+              {selectedReservation && selectedReservation !== "none" && (
+                <div className="mt-2 rounded-md bg-gray-50 p-3">
+                  {(() => {
+                    const reservation = reservations.find(
+                      (r) => r.id === selectedReservation,
+                    );
+                    if (!reservation) return null;
+
+                    return (
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {reservation.groupName}
+                        </div>
+                        <div className="text-gray-600">
                           {new Date(reservation.dateTime).toLocaleString(
                             "ko-KR",
                             {
-                              month: "numeric",
+                              year: "numeric",
+                              month: "long",
                               day: "numeric",
                               hour: "numeric",
                               minute: "numeric",
+                              weekday: "long",
                             },
                           )}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-reservations" disabled>
-                        확정된 예약이 없습니다
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                {isReservationUpdateSuccessful && (
-                  <Check className="h-5 w-5 text-green-500" />
-                )}
-              </div>
+                        </div>
+                        <div className="mt-1">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                              reservation.status === "CONFIRMED"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {reservation.status === "CONFIRMED"
+                              ? "예약 확정"
+                              : "예약 대기중"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
-
-            {/* 선택된 예약 정보 표시 */}
-            {selectedReservation && selectedReservation !== "none" && (
-              <div className="mt-2 rounded-md bg-gray-50 p-3">
-                {(() => {
-                  const reservation = reservations.find(
-                    (r) => r.id === selectedReservation,
-                  );
-                  if (!reservation) return null;
-
-                  return (
-                    <div className="text-sm">
-                      <div className="font-medium">{reservation.groupName}</div>
-                      <div className="text-gray-600">
-                        {new Date(reservation.dateTime).toLocaleString(
-                          "ko-KR",
-                          {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "numeric",
-                            weekday: "long",
-                          },
-                        )}
-                      </div>
-                      <div className="mt-1">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            reservation.status === "CONFIRMED"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {reservation.status === "CONFIRMED"
-                            ? "예약 확정"
-                            : "예약 대기중"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
+          </DialogContent>
 
           <DialogFooter>
             <Button onClick={() => setIsDialogOpen(false)}>닫기</Button>
