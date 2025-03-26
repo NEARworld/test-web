@@ -35,6 +35,8 @@ import {
   PointerSensor,
   KeyboardSensor,
 } from "@dnd-kit/core";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "next-auth/react";
 
 interface Table {
   id: string;
@@ -80,6 +82,7 @@ const createSnapModifier = (gridSize: number): Modifier => {
 };
 
 export default function TablesPage() {
+  const { data: session } = useSession();
   const [tables, setTables] = useState<Table[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -124,6 +127,70 @@ export default function TablesPage() {
     window.addEventListener("resize", updateContainerSize);
     return () => window.removeEventListener("resize", updateContainerSize);
   }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+
+    // 실시간 구독 설정
+    const subscription = supabase
+      .channel("tables")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Table" },
+        (payload) => {
+          const newTable = payload.new as TableFromApi;
+
+          if (payload.eventType === "INSERT") {
+            // 새 테이블 추가
+            setTables((prevTables) => [
+              ...prevTables,
+              {
+                id: newTable.id,
+                number: newTable.number,
+                seats: newTable.seats,
+                position: {
+                  x: newTable.positionX,
+                  y: newTable.positionY,
+                },
+                reservationId: newTable.reservationId,
+                reservation: newTable.reservation,
+              },
+            ]);
+          } else if (payload.eventType === "UPDATE") {
+            // 테이블 정보 업데이트
+            setTables((prevTables) =>
+              prevTables.map((table) =>
+                table.id === newTable.id
+                  ? {
+                      ...table,
+                      number: newTable.number,
+                      seats: newTable.seats,
+                      position: {
+                        x: newTable.positionX,
+                        y: newTable.positionY,
+                      },
+                      reservationId: newTable.reservationId,
+                      reservation: newTable.reservation,
+                    }
+                  : table,
+              ),
+            );
+          } else if (payload.eventType === "DELETE") {
+            // 테이블 삭제
+            const deletedTable = payload.old as TableFromApi;
+            setTables((prevTables) =>
+              prevTables.filter((table) => table.id !== deletedTable.id),
+            );
+          }
+        },
+      )
+      .subscribe();
+
+    // 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [session]);
 
   const addTable = () => {
     const newPosition = findAvailablePosition(tables);
