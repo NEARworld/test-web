@@ -38,19 +38,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
 
-interface Table {
-  id: string;
-  number: number;
-  seats: number;
-  position: {
-    x: number;
-    y: number;
-  };
-  reservationId?: string;
-  reservation?: Reservation;
-}
-
-interface TableFromApi {
+export interface TableFromApi {
   id: string;
   seats: number;
   number: number;
@@ -83,7 +71,7 @@ const createSnapModifier = (gridSize: number): Modifier => {
 
 export default function TablesPage() {
   const { data: session } = useSession();
-  const [tables, setTables] = useState<Table[]>([]);
+  const [tables, setTables] = useState<TableFromApi[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
@@ -91,7 +79,7 @@ export default function TablesPage() {
   const [isGridSizeVisible] = useState(false); // 그리드 크기 표시 여부 상태 추가
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [doubleClickedTable, setDoubleClickedTable] = useState<Table>();
+  const [doubleClickedTable, setDoubleClickedTable] = useState<TableFromApi>();
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [
@@ -139,23 +127,38 @@ export default function TablesPage() {
         { event: "*", schema: "public", table: "Table" },
         (payload) => {
           const newTable = payload.new as TableFromApi;
+          const newTableId = newTable.id;
 
           if (payload.eventType === "INSERT") {
-            // 새 테이블 추가
-            setTables((prevTables) => [
-              ...prevTables,
-              {
-                id: newTable.id,
-                number: newTable.number,
-                seats: newTable.seats,
-                position: {
-                  x: newTable.positionX,
-                  y: newTable.positionY,
-                },
-                reservationId: newTable.reservationId,
-                reservation: newTable.reservation,
-              },
-            ]);
+            setTables((prevTables) => {
+              // *** 추가된 조건 ***
+              // 현재 로컬 상태에 이미 이 ID의 테이블이 있는지 확인
+              const exists = prevTables.some(
+                (table) => table.id === newTableId,
+              );
+
+              if (exists) {
+                // 이미 존재하면 상태를 변경하지 않음
+                return prevTables;
+              } else {
+                // 존재하지 않으면 새로 추가
+                console.log(
+                  `Adding new table ${newTableId} from subscription.`,
+                );
+                return [
+                  ...prevTables,
+                  {
+                    id: newTable.id,
+                    number: newTable.number,
+                    seats: newTable.seats,
+                    positionX: newTable.positionX,
+                    positionY: newTable.positionY,
+                    reservationId: newTable.reservationId,
+                    reservation: newTable.reservation,
+                  },
+                ];
+              }
+            });
           } else if (payload.eventType === "UPDATE") {
             // 테이블 정보 업데이트
             setTables((prevTables) =>
@@ -188,21 +191,19 @@ export default function TablesPage() {
 
     // 컴포넌트 언마운트 시 구독 해제
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(subscription);
     };
   }, [session]);
 
   const addTable = () => {
     const newPosition = findAvailablePosition(tables);
 
-    const newTable = {
+    const newTable: TableFromApi = {
       id: crypto.randomUUID(),
       seats: 0,
       number: tables.length + 1,
-      position: {
-        x: Math.round(newPosition.x / gridSize) * gridSize,
-        y: Math.round(newPosition.y / gridSize) * gridSize,
-      },
+      positionX: Math.round(newPosition.x / gridSize) * gridSize,
+      positionY: Math.round(newPosition.y / gridSize) * gridSize,
       reservationId: undefined,
       reservation: undefined,
     };
@@ -224,7 +225,7 @@ export default function TablesPage() {
       });
   };
 
-  const findAvailablePosition = (existingTables: Table[]) => {
+  const findAvailablePosition = (existingTables: TableFromApi[]) => {
     const position = { x: 0, y: 0 };
     let found = false;
 
@@ -233,8 +234,8 @@ export default function TablesPage() {
 
       for (const table of existingTables) {
         const distance = Math.sqrt(
-          Math.pow(table.position.x - position.x, 2) +
-            Math.pow(table.position.y - position.y, 2),
+          Math.pow(table.positionX - position.x, 2) +
+            Math.pow(table.positionY - position.y, 2),
         );
 
         if (distance < gridSize) {
@@ -331,9 +332,9 @@ export default function TablesPage() {
       return items.map((item) => {
         if (isMovingSelectedGroup && selectedTables.includes(item.id)) {
           const newX =
-            Math.round((item.position.x + delta.x) / gridSize) * gridSize;
+            Math.round((item.positionX + delta.x) / gridSize) * gridSize;
           const newY =
-            Math.round((item.position.y + delta.y) / gridSize) * gridSize;
+            Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
           const maxX = containerRef.current
             ? containerRef.current.clientWidth - CARD_SIZE
@@ -368,9 +369,9 @@ export default function TablesPage() {
           };
         } else if (item.id === active.id) {
           const newX =
-            Math.round((item.position.x + delta.x) / gridSize) * gridSize;
+            Math.round((item.positionX + delta.x) / gridSize) * gridSize;
           const newY =
-            Math.round((item.position.y + delta.y) / gridSize) * gridSize;
+            Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
           const maxX = containerRef.current
             ? containerRef.current.clientWidth - CARD_SIZE
@@ -386,8 +387,8 @@ export default function TablesPage() {
             if (otherItem.id === item.id) return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.position.x - boundedX, 2) +
-                Math.pow(otherItem.position.y - boundedY, 2),
+              Math.pow(otherItem.positionX - boundedX, 2) +
+                Math.pow(otherItem.positionY - boundedY, 2),
             );
 
             return distance < gridSize;
@@ -441,14 +442,12 @@ export default function TablesPage() {
           .then((response) => response.json())
           .then((data) => {
             const formattedTables = data.map((table: TableFromApi) => {
-              const tableData = {
+              const tableData: TableFromApi = {
                 id: table.id,
                 seats: table.seats,
                 number: table.number,
-                position: {
-                  x: table.positionX,
-                  y: table.positionY,
-                },
+                positionX: table.positionX,
+                positionY: table.positionY,
                 reservationId: table.reservationId,
               };
 
@@ -606,7 +605,7 @@ export default function TablesPage() {
 
           if (doubleClickedTable) {
             const updatedTable = updatedTables.find(
-              (t: Table) => t.id === tableId,
+              (t: TableFromApi) => t.id === tableId,
             );
             if (updatedTable) {
               setDoubleClickedTable(updatedTable);
@@ -810,7 +809,7 @@ export default function TablesPage() {
                     id={table.id}
                     seats={table.seats}
                     number={table.number}
-                    position={table.position}
+                    position={{ x: table.positionX, y: table.positionY }}
                     isSelected={isSelected}
                     onClick={(e) => handleTableSelect(table.id, e)}
                     onDoubleClick={() => handleTableDoubleClick(table.id)}

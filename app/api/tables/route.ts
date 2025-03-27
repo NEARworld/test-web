@@ -1,22 +1,38 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { TableFromApi } from "@/app/dashboard/tables/page";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { id, number, position } = body;
+    const { seats, positionX, positionY } = body as TableFromApi;
 
-    const table = await prisma.table.create({
-      data: {
-        id,
-        seats: 0,
-        number: number,
-        positionX: position.x,
-        positionY: position.y,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      // Find the highest current table number
+      const maxNumberResult = await tx.table.aggregate({
+        _max: {
+          number: true,
+        },
+      });
+
+      console.log(maxNumberResult);
+      const nextNumber = (maxNumberResult._max.number || 0) + 1;
+
+      // Create the new table with the calculated number
+      const newTable = await tx.table.create({
+        data: {
+          // id: id, // Let Prisma generate the ID unless you have specific needs
+          number: nextNumber, // Use the calculated number
+          seats: seats,
+          positionX: positionX,
+          positionY: positionY,
+          // Add other necessary fields like userId if applicable
+        },
+      });
+      return newTable;
     });
 
-    return NextResponse.json(table);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error creating table:", error);
     return NextResponse.json(

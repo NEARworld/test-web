@@ -46,6 +46,8 @@ export function TableCard({
     id,
   });
 
+  console.log(position);
+
   // If table has reservation, set status to occupied
   const tableStatus = reservation ? "occupied" : status;
 
