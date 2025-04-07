@@ -162,7 +162,12 @@ export default function TasksPage() {
                 </div>
 
                 <DialogFooter>
-                  <Button type="submit">등록</Button>
+                  <Button
+                    type="submit"
+                    disabled={!title || !assignee || !dueDate}
+                  >
+                    등록
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
