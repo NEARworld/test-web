@@ -8,6 +8,7 @@ import {
   BarChart3,
   type LucideIcon,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 
 import {
@@ -47,6 +48,16 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupLabel>업무 관리</SidebarGroupLabel>
       <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip={"업무 관리"}
+            className="cursor-pointer"
+            onClick={() => router.replace("/dashboard/tasks")}
+          >
+            <Users />
+            <span>업무 관리</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"종합"}
