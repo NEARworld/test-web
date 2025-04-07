@@ -10,8 +10,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 export default function TasksPage() {
+  const [title, setTitle] = useState("");
+  const [assignee, setAssignee] = useState("");
+  const [dueDate, setDueDate] = useState("");
+
   return (
     <div className="space-y-6 p-6">
       <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
@@ -86,7 +101,61 @@ export default function TasksPage() {
 
       <Card>
         <CardContent className="p-4">
-          <h2 className="mb-4 text-lg font-semibold">업무 목록</h2>
+          <Dialog>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">업무 목록</h2>
+              <DialogTrigger asChild>
+                <Button className="text-sm">업무 등록</Button>
+              </DialogTrigger>
+            </div>
+
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>새 업무 등록</DialogTitle>
+              </DialogHeader>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  console.log({ title, assignee, dueDate });
+                  // TODO: API 연결 또는 상태 업데이트
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="text-sm">업무 제목</label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="예: 재고 점검"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm">담당자</label>
+                  <Input
+                    value={assignee}
+                    onChange={(e) => setAssignee(e.target.value)}
+                    placeholder="예: 김민수"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm">마감일</label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button type="submit">등록</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <Table>
             <TableHeader>
               <TableRow className="h-8">
