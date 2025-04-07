@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function TasksPage() {
   const [title, setTitle] = useState("");
@@ -133,11 +140,16 @@ export default function TasksPage() {
 
                 <div>
                   <label className="text-sm">담당자</label>
-                  <Input
-                    value={assignee}
-                    onChange={(e) => setAssignee(e.target.value)}
-                    placeholder="예: 김민수"
-                  />
+                  <Select onValueChange={setAssignee}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="담당자 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="김민수">김민수</SelectItem>
+                      <SelectItem value="이영희">이영희</SelectItem>
+                      <SelectItem value="박지훈">박지훈</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
