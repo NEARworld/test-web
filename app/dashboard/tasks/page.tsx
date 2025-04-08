@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -28,11 +28,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { User } from "@prisma/client";
 
 export default function TasksPage() {
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
   const [dueDate, setDueDate] = useState("");
+
+  const [users, setUsers] = useState<Pick<User, "id" | "name">[]>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const getUsers = async () => {
+      const res = await fetch("/api/users");
+      setUsers(await res.json());
+    };
+    getUsers();
+  }, []);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+    setIsDialogOpen(false);
+    setIsSubmitting(true);
+
+    fetch("/api/task", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, assignee, dueDate }),
+    }).then(() => {
+      setIsSubmitting(false);
+    });
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -108,11 +136,16 @@ export default function TasksPage() {
 
       <Card>
         <CardContent className="p-4">
-          <Dialog>
+          <Dialog open={isDialogOpen}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold">업무 목록</h2>
               <DialogTrigger asChild>
-                <Button className="text-sm">업무 등록</Button>
+                <Button
+                  className="text-sm"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  업무 등록
+                </Button>
               </DialogTrigger>
             </div>
 
@@ -121,14 +154,7 @@ export default function TasksPage() {
                 <DialogTitle>새 업무 등록</DialogTitle>
               </DialogHeader>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  console.log({ title, assignee, dueDate });
-                  // TODO: API 연결 또는 상태 업데이트
-                }}
-                className="space-y-4"
-              >
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="text-sm">업무 제목</label>
                   <Input
@@ -145,9 +171,12 @@ export default function TasksPage() {
                       <SelectValue placeholder="담당자 선택" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="김민수">김민수</SelectItem>
-                      <SelectItem value="이영희">이영희</SelectItem>
-                      <SelectItem value="박지훈">박지훈</SelectItem>
+                      {users &&
+                        users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -164,7 +193,7 @@ export default function TasksPage() {
                 <DialogFooter>
                   <Button
                     type="submit"
-                    disabled={!title || !assignee || !dueDate}
+                    disabled={(!title || !assignee || !dueDate) && isSubmitting}
                   >
                     등록
                   </Button>
