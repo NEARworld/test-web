@@ -150,7 +150,10 @@ export function TaskBoard({
         <TableBody>
           {tasks &&
             tasks.map((task) => (
-              <TableRow className="h-8" key={task.id}>
+              <TableRow
+                className="h-8 hover:cursor-pointer hover:bg-gray-400/15"
+                key={task.id}
+              >
                 <TableCell className="px-2 py-1 text-sm">
                   {task.title}
                 </TableCell>
