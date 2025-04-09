@@ -28,3 +28,12 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function GET() {
+  const tasks = await prisma.task.findMany({
+    include: {
+      assignee: true,
+    },
+  });
+  return NextResponse.json(tasks);
+}
