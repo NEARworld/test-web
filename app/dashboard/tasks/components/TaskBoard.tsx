@@ -28,10 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Task, User } from "@prisma/client";
+import { User } from "@prisma/client";
+import { ExtendedTask } from "../page";
 
 interface TaskBoardProps {
-  tasks: Task[] | undefined;
+  tasks: ExtendedTask[] | undefined;
   users: Pick<User, "id" | "name">[] | undefined;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -154,7 +155,7 @@ export function TaskBoard({
                   {task.title}
                 </TableCell>
                 <TableCell className="px-2 py-1 text-sm">
-                  {task.assigneeId}
+                  {task.assignee.name}
                 </TableCell>
                 <TableCell className="px-2 py-1 text-sm">
                   {task.createdAt.toString()}

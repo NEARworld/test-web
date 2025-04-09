@@ -8,9 +8,11 @@ import { useEffect, useState } from "react";
 import { Task, User } from "@prisma/client";
 import { TaskBoard } from "./components/TaskBoard";
 
+export type ExtendedTask = Task & { assignee: { name: string } };
+
 export default function TasksPage() {
   const [users, setUsers] = useState<Pick<User, "id" | "name">[]>();
-  const [tasks, setTasks] = useState<Task[]>();
+  const [tasks, setTasks] = useState<ExtendedTask[]>();
 
   const [isTaskLoading, setIsTaskLoading] = useState(true);
 
