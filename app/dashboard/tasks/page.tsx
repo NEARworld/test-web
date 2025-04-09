@@ -165,7 +165,7 @@ export default function TasksPage() {
             </div>
           ) : (
             <>
-              <Dialog open={isDialogOpen}>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold">업무 목록</h2>
                   <DialogTrigger asChild>
