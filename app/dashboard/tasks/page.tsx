@@ -38,10 +38,8 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
-
       {/* 위젯들 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <CalendarCheck2 className="h-6 w-6" />
@@ -81,10 +79,10 @@ export default function TasksPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* 아래쪽 영역: 예약 리스트, 재고 상태 등 추가 가능 */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="p-4">
             <h2 className="mb-2 text-lg font-semibold">최근 예약</h2>
@@ -106,9 +104,9 @@ export default function TasksPage() {
             </ul>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
-      <Card>
+      <Card className="rounded-none p-0">
         <TaskBoard
           isLoading={isTaskLoading}
           setIsLoading={setIsTaskLoading}
