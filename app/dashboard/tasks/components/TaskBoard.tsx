@@ -169,7 +169,7 @@ export function TaskBoard({
           </DialogTrigger>
         </div>
 
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md lg:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 업무 등록</DialogTitle>
           </DialogHeader>
@@ -228,7 +228,7 @@ export function TaskBoard({
                   setDescription(e.target.value)
                 }
                 placeholder="업무에 대한 상세 내용을 입력하세요."
-                className="col-span-3 min-h-[80px]" // Adjusted textarea style
+                className="col-span-3 min-h-[100px] lg:min-h-[160px]" // Adjusted textarea style
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -345,42 +345,49 @@ export function TaskBoard({
 
       {/* --- Task View Dialog --- */}
       <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        {/* You might want to adjust min-h-96 if the content now needs less forced height */}
+        {/* Consider adding max-h-[85vh] overflow-y-auto if description can be very long */}
+        <DialogContent className="flex min-h-[24rem] flex-col sm:max-w-md lg:max-w-2xl">
+          {" "}
+          {/* Use min-h value, flex-col helps footer stick to bottom */}
+          {/* Header: Keep Title and Assignee */}
+          <DialogHeader className="flex-shrink-0">
+            {" "}
+            {/* Prevent header from shrinking */}
             <DialogTitle>{currentTask?.title ?? "업무 정보"}</DialogTitle>
-            {/* Display Assignee and Dates in header subtitle */}
-            <div className="text-muted-foreground space-y-1 pt-1 text-sm">
+            <div className="text-muted-foreground pt-1 text-sm">
               {currentTask?.assignee && (
                 <div>담당자: {currentTask.assignee.name ?? "미지정"}</div>
               )}
-              <div>등록일: {formatDate(currentTask?.createdAt)}</div>
-              <div>마감일: {formatDateWithWeekday(currentTask?.dueDate)}</div>
+              {/* Dates removed from here */}
             </div>
           </DialogHeader>
-
-          {/* Display Description */}
-          <div className="py-4">
+          {/* Description: Allow this to grow and potentially scroll */}
+          <div className="flex-grow overflow-y-auto py-4">
+            {" "}
+            {/* Allow div to grow and scroll if needed */}
             <h4 className="mb-2 text-sm font-medium">설명</h4>
-            <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-              {" "}
-              {/* Preserve whitespace/newlines */}
+            <p className="text-muted-foreground text-sm break-words whitespace-pre-wrap">
               {currentTask?.description
                 ? currentTask.description
                 : "설명이 없습니다."}
             </p>
           </div>
-
-          <DialogFooter className="sm:justify-between">
+          {/* Footer: Add Dates here, keep Close button */}
+          <DialogFooter className="mt-auto flex-shrink-0 border-t pt-4 sm:flex sm:items-end sm:justify-between">
             {" "}
-            {/* Adjust footer layout */}
-            {/* Optional: Add Edit/Delete buttons */}
-            {/* <div>
-                <Button variant="outline" size="sm" className="mr-2">수정</Button>
-                <Button variant="destructive" size="sm">삭제</Button>
-             </div> */}
+            {/* Add border, padding-top, make footer stick to bottom */}
+            {/* Date Container */}
+            <div className="text-muted-foreground mb-4 space-y-1 text-sm sm:mb-0">
+              {" "}
+              {/* Add bottom margin on small screens */}
+              <div>등록일: {formatDate(currentTask?.createdAt)}</div>
+              <div>마감일: {formatDateWithWeekday(currentTask?.dueDate)}</div>
+            </div>
+            {/* Close Button */}
             <Button
               variant="secondary"
-              size="sm" // Consistent button size
+              size="sm"
               onClick={() => setIsTaskViewOpen(false)}
             >
               닫기
