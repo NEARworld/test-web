@@ -29,11 +29,26 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const searchParams = req.nextUrl.searchParams;
+  const limit: string | null | number = searchParams.get("limit");
+  const page: string | null | number = searchParams.get("page");
+
+  const verifiedPage = page ? parseInt(page, 10) : 1;
+  const verifiedLimit = limit ? parseInt(limit, 10) : 1;
+
+  const skip = (verifiedPage - 1) * verifiedLimit;
+
+  const totalTasks = await prisma.task.count();
   const tasks = await prisma.task.findMany({
+    skip,
+    take: verifiedLimit,
     include: {
       assignee: true,
     },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
-  return NextResponse.json(tasks);
+  return NextResponse.json({ tasks, totalTasks });
 }
