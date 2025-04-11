@@ -4,13 +4,12 @@ import prisma from "@/lib/prisma"; // prisma 클라이언트
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, assignee, dueDate } = body;
-
-    console.log(body);
+    const { title, assignee, dueDate, description } = body;
 
     const newTask = await prisma.task.create({
       data: {
         title,
+        description,
         assignee: {
           connect: { id: assignee }, // 또는 id로 연결할 수도 있음
         },
