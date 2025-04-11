@@ -1,7 +1,6 @@
 "use client";
 
-import { BarChart3, CalendarCheck2, ClipboardList, Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 import { useEffect, useState } from "react";
 
@@ -13,8 +12,11 @@ export type ExtendedTask = Task & { assignee: { name: string } };
 export default function TasksPage() {
   const [users, setUsers] = useState<Pick<User, "id" | "name">[]>();
   const [tasks, setTasks] = useState<ExtendedTask[]>();
+  const [totalTasks, setTotalTasks] = useState<number>(0);
 
   const [isTaskLoading, setIsTaskLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const getUsers = async () => {
@@ -22,11 +24,12 @@ export default function TasksPage() {
       setUsers(await res.json());
     };
     const getTasks = async () => {
-      fetch("/api/tasks")
+      fetch(`/api/tasks?page=${currentPage}&limit=${itemsPerPage}`)
         .then((res) => res.json())
-        .then((tasks) => {
+        .then((payload: { tasks: ExtendedTask[]; totalTasks: number }) => {
           setIsTaskLoading(false);
-          setTasks(tasks);
+          setTasks(payload.tasks);
+          setTotalTasks(payload.totalTasks);
         });
     };
 
@@ -34,7 +37,9 @@ export default function TasksPage() {
       getUsers();
       getTasks();
     }
-  }, [isTaskLoading]);
+  }, [isTaskLoading, currentPage]);
+
+  console.log(tasks);
 
   return (
     <div className="space-y-6 p-6">
@@ -112,6 +117,10 @@ export default function TasksPage() {
           setIsLoading={setIsTaskLoading}
           tasks={tasks}
           users={users}
+          totalTasks={totalTasks}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
         />
       </Card>
     </div>

@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
+import React, {
   ChangeEvent,
   ChangeEventHandler,
   FormEvent,
@@ -34,6 +34,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+// --- ▼▼▼ Pagination 컴포넌트 import 추가 ▼▼▼ ---
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"; // 경로 확인
+// --- ▲▲▲ Pagination 컴포넌트 import 추가 ▲▲▲ ---
+
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page"; // Assuming ExtendedTask includes createdAt
 
@@ -42,6 +54,10 @@ interface TaskBoardProps {
   users: Pick<User, "id" | "name">[] | undefined;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  currentPage: number;
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+  totalTasks: number;
+  itemsPerPage: number;
 }
 
 // Helper function for date formatting (optional, but good for DRY)
@@ -81,6 +97,10 @@ export function TaskBoard({
   users,
   isLoading,
   setIsLoading,
+  totalTasks,
+  itemsPerPage,
+  currentPage,
+  setCurrentPage,
 }: TaskBoardProps) {
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
@@ -90,6 +110,12 @@ export function TaskBoard({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<ExtendedTask>();
+
+  // --- 페이지네이션 계산 로직 (이전 단계에서 완료) ---
+  const totalPages = Math.ceil(totalTasks / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalTasks);
+  // --- ---
 
   // Reset form fields when dialog closes or opens
   useEffect(() => {
@@ -141,15 +167,15 @@ export function TaskBoard({
     }
   };
 
-  if (isLoading && !tasks) {
-    // Show loader only when initially loading or refetching fully
-    return (
-      <div className="flex flex-col items-center gap-2 p-6">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <p className="text-muted-foreground text-sm">업무 불러오는 중...</p>
-      </div>
-    );
-  }
+  // if (isLoading || !tasks) {
+  //   // Show loader only when initially loading or refetching fully
+  //   return (
+  //     <div className="flex flex-col items-center gap-2 p-6">
+  //       <Loader2 className="h-6 w-6 animate-spin" />
+  //       <p className="text-muted-foreground text-sm">업무 불러오는 중...</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <CardContent className="p-0">
@@ -267,6 +293,11 @@ export function TaskBoard({
           <TableHeader>
             {/* Use bg-muted for header background */}
             <TableRow className="bg-muted hover:bg-muted h-10 border-b">
+              <TableHead className="text-muted-foreground w-[60px] px-3 py-2 text-center text-sm font-medium">
+                {" "}
+                {/* 너비 지정 및 중앙 정렬 */}
+                번호
+              </TableHead>
               <TableHead className="text-muted-foreground px-3 py-2 text-sm font-medium">
                 업무 제목
               </TableHead>
@@ -287,61 +318,175 @@ export function TaskBoard({
             </TableRow>
           </TableHeader>
 
-          <TableBody>
-            {tasks && tasks.length > 0 ? (
-              tasks.map((task) => (
-                <TableRow
-                  className="hover:bg-muted/50 data-[state=selected]:bg-muted h-12 border-b transition-colors" // Standard hover style
-                  key={task.id}
-                  onClick={() => {
-                    setCurrentTask(task);
-                    setIsTaskViewOpen(true);
-                  }}
-                  style={{ cursor: "pointer" }} // Explicit cursor pointer
-                >
-                  <TableCell className="w-1/2 px-3 py-2 text-sm font-medium">
-                    {" "}
-                    {/* Adjusted padding/style */}
-                    {task.title}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
-                    {task.assignee?.name ?? "미지정"}{" "}
-                    {/* Handle potential null assignee/name */}
-                  </TableCell>
-                  {/* 🔽 Added Cell for Creation Date */}
-                  <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                    {formatDate(task.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                    {formatDateWithWeekday(task.dueDate)}
-                  </TableCell>
-                  {/* Optional: Add Status Cell */}
-                  {/* <TableCell className="px-3 py-2 text-sm">
+          {isLoading || !tasks ? (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5}>
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <p className="text-muted-foreground text-sm">
+                      업무 불러오는 중...
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+              <TableRow className="invisible">
+                <TableCell className="text-muted-foreground text-center text-sm"></TableCell>
+                <TableCell className="w-1/2 px-3 py-2 text-sm font-medium"></TableCell>
+                <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm"></TableCell>
+                <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                  {" "}
+                  2025년 4월 11일
+                </TableCell>
+                <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                  2025년 4월 11일 금요일
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          ) : (
+            <></>
+          )}
+          {!isLoading && tasks && (
+            <TableBody>
+              {tasks && tasks.length > 0 ? (
+                tasks.map((task, index) => {
+                  // 내림차순 번호 계산
+                  // 전체 개수 - 현재 페이지 시작 인덱스 - 현재 페이지 내 순서
+                  const itemNumber = totalTasks - startIndex - index;
+
+                  return (
+                    <TableRow
+                      className="hover:bg-muted/50 data-[state=selected]:bg-muted h-12 border-b transition-colors" // Standard hover style
+                      key={task.id}
+                      onClick={() => {
+                        setCurrentTask(task);
+                        setIsTaskViewOpen(true);
+                      }}
+                      style={{ cursor: "pointer" }} // Explicit cursor pointer
+                    >
+                      {/* 새로운 '번호' TableCell 추가 */}
+                      <TableCell className="text-muted-foreground text-center text-sm">
+                        {" "}
+                        {/* 중앙 정렬 */}
+                        {itemNumber}
+                      </TableCell>
+                      <TableCell className="w-1/2 px-3 py-2 text-sm font-medium">
+                        {" "}
+                        {/* Adjusted padding/style */}
+                        {task.title}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
+                        {task.assignee?.name ?? "미지정"}{" "}
+                        {/* Handle potential null assignee/name */}
+                      </TableCell>
+                      {/* 🔽 Added Cell for Creation Date */}
+                      <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                        {formatDate(task.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                        {formatDateWithWeekday(task.dueDate)}
+                      </TableCell>
+                      {/* Optional: Add Status Cell */}
+                      {/* <TableCell className="px-3 py-2 text-sm">
                        <Badge variant={task.status === 'COMPLETED' ? 'success' : 'outline'}>
                            {task.status === 'COMPLETED' ? '완료' : '진행중'}
                        </Badge>
                     </TableCell> */}
-                  {/* Optional: Add Actions Cell */}
-                  {/* <TableCell className="px-3 py-2 text-right text-sm">
+                      {/* Optional: Add Actions Cell */}
+                      {/* <TableCell className="px-3 py-2 text-right text-sm">
                         <TaskActions task={task} />
                      </TableCell> */}
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="text-muted-foreground h-24 text-center"
+                  >
+                    {" "}
+                    {/* Updated colSpan */}
+                    등록된 업무가 없습니다.
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="text-muted-foreground h-24 text-center"
-                >
-                  {" "}
-                  {/* Updated colSpan */}
-                  등록된 업무가 없습니다.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
+              )}
+            </TableBody>
+          )}
         </Table>
       </div>
+
+      {/* --- ▼▼▼ 페이지네이션 컨트롤 수정 (shadcn/ui Pagination 사용) ▼▼▼ --- */}
+      {totalPages > 0 &&
+        totalTasks > itemsPerPage && ( // 표시 조건 유지
+          <div className="mt-4 flex flex-col items-center justify-between gap-y-2 border-t px-4 py-3 sm:flex-row sm:gap-y-0">
+            {" "}
+            {/* 레이아웃 조정 */}
+            {/* 페이지 정보 텍스트 (왼쪽 또는 상단) */}
+            <div className="text-muted-foreground text-sm">
+              총 {totalTasks}개 중 {startIndex + 1} - {endIndex} 표시 중
+            </div>
+            {/* shadcn Pagination 컴포넌트 (오른쪽 또는 하단) */}
+            <Pagination>
+              <PaginationContent>
+                {/* 이전 페이지 버튼 */}
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#" // 실제 링크 대신 onClick 사용
+                    onClick={(e) => {
+                      e.preventDefault(); // 기본 링크 동작 방지
+                      if (currentPage > 1) {
+                        setCurrentPage(currentPage - 1);
+                        setIsLoading(true);
+                      }
+                    }}
+                    //shadcn PaginationPrevious는 disabled 속성이 없으므로 스타일로 처리
+                    className={
+                      currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                    aria-disabled={currentPage === 1} // 접근성 속성 추가
+                  />
+                </PaginationItem>
+
+                {/* 페이지 번호 링크들 (간단 버전: 현재 페이지만 표시) */}
+                {/* 필요시 여기에 페이지 번호들을 동적으로 생성하는 로직 추가 가능 */}
+                <PaginationItem>
+                  <PaginationLink href="#" isActive>
+                    {" "}
+                    {/* 현재 페이지만 활성화 */}
+                    {currentPage}
+                  </PaginationLink>
+                </PaginationItem>
+
+                {/* 페이지 번호가 많을 경우 생략 부호 (...) 표시 (선택 사항) */}
+                {/* <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem> */}
+
+                {/* 다음 페이지 버튼 */}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#" // 실제 링크 대신 onClick 사용
+                    onClick={(e) => {
+                      e.preventDefault(); // 기본 링크 동작 방지
+                      if (currentPage < totalPages) {
+                        setCurrentPage(currentPage + 1);
+                        setIsLoading(true);
+                      }
+                    }}
+                    // shadcn PaginationNext는 disabled 속성이 없으므로 스타일로 처리
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                    aria-disabled={currentPage === totalPages} // 접근성 속성 추가
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
 
       {/* --- Task View Dialog --- */}
       <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>

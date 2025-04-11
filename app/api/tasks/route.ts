@@ -40,6 +40,9 @@ export async function GET(req: NextRequest) {
   const skip = (verifiedPage - 1) * verifiedLimit;
 
   const totalTasks = await prisma.task.count();
+
+  console.log(limit, page, skip);
+
   const tasks = await prisma.task.findMany({
     skip,
     take: verifiedLimit,
