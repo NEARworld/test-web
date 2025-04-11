@@ -110,6 +110,10 @@ export function TaskBoard({
   const endIndex = Math.min(startIndex + itemsPerPage, totalTasks);
   // --- ---
 
+  // --- ▼▼▼ 파일 상태 추가 (다음 단계에서 사용) ▼▼▼ ---
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // --- ▲▲▲ 파일 상태 추가 ▲▲▲ ---
+
   // Reset form fields when dialog closes or opens
   useEffect(() => {
     if (!isDialogOpen) {
@@ -117,58 +121,83 @@ export function TaskBoard({
       setAssignee("");
       setDueDate("");
       setDescription("");
+      setSelectedFile(null);
     }
   }, [isDialogOpen]);
 
-  // useEffect(() => {
-  //   if (isTaskViewOpen) {
-  //     // You might want to fetch detailed task info here if needed
-  //   }
-  // }, [isTaskViewOpen]);
+  // --- ▼▼▼ 파일 변경 핸들러 함수 추가 ▼▼▼ ---
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    // event.target.files가 존재하고, 파일이 하나 이상 선택되었는지 확인
+    if (event.target.files && event.target.files.length > 0) {
+      // 첫 번째 선택된 파일을 상태에 저장
+      setSelectedFile(event.target.files[0]);
+    } else {
+      // 파일 선택이 취소되거나 비워진 경우 상태를 null로 리셋
+      setSelectedFile(null);
+    }
+  };
+  // --- ▲▲▲ 파일 변경 핸들러 함수 추가 ▲▲▲ ---
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!title || !assignee || !dueDate) return; // Basic validation
 
     setIsSubmitting(true);
-    setIsLoading(true); // Show loading indicator for the whole board
     setIsDialogOpen(false); // Close dialog immediately
+
+    // 1. FormData 객체 생성
+    const formData = new FormData();
+
+    // 2. 텍스트 데이터 추가 (key-value 쌍)
+    formData.append("title", title);
+    formData.append("assignee", assignee); // 담당자 ID
+    formData.append("dueDate", dueDate); // 날짜 문자열
+    if (description) {
+      // 설명은 선택적이므로 있을 때만 추가
+      formData.append("description", description);
+    }
+
+    // 3. 파일 데이터 추가 (파일이 선택되었을 경우)
+    if (selectedFile) {
+      // 'taskFile'이라는 key로 파일 객체와 파일 이름을 함께 전달
+      // 백엔드에서 이 key ('taskFile')를 사용하여 파일을 참조
+      formData.append("taskFile", selectedFile, selectedFile.name);
+    }
 
     try {
       const response = await fetch("/api/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         // Include description in the body
-        body: JSON.stringify({ title, assignee, dueDate, description }),
+        body: formData,
       });
 
       if (!response.ok) {
-        // Handle error response from API
-        console.error("Failed to create task:", await response.text());
-        // Optionally show an error message to the user
+        // 오류 처리
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "오류 응답 파싱 실패" }));
+        console.error("Failed to create task:", response.status, errorData);
+        setIsDialogOpen(false);
+        // ▼▼▼ Sonner toast 사용 (오류) ▼▼▼
+        toast.error(
+          `업무 등록 실패: ${errorData.error || response.statusText}`,
+        );
+        // ▲▲▲ Sonner toast 사용 (오류) ▲▲▲
       } else {
         // Task created successfully, data will be refetched by the parent page
         // because isLoading was set to true, triggering the parent's useEffect.
+        setIsLoading(true);
+        // ▼▼▼ Sonner toast 사용 (성공) ▼▼▼
+        toast.success("새로운 업무가 성공적으로 등록되었습니다.");
+        // ▲▲▲ Sonner toast 사용 (성공) ▲▲▲
       }
     } catch (error) {
       console.error("Error submitting task:", error);
       // Handle network or other errors
     } finally {
-      // No need to set isSubmitting false here if isLoading handles UI state
-      // setIsSubmitting(false); // Only needed if you have separate submit state indicator
-      // setIsLoading(false); // The PARENT component should set this back to false after refetching
+      setIsSubmitting(false);
     }
   };
-
-  // if (isLoading || !tasks) {
-  //   // Show loader only when initially loading or refetching fully
-  //   return (
-  //     <div className="flex flex-col items-center gap-2 p-6">
-  //       <Loader2 className="h-6 w-6 animate-spin" />
-  //       <p className="text-muted-foreground text-sm">업무 불러오는 중...</p>
-  //     </div>
-  //   );
-  // }
 
   return (
     <CardContent className="p-0">
@@ -188,7 +217,7 @@ export function TaskBoard({
           </DialogTrigger>
         </div>
 
-        <DialogContent className="sm:max-w-md lg:max-w-2xl">
+        <DialogContent className="sm:max-w-md lg:max-w-4xl">
           <DialogHeader>
             <DialogTitle>새 업무 등록</DialogTitle>
           </DialogHeader>
@@ -247,7 +276,7 @@ export function TaskBoard({
                   setDescription(e.target.value)
                 }
                 placeholder="업무에 대한 상세 내용을 입력하세요."
-                className="col-span-3 min-h-[100px] lg:min-h-[160px]" // Adjusted textarea style
+                className="col-span-3 min-h-60 lg:min-h-[250px]" // Adjusted textarea style
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -263,6 +292,21 @@ export function TaskBoard({
                 required // Added required attribute
               />
             </div>
+            {/* --- ▼▼▼ 파일 첨부 필드 추가 ▼▼▼ --- */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="taskFile" className="text-right text-sm">
+                파일 첨부 (선택)
+              </Label>
+              {/* shadcn/ui의 Input 컴포넌트를 type="file"로 사용 */}
+              <Input
+                id="taskFile"
+                type="file"
+                // onChange 핸들러는 다음 단계에서 파일 상태 업데이트하도록 추가
+                onChange={(e) => handleFileChange(e)}
+                className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 col-span-3 rounded-md file:border-0 file:p-4 file:px-4 file:py-2 file:text-sm file:font-semibold" // 기본 스타일링 예시
+              />
+            </div>
+            {/* --- ▲▲▲ 파일 첨부 필드 추가 ▲▲▲ --- */}
             <DialogFooter>
               <Button
                 type="submit"
@@ -279,7 +323,7 @@ export function TaskBoard({
       </Dialog>
 
       {/* --- Task Table --- */}
-      <div className="rounded-md border">
+      <div className="rounded-none border">
         {" "}
         {/* Added border around table */}
         <Table>
@@ -311,7 +355,7 @@ export function TaskBoard({
             </TableRow>
           </TableHeader>
 
-          {isLoading || !tasks ? (
+          {isSubmitting || isLoading || !tasks ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5}>
@@ -339,7 +383,7 @@ export function TaskBoard({
           ) : (
             <></>
           )}
-          {!isLoading && tasks && (
+          {!isSubmitting && !isLoading && (
             <TableBody>
               {tasks && tasks.length > 0 ? (
                 tasks.map((task, index) => {
@@ -541,6 +585,7 @@ export function TaskBoard({
 import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 // import { Badge } from "@/components/ui/badge"; // Needed if using Status column
 // import { TaskActions } from "./task-actions"; // Needed if using Actions column
 

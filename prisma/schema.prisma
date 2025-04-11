@@ -177,11 +177,18 @@ model Task {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  assigneeId String?
-  assignee   User?   @relation(fields: [assigneeId], references: [id])
+  assigneeId  String?
+  assignee    User?   @relation(fields: [assigneeId], references: [id])
+
+  // --- ▼▼▼ 파일 정보 필드 추가 ▼▼▼ ---
+  fileUrl     String?   // 업로드된 파일의 URL (선택적)
+  fileName    String?   // 원본 파일 이름 (선택적)
+  fileType    String?   // 파일 MIME 타입 (선택적)
+  // --- ▲▲▲ 파일 정보 필드 추가 ▲▲▲ ---
 }
 
 enum TaskStatus {
   INCOMPLETE // 미완료
   COMPLETE // 완료
 }
+

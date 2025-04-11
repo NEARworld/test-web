@@ -39,8 +39,6 @@ export default function TasksPage() {
     }
   }, [isTaskLoading, currentPage]);
 
-  console.log(tasks);
-
   return (
     <div className="space-y-6 p-6">
       {/* 위젯들 */}
