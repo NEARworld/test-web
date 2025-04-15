@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,25 +142,34 @@ export default function ReservationPage() {
     "20:30",
   ];
 
-  // Fetch reservations for the selected date
-  const fetchReservations = async (date: string) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/reservations?date=${date}`);
-      if (!response.ok) throw new Error("Failed to fetch reservations");
+  // 공통 함수 먼저 정의
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertMessage({ title, message });
+    setIsAlertOpen(true);
+  }, []);
 
-      const data = await response.json();
-      setReservations(data);
-    } catch (error) {
-      console.error("Error fetching reservations:", error);
-      showAlert("Error", "Failed to load reservations. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Fetch reservations for the selected date
+  const fetchReservations = useCallback(
+    async (date: string) => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/reservations?date=${date}`);
+        if (!response.ok) throw new Error("Failed to fetch reservations");
+
+        const data = await response.json();
+        setReservations(data);
+      } catch (error) {
+        console.error("Error fetching reservations:", error);
+        showAlert("Error", "Failed to load reservations. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [showAlert],
+  );
 
   // Fetch available menu items
-  const fetchMenuItems = async () => {
+  const fetchMenuItems = useCallback(async () => {
     try {
       const response = await fetch("/api/menu");
       if (!response.ok) throw new Error("Failed to fetch menu items");
@@ -184,34 +193,37 @@ export default function ReservationPage() {
     } catch (error) {
       console.error("Error fetching menu items:", error);
     }
-  };
+  }, []);
 
   // 월별 통계 데이터 가져오기
-  const fetchMonthlyStats = async (date: string) => {
-    try {
-      const response = await fetch(
-        `/api/reservations/stats/monthly?date=${date}`,
-      );
-      if (!response.ok) throw new Error("Failed to fetch monthly stats");
-      const data = await response.json();
-      setMonthlyStats(data.dailyStats);
-    } catch (error) {
-      console.error("Error fetching monthly stats:", error);
-      showAlert("Error", "Failed to update calendar statistics");
-    }
-  };
-
-  // Initial data load
-  const loadInitialData = async () => {
-    await Promise.all([fetchReservations(selectedDate), fetchMenuItems()]);
-  };
+  const fetchMonthlyStats = useCallback(
+    async (date: string) => {
+      try {
+        const response = await fetch(
+          `/api/reservations/stats/monthly?date=${date}`,
+        );
+        if (!response.ok) throw new Error("Failed to fetch monthly stats");
+        const data = await response.json();
+        setMonthlyStats(data.dailyStats);
+      } catch (error) {
+        console.error("Error fetching monthly stats:", error);
+        showAlert("Error", "Failed to update calendar statistics");
+      }
+    },
+    [showAlert],
+  );
 
   // Call loadInitialData on component mount
   useEffect(() => {
     const currentDate = new Date().toISOString().split("T")[0];
     fetchMonthlyStats(currentDate);
+
+    const loadInitialData = async () => {
+      await Promise.all([fetchReservations(selectedDate), fetchMenuItems()]);
+    };
+
     loadInitialData();
-  }, []);
+  }, [fetchMonthlyStats, selectedDate, fetchReservations, fetchMenuItems]);
 
   const calculateTotalPrice = (menu: MenuItem[]) => {
     return menu.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -361,39 +373,34 @@ export default function ReservationPage() {
     }
   };
 
-  const showAlert = (title: string, message: string) => {
-    setAlertMessage({ title, message });
-    setIsAlertOpen(true);
-  };
+  const handleStatusChange = useCallback(
+    (reservationId: string, action: "confirm" | "cancel" | "complete") => {
+      setSelectedReservation(reservationId);
+      setStatusActionType(action);
+      setIsAlertOpen(true);
 
-  const handleStatusChange = (
-    reservationId: string,
-    action: "confirm" | "cancel" | "complete",
-  ) => {
-    setSelectedReservation(reservationId);
-    setStatusActionType(action);
-    setIsAlertOpen(true);
+      let title, message;
+      switch (action) {
+        case "confirm":
+          title = "Confirm Reservation";
+          message = "Are you sure you want to confirm this reservation?";
+          break;
+        case "cancel":
+          title = "Cancel Reservation";
+          message = "Are you sure you want to cancel this reservation?";
+          break;
+        case "complete":
+          title = "Complete Reservation";
+          message = "Mark this reservation as completed?";
+          break;
+      }
 
-    let title, message;
-    switch (action) {
-      case "confirm":
-        title = "Confirm Reservation";
-        message = "Are you sure you want to confirm this reservation?";
-        break;
-      case "cancel":
-        title = "Cancel Reservation";
-        message = "Are you sure you want to cancel this reservation?";
-        break;
-      case "complete":
-        title = "Complete Reservation";
-        message = "Mark this reservation as completed?";
-        break;
-    }
+      setAlertMessage({ title, message });
+    },
+    [],
+  );
 
-    setAlertMessage({ title, message });
-  };
-
-  const confirmStatusChange = async () => {
+  const confirmStatusChange = useCallback(async () => {
     if (!selectedReservation || !statusActionType) return;
 
     try {
@@ -439,7 +446,13 @@ export default function ReservationPage() {
       setSelectedReservation(null);
       setStatusActionType(null);
     }
-  };
+  }, [
+    selectedReservation,
+    statusActionType,
+    selectedDate,
+    fetchReservations,
+    showAlert,
+  ]);
 
   // Get a badge variant based on reservation status
   const getStatusBadge = (status: ReservationStatus) => {
