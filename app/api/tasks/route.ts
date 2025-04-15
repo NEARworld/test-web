@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       console.log(`Uploading file to Supabase Storage: ${fileName}`);
 
       // Supabase Storage에 파일 업로드
-      const { data: _, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from(process.env.SUPABASE_STORAGE_BUCKET_NAME || "task-files") // 버킷 이름 (.env 또는 기본값)
         .upload(fileName, taskFile, {
           cacheControl: "3600", // 캐시 설정 (선택 사항)
