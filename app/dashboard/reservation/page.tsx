@@ -142,7 +142,6 @@ export default function ReservationPage() {
     "20:30",
   ];
 
-  // 공통 함수 먼저 정의
   const showAlert = useCallback((title: string, message: string) => {
     setAlertMessage({ title, message });
     setIsAlertOpen(true);
