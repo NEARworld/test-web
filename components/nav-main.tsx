@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  Box,
   ChevronRight,
   Monitor,
   NotebookText,
   BarChart3,
   type LucideIcon,
-  LayoutGrid,
   Users,
 } from "lucide-react";
 
@@ -88,7 +86,7 @@ export function NavMain({
             <span>예약 통계</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
-        <SidebarMenuItem>
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"식당 재고관리"}
             className="cursor-pointer"
@@ -107,7 +105,7 @@ export function NavMain({
             <LayoutGrid />
             <span>테이블 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
         {items.map((item) => (
           <Collapsible
             key={item.title}
