@@ -86,6 +86,16 @@ export function NavMain({
             <span>예약 통계</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip={"예약 통계"}
+            className="cursor-pointer"
+            onClick={() => router.replace("/dashboard/employees")}
+          >
+            <BarChart3 />
+            <span>직원 관리</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
         {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"식당 재고관리"}
