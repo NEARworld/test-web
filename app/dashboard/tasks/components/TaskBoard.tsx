@@ -6,7 +6,7 @@ import {
   Download,
   Eye,
   FileIcon,
-  Image,
+  Image as ImageIcon,
   File,
   FileText,
   FileSpreadsheet,
@@ -63,6 +63,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import Image from "next/image";
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
@@ -389,7 +390,7 @@ export default function TaskBoard({
         fileExt,
       )
     ) {
-      return <Image className="h-4 w-4" />;
+      return <ImageIcon className="h-4 w-4" />;
     }
     // 엑셀 파일 (엑셀 아이콘으로 표시)
     else if (["xls", "xlsx", "csv", "xlsm", "xlt", "xltx"].includes(fileExt)) {
@@ -839,10 +840,13 @@ export default function TaskBoard({
               <>
                 {previewType === "image" && previewUrl && (
                   <div className="animate-in fade-in flex h-full items-center justify-center duration-200">
-                    <img
+                    <Image
                       src={previewUrl}
                       alt={previewName || "이미지 미리보기"}
                       className="max-h-[70vh] max-w-full object-contain"
+                      width={800}
+                      height={600}
+                      unoptimized
                     />
                   </div>
                 )}
