@@ -50,7 +50,7 @@ import {
 // --- ▲▲▲ Pagination 컴포넌트 import 추가 ▲▲▲ ---
 import { Label } from "@/components/ui/label"; // Added Label import back
 import { Textarea } from "@/components/ui/textarea"; // Added Textarea import back
-import { toast } from "sonner"; // Added toast import back
+import { toast } from "sonner";
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
@@ -314,10 +314,10 @@ export function TaskBoard({
 
         if (isImage) {
           const img = document.createElement("img");
+          img.alt = filename || "이미지 미리보기";
           img.onload = () => {
             clearTimeout(timeoutId);
             setPreviewUrl(preloadUrl);
-            // URL 설정 후 약간의 지연 후에 로딩 상태 해제 (렌더링 시간 고려)
             setTimeout(() => setIsPreviewLoading(false), 100);
           };
           img.onerror = () => {
@@ -341,15 +341,14 @@ export function TaskBoard({
             throw new Error("텍스트 파일을 불러올 수 없습니다.");
 
           const text = await response.text();
-          // 콘텐츠 준비 후 타입과 URL 설정
           setPreviewType("text");
           setPreviewUrl(text);
 
-          // 약간의 지연 후 로딩 상태 해제 (렌더링 시간 고려)
           clearTimeout(timeoutId);
           setTimeout(() => setIsPreviewLoading(false), 100);
-        } catch (_) {
+        } catch (error) {
           clearTimeout(timeoutId);
+          console.error("텍스트 파일 로딩 오류:", error);
           toast.error("텍스트 파일을 불러오는 중 오류가 발생했습니다.");
           setIsPreviewLoading(false);
           setIsPreviewOpen(false);
@@ -575,7 +574,6 @@ export function TaskBoard({
                     <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
                       {task.assignee?.name ?? "미지정"}
                     </TableCell>
-                    {/* ▼▼▼ 첨부 파일 셀 추가 ▼▼▼ */}
                     <TableCell className="text-muted-foreground px-3 py-2 text-sm lg:table-cell">
                       {task.fileUrl && task.fileName ? (
                         <div className="flex items-center space-x-1">
@@ -585,7 +583,6 @@ export function TaskBoard({
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    {/* ▲▲▲ 첨부 파일 셀 추가 ▲▲▲ */}
                     <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
                       {formatDate(task.createdAt)}
                     </TableCell>
@@ -694,40 +691,10 @@ export function TaskBoard({
               {currentTask?.assignee && (
                 <div>담당자: {currentTask.assignee.name ?? "미지정"}</div>
               )}
-              {currentTask?.fileUrl && currentTask.fileName && (
-                <div className="mt-2 flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    {getFileIcon(currentTask.fileName)}
-                    <span>첨부 파일: {currentTask.fileName}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (currentTask.id && currentTask.fileName) {
-                          handlePreview(currentTask.id, currentTask.fileName);
-                        }
-                      }}
-                      className="inline-flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      <Eye className="h-5 w-5" />
-                    </button>
-                    <a
-                      href={`/api/tasks/download/${currentTask.id}`}
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                      onClick={(e) => e.stopPropagation()}
-                      download
-                    >
-                      <Download className="h-5 w-5" />
-                    </a>
-                  </div>
-                </div>
-              )}
             </div>
           </DialogHeader>
           <div className="my-4 flex-grow overflow-y-auto border-t border-b py-4">
             {" "}
-            {/* Added borders and margin */}
             <h4 className="mb-2 text-sm font-medium">설명</h4>
             <p className="text-muted-foreground text-sm break-words whitespace-pre-wrap">
               {currentTask?.description
@@ -735,6 +702,42 @@ export function TaskBoard({
                 : "설명이 없습니다."}
             </p>
           </div>
+          {currentTask?.fileUrl && currentTask.fileName && (
+            <div className="mt-2 flex w-full items-center justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-1.5">
+                  <div className="shrink-0">
+                    {getFileIcon(currentTask.fileName)}
+                  </div>
+                  <span className="text-sm text-nowrap">첨부 파일</span>
+                </div>
+                <span className="text-muted-foreground text-sm">
+                  {currentTask.fileName}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentTask.id && currentTask.fileName) {
+                      handlePreview(currentTask.id, currentTask.fileName);
+                    }
+                  }}
+                  className="inline-flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                >
+                  <Eye className="h-5 w-5" />
+                </button>
+                <a
+                  href={`/api/tasks/download/${currentTask.id}`}
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                  onClick={(e) => e.stopPropagation()}
+                  download
+                >
+                  <Download className="h-5 w-5" />
+                </a>
+              </div>
+            </div>
+          )}
           <DialogFooter className="mt-auto flex-shrink-0 pt-4 sm:flex sm:items-end sm:justify-between">
             <div className="text-muted-foreground mb-4 space-y-1 text-sm sm:mb-0">
               <div>등록일: {formatDate(currentTask?.createdAt)}</div>
