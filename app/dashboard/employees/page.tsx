@@ -22,21 +22,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, Search } from "lucide-react";
+import { MoreHorizontal, Search } from "lucide-react";
 
 export default function EmployeesPage() {
   return (
     <div className="container mx-auto py-8">
-      {/* 페이지 헤더 */}
+      {/* ---------------- 페이지 헤더 ---------------- */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">직원 관리</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          직원 추가
-        </Button>
       </div>
 
-      {/* 검색 및 필터 */}
+      {/* ---------------- 검색 & 필터 ---------------- */}
       <div className="mb-6 flex gap-4">
         <div className="relative flex-1">
           <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
@@ -68,24 +64,22 @@ export default function EmployeesPage() {
         </Select>
       </div>
 
-      {/* 직원 테이블 */}
+      {/* ---------------- 직원 테이블 ---------------- */}
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>이름</TableHead>
-              <TableHead>사번</TableHead>
               <TableHead>부서</TableHead>
               <TableHead>직급</TableHead>
               <TableHead>입사일</TableHead>
               <TableHead>연락처</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
+              <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
               <TableCell>홍길동</TableCell>
-              <TableCell>2024001</TableCell>
               <TableCell>개발팀</TableCell>
               <TableCell>대리</TableCell>
               <TableCell>2024-01-15</TableCell>
@@ -113,7 +107,7 @@ export default function EmployeesPage() {
         </Table>
       </div>
 
-      {/* 페이지네이션 */}
+      {/* ---------------- 페이지네이션 ---------------- */}
       <div className="flex items-center justify-center space-x-2 py-4">
         <Button variant="outline" size="sm">
           이전
