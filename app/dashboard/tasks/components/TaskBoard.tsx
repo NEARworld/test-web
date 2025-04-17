@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react"; // Added Plus import back
 import { CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -32,12 +32,16 @@ import {
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis, // Import PaginationEllipsis
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"; // 경로 확인
 // --- ▲▲▲ Pagination 컴포넌트 import 추가 ▲▲▲ ---
+import { Label } from "@/components/ui/label"; // Added Label import back
+import { Textarea } from "@/components/ui/textarea"; // Added Textarea import back
+import { toast } from "sonner"; // Added toast import back
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page"; // Assuming ExtendedTask includes createdAt
@@ -85,6 +89,76 @@ const formatDateWithWeekday = (
   }
 };
 
+// --- ▼▼▼ Pagination Range Helper Function ▼▼▼ ---
+const DOTS = "...";
+
+const getPaginationRange = (
+  totalPages: number,
+  currentPage: number,
+  siblingCount = 1, // Number of pages to show on each side of the current page
+): (number | string)[] => {
+  const totalPageNumbers = siblingCount + 5; // siblingCount + firstPage + lastPage + currentPage + 2*DOTS
+
+  /*
+    Case 1:
+    If the number of pages is less than the page numbers we want to show in our
+    paginationComponent, we return the range [1..totalPages]
+  */
+  if (totalPages <= totalPageNumbers) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
+  const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
+
+  /*
+    We do not show dots just when there is just one page number to be inserted between
+    the extremes of sibling and the page limits i.e 1 and totalPages.
+    Hence, we are using leftSiblingIndex > 2 and rightSiblingIndex < totalPages - 1
+  */
+  const shouldShowLeftDots = leftSiblingIndex > 2;
+  const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
+
+  const firstPageIndex = 1;
+  const lastPageIndex = totalPages;
+
+  /*
+    Case 2: No left dots to show, but rights dots to be shown
+  */
+  if (!shouldShowLeftDots && shouldShowRightDots) {
+    let leftItemCount = 3 + 2 * siblingCount;
+    let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+    return [...leftRange, DOTS, totalPages];
+  }
+
+  /*
+    Case 3: No right dots to show, but left dots to be shown
+  */
+  if (shouldShowLeftDots && !shouldShowRightDots) {
+    let rightItemCount = 3 + 2 * siblingCount;
+    let rightRange = Array.from(
+      { length: rightItemCount },
+      (_, i) => totalPages - rightItemCount + 1 + i,
+    );
+    return [firstPageIndex, DOTS, ...rightRange];
+  }
+
+  /*
+    Case 4: Both left and right dots to be shown
+  */
+  if (shouldShowLeftDots && shouldShowRightDots) {
+    let middleRange = Array.from(
+      { length: rightSiblingIndex - leftSiblingIndex + 1 },
+      (_, i) => leftSiblingIndex + i,
+    );
+    return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex];
+  }
+
+  // Default fallback (should be covered by case 1)
+  return Array.from({ length: totalPages }, (_, i) => i + 1);
+};
+// --- ▲▲▲ Pagination Range Helper Function ▲▲▲ ---
+
 export function TaskBoard({
   tasks,
   users,
@@ -104,17 +178,20 @@ export function TaskBoard({
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<ExtendedTask>();
 
-  // --- 페이지네이션 계산 로직 (이전 단계에서 완료) ---
   const totalPages = Math.ceil(totalTasks / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalTasks);
-  // --- ---
 
-  // --- ▼▼▼ 파일 상태 추가 (다음 단계에서 사용) ▼▼▼ ---
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  // --- ▲▲▲ 파일 상태 추가 ▲▲▲ ---
 
-  // Reset form fields when dialog closes or opens
+  // --- ▼▼▼ 로딩 상태 구분 변수 추가 ▼▼▼ ---
+  // isLoading이 true이고, tasks 데이터가 아직 없거나 비어있으면 초기 로딩
+  const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
+
+  // isLoading이 true이지만, tasks 데이터가 이미 존재하면 페이지 전환 로딩
+  const isPageTransitionLoading = isLoading && tasks && tasks.length > 0;
+  // --- ▲▲▲ 로딩 상태 구분 변수 추가 ▲▲▲ ---
+
   useEffect(() => {
     if (!isDialogOpen) {
       setTitle("");
@@ -125,77 +202,67 @@ export function TaskBoard({
     }
   }, [isDialogOpen]);
 
-  // --- ▼▼▼ 파일 변경 핸들러 함수 추가 ▼▼▼ ---
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    // event.target.files가 존재하고, 파일이 하나 이상 선택되었는지 확인
     if (event.target.files && event.target.files.length > 0) {
-      // 첫 번째 선택된 파일을 상태에 저장
       setSelectedFile(event.target.files[0]);
     } else {
-      // 파일 선택이 취소되거나 비워진 경우 상태를 null로 리셋
       setSelectedFile(null);
     }
   };
-  // --- ▲▲▲ 파일 변경 핸들러 함수 추가 ▲▲▲ ---
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!title || !assignee || !dueDate) return; // Basic validation
+    if (!title || !assignee || !dueDate) return;
 
     setIsSubmitting(true);
-    setIsDialogOpen(false); // Close dialog immediately
+    setIsDialogOpen(false);
 
-    // 1. FormData 객체 생성
     const formData = new FormData();
-
-    // 2. 텍스트 데이터 추가 (key-value 쌍)
     formData.append("title", title);
-    formData.append("assignee", assignee); // 담당자 ID
-    formData.append("dueDate", dueDate); // 날짜 문자열
+    formData.append("assignee", assignee);
+    formData.append("dueDate", dueDate);
     if (description) {
-      // 설명은 선택적이므로 있을 때만 추가
       formData.append("description", description);
     }
-
-    // 3. 파일 데이터 추가 (파일이 선택되었을 경우)
     if (selectedFile) {
-      // 'taskFile'이라는 key로 파일 객체와 파일 이름을 함께 전달
-      // 백엔드에서 이 key ('taskFile')를 사용하여 파일을 참조
       formData.append("taskFile", selectedFile, selectedFile.name);
     }
 
     try {
       const response = await fetch("/api/tasks", {
         method: "POST",
-        // Include description in the body
         body: formData,
       });
 
       if (!response.ok) {
-        // 오류 처리
         const errorData = await response
           .json()
           .catch(() => ({ error: "오류 응답 파싱 실패" }));
         console.error("Failed to create task:", response.status, errorData);
-        setIsDialogOpen(false);
-        // ▼▼▼ Sonner toast 사용 (오류) ▼▼▼
         toast.error(
           `업무 등록 실패: ${errorData.error || response.statusText}`,
         );
-        // ▲▲▲ Sonner toast 사용 (오류) ▲▲▲
       } else {
-        // Task created successfully, data will be refetched by the parent page
-        // because isLoading was set to true, triggering the parent's useEffect.
-        setIsLoading(true);
-        // ▼▼▼ Sonner toast 사용 (성공) ▼▼▼
+        setIsLoading(true); // Trigger refetch in parent
         toast.success("새로운 업무가 성공적으로 등록되었습니다.");
-        // ▲▲▲ Sonner toast 사용 (성공) ▲▲▲
       }
     } catch (error) {
       console.error("Error submitting task:", error);
-      // Handle network or other errors
+      toast.error("업무 등록 중 오류가 발생했습니다.");
     } finally {
       setIsSubmitting(false);
+      // No need to set isLoading(false) here, parent will do it after fetch
+    }
+  };
+
+  // --- ▼▼▼ 페이지네이션 번호 계산 ▼▼▼ ---
+  const paginationRange = getPaginationRange(totalPages, currentPage);
+  // --- ▲▲▲ 페이지네이션 번호 계산 ▲▲▲ ---
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      setIsLoading(true); // Trigger loading state for data refetch
     }
   };
 
@@ -206,7 +273,6 @@ export function TaskBoard({
         <div className="mb-4 flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
           {" "}
           {/* Added padding */}
-          {/* <h2 className="text-lg font-semibold">업무 목록</h2> */}
           <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
           <DialogTrigger asChild>
             <Button size="sm" className="cursor-pointer text-sm">
@@ -301,8 +367,7 @@ export function TaskBoard({
               <Input
                 id="taskFile"
                 type="file"
-                // onChange 핸들러는 다음 단계에서 파일 상태 업데이트하도록 추가
-                onChange={(e) => handleFileChange(e)}
+                onChange={handleFileChange} // Updated onChange handler
                 className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 col-span-3 rounded-md file:border-0 file:p-4 file:px-4 file:py-2 file:text-sm file:font-semibold" // 기본 스타일링 예시
               />
             </div>
@@ -324,15 +389,10 @@ export function TaskBoard({
 
       {/* --- Task Table --- */}
       <div className="rounded-none border">
-        {" "}
-        {/* Added border around table */}
         <Table>
           <TableHeader>
-            {/* Use bg-muted for header background */}
             <TableRow className="bg-muted hover:bg-muted h-10 border-b">
               <TableHead className="text-muted-foreground w-[60px] px-3 py-2 text-center text-sm font-medium">
-                {" "}
-                {/* 너비 지정 및 중앙 정렬 */}
                 번호
               </TableHead>
               <TableHead className="text-muted-foreground px-3 py-2 text-sm font-medium">
@@ -341,25 +401,34 @@ export function TaskBoard({
               <TableHead className="text-muted-foreground px-3 py-2 text-right text-sm font-medium md:text-start">
                 담당자
               </TableHead>
-              {/* 🔽 Added Header */}
+              {/* ▼▼▼ 첨부 파일 헤더 추가 (선택 사항) ▼▼▼ */}
+              {/* Note: You'll need to add a corresponding TableCell below if you display file info */}
+              <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium lg:table-cell">
+                첨부 파일
+              </TableHead>
+              {/* ▲▲▲ 첨부 파일 헤더 추가 ▲▲▲ */}
               <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell">
                 등록일
               </TableHead>
               <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell">
                 마감일
               </TableHead>
-              {/* Optional: Add Status Header */}
-              {/* <TableHead className="w-[100px] px-3 py-2 text-sm font-medium text-muted-foreground">상태</TableHead> */}
-              {/* Optional: Add Actions Header */}
-              {/* <TableHead className="w-[80px] px-3 py-2 text-right text-sm font-medium text-muted-foreground">작업</TableHead> */}
             </TableRow>
           </TableHeader>
 
-          {isSubmitting || isLoading || !tasks ? (
-            <TableBody>
+          <TableBody className="relative">
+            {/* ① 페이지 전환 중일 때: rows + 반투명 오버레이 + 스피너 */}
+            {isPageTransitionLoading && (
+              <div className="bg-background/70 absolute inset-0 flex items-center justify-center backdrop-blur-sm">
+                <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+              </div>
+            )}
+
+            {/* ② 첫 진입(데이터 전혀 없음)일 때만 ‘전체 스피너 행’ */}
+            {isInitialLoading ? (
               <TableRow>
-                <TableCell colSpan={5}>
-                  <div className="flex flex-col items-center gap-2">
+                <TableCell colSpan={6}>
+                  <div className="flex h-60 flex-col items-center justify-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <p className="text-muted-foreground text-sm">
                       업무 불러오는 중...
@@ -367,187 +436,156 @@ export function TaskBoard({
                   </div>
                 </TableCell>
               </TableRow>
-              <TableRow className="invisible">
-                <TableCell className="text-muted-foreground text-center text-sm"></TableCell>
-                <TableCell className="w-1/2 px-3 py-2 text-sm font-medium"></TableCell>
-                <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm"></TableCell>
-                <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                  {" "}
-                  2025년 4월 11일
-                </TableCell>
-                <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                  2025년 4월 11일 금요일
+            ) : tasks && tasks.length > 0 ? (
+              tasks.map((task, index) => {
+                const itemNumber = totalTasks - startIndex - index;
+                return (
+                  <TableRow
+                    className="hover:bg-muted/50 data-[state=selected]:bg-muted h-12 border-b transition-colors"
+                    key={task.id}
+                    onClick={() => {
+                      setCurrentTask(task);
+                      setIsTaskViewOpen(true);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <TableCell className="text-muted-foreground text-center text-sm">
+                      {itemNumber}
+                    </TableCell>
+                    <TableCell className="w-1/2 max-w-xs truncate px-3 py-2 text-sm font-medium md:max-w-md lg:max-w-lg">
+                      {task.title}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
+                      {task.assignee?.name ?? "미지정"}
+                    </TableCell>
+                    {/* ▲▲▲ Add Cell for Attachment Info ▲▲▲ */}
+                    <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                      {formatDate(task.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                      {formatDateWithWeekday(task.dueDate)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                {/* Adjust colSpan if file header is added */}
+                <TableCell
+                  colSpan={6}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  등록된 업무가 없습니다.
                 </TableCell>
               </TableRow>
-            </TableBody>
-          ) : (
-            <></>
-          )}
-          {!isSubmitting && !isLoading && (
-            <TableBody>
-              {tasks && tasks.length > 0 ? (
-                tasks.map((task, index) => {
-                  // 내림차순 번호 계산
-                  // 전체 개수 - 현재 페이지 시작 인덱스 - 현재 페이지 내 순서
-                  const itemNumber = totalTasks - startIndex - index;
-
-                  return (
-                    <TableRow
-                      className="hover:bg-muted/50 data-[state=selected]:bg-muted h-12 border-b transition-colors" // Standard hover style
-                      key={task.id}
-                      onClick={() => {
-                        setCurrentTask(task);
-                        setIsTaskViewOpen(true);
-                      }}
-                      style={{ cursor: "pointer" }} // Explicit cursor pointer
-                    >
-                      {/* 새로운 '번호' TableCell 추가 */}
-                      <TableCell className="text-muted-foreground text-center text-sm">
-                        {" "}
-                        {/* 중앙 정렬 */}
-                        {itemNumber}
-                      </TableCell>
-                      <TableCell className="w-1/2 px-3 py-2 text-sm font-medium">
-                        {" "}
-                        {/* Adjusted padding/style */}
-                        {task.title}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
-                        {task.assignee?.name ?? "미지정"}{" "}
-                        {/* Handle potential null assignee/name */}
-                      </TableCell>
-                      {/* 🔽 Added Cell for Creation Date */}
-                      <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                        {formatDate(task.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                        {formatDateWithWeekday(task.dueDate)}
-                      </TableCell>
-                      {/* Optional: Add Status Cell */}
-                      {/* <TableCell className="px-3 py-2 text-sm">
-                       <Badge variant={task.status === 'COMPLETED' ? 'success' : 'outline'}>
-                           {task.status === 'COMPLETED' ? '완료' : '진행중'}
-                       </Badge>
-                    </TableCell> */}
-                      {/* Optional: Add Actions Cell */}
-                      {/* <TableCell className="px-3 py-2 text-right text-sm">
-                        <TaskActions task={task} />
-                     </TableCell> */}
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-muted-foreground h-24 text-center"
-                  >
-                    {" "}
-                    {/* Updated colSpan */}
-                    등록된 업무가 없습니다.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          )}
+            )}
+          </TableBody>
         </Table>
       </div>
 
-      {/* --- ▼▼▼ 페이지네이션 컨트롤 수정 (shadcn/ui Pagination 사용) ▼▼▼ --- */}
-      {totalPages > 0 &&
-        totalTasks > itemsPerPage && ( // 표시 조건 유지
-          <div className="mt-4 flex flex-col items-center justify-between gap-y-2 border-t px-4 py-3 sm:flex-row sm:gap-y-0">
-            {" "}
-            {/* 레이아웃 조정 */}
-            {/* 페이지 정보 텍스트 (왼쪽 또는 상단) */}
-            <div className="text-muted-foreground text-sm">
-              총 {totalTasks}개 중 {startIndex + 1} - {endIndex} 표시 중
-            </div>
-            {/* shadcn Pagination 컴포넌트 (오른쪽 또는 하단) */}
-            <Pagination>
-              <PaginationContent>
-                {/* 이전 페이지 버튼 */}
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#" // 실제 링크 대신 onClick 사용
-                    onClick={(e) => {
-                      e.preventDefault(); // 기본 링크 동작 방지
-                      if (currentPage > 1) {
-                        setCurrentPage(currentPage - 1);
-                        setIsLoading(true);
-                      }
-                    }}
-                    //shadcn PaginationPrevious는 disabled 속성이 없으므로 스타일로 처리
-                    className={
-                      currentPage === 1 ? "pointer-events-none opacity-50" : ""
-                    }
-                    aria-disabled={currentPage === 1} // 접근성 속성 추가
-                  />
-                </PaginationItem>
-
-                {/* 페이지 번호 링크들 (간단 버전: 현재 페이지만 표시) */}
-                {/* 필요시 여기에 페이지 번호들을 동적으로 생성하는 로직 추가 가능 */}
-                <PaginationItem>
-                  <PaginationLink href="#" isActive>
-                    {" "}
-                    {/* 현재 페이지만 활성화 */}
-                    {currentPage}
-                  </PaginationLink>
-                </PaginationItem>
-
-                {/* 페이지 번호가 많을 경우 생략 부호 (...) 표시 (선택 사항) */}
-                {/* <PaginationItem>
-                <PaginationEllipsis />
-              </PaginationItem> */}
-
-                {/* 다음 페이지 버튼 */}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#" // 실제 링크 대신 onClick 사용
-                    onClick={(e) => {
-                      e.preventDefault(); // 기본 링크 동작 방지
-                      if (currentPage < totalPages) {
-                        setCurrentPage(currentPage + 1);
-                        setIsLoading(true);
-                      }
-                    }}
-                    // shadcn PaginationNext는 disabled 속성이 없으므로 스타일로 처리
-                    className={
-                      currentPage === totalPages
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                    aria-disabled={currentPage === totalPages} // 접근성 속성 추가
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+      {/* --- ▼▼▼ 페이지네이션 컨트롤 수정 (shadcn/ui Pagination + Page Numbers) ▼▼▼ --- */}
+      {totalPages > 1 && ( // Show only if more than one page
+        <div className="mt-4 flex flex-col items-center justify-between gap-y-2 border-t px-4 py-3 sm:flex-row sm:gap-y-0">
+          <div className="text-muted-foreground text-sm">
+            총 {totalTasks}개 중 {startIndex + 1} - {endIndex} 표시 중 (페이지{" "}
+            {currentPage}/{totalPages})
           </div>
-        )}
+          <Pagination>
+            <PaginationContent>
+              {/* 이전 페이지 버튼 */}
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageChange(currentPage - 1);
+                  }}
+                  className={
+                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                  }
+                  aria-disabled={currentPage === 1}
+                />
+              </PaginationItem>
+
+              {/* 페이지 번호 링크들 */}
+              {paginationRange.map((page, index) => {
+                if (page === DOTS) {
+                  return (
+                    <PaginationItem key={DOTS + index}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  );
+                }
+
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(page as number); // Type assertion
+                      }}
+                      isActive={page === currentPage}
+                      aria-current={page === currentPage ? "page" : undefined}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+
+              {/* 다음 페이지 버튼 */}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageChange(currentPage + 1);
+                  }}
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : ""
+                  }
+                  aria-disabled={currentPage === totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+      {/* --- ▲▲▲ 페이지네이션 컨트롤 수정 ▲▲▲ --- */}
 
       {/* --- Task View Dialog --- */}
       <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
-        {/* You might want to adjust min-h-96 if the content now needs less forced height */}
-        {/* Consider adding max-h-[85vh] overflow-y-auto if description can be very long */}
-        <DialogContent className="flex min-h-[24rem] flex-col sm:max-w-md lg:max-w-2xl">
+        <DialogContent className="flex max-h-[85vh] min-h-[24rem] flex-col sm:max-w-md lg:max-w-2xl">
           {" "}
-          {/* Use min-h value, flex-col helps footer stick to bottom */}
-          {/* Header: Keep Title and Assignee */}
+          {/* Added max-height */}
           <DialogHeader className="flex-shrink-0">
-            {" "}
-            {/* Prevent header from shrinking */}
             <DialogTitle>{currentTask?.title ?? "업무 정보"}</DialogTitle>
             <div className="text-muted-foreground pt-1 text-sm">
               {currentTask?.assignee && (
                 <div>담당자: {currentTask.assignee.name ?? "미지정"}</div>
               )}
-              {/* Dates removed from here */}
+              {/* Display attachment link if file exists */}
+              {/* {currentTask?.filePath && (
+                  <div className="mt-1">
+                      첨부 파일: {' '}
+                       <a
+                          href={`/api/tasks/download/${currentTask.id}`} // Use the same download link
+                          className="text-blue-600 hover:underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {currentTask.filePath.split('/').pop() || "파일 다운로드"}
+                        </a>
+                  </div> */}
+              {/* )} */}
             </div>
           </DialogHeader>
-          {/* Description: Allow this to grow and potentially scroll */}
-          <div className="flex-grow overflow-y-auto py-4">
+          <div className="my-4 flex-grow overflow-y-auto border-t border-b py-4">
             {" "}
-            {/* Allow div to grow and scroll if needed */}
+            {/* Added borders and margin */}
             <h4 className="mb-2 text-sm font-medium">설명</h4>
             <p className="text-muted-foreground text-sm break-words whitespace-pre-wrap">
               {currentTask?.description
@@ -555,18 +593,11 @@ export function TaskBoard({
                 : "설명이 없습니다."}
             </p>
           </div>
-          {/* Footer: Add Dates here, keep Close button */}
-          <DialogFooter className="mt-auto flex-shrink-0 border-t pt-4 sm:flex sm:items-end sm:justify-between">
-            {" "}
-            {/* Add border, padding-top, make footer stick to bottom */}
-            {/* Date Container */}
+          <DialogFooter className="mt-auto flex-shrink-0 pt-4 sm:flex sm:items-end sm:justify-between">
             <div className="text-muted-foreground mb-4 space-y-1 text-sm sm:mb-0">
-              {" "}
-              {/* Add bottom margin on small screens */}
               <div>등록일: {formatDate(currentTask?.createdAt)}</div>
               <div>마감일: {formatDateWithWeekday(currentTask?.dueDate)}</div>
             </div>
-            {/* Close Button */}
             <Button
               variant="secondary"
               size="sm"
@@ -581,20 +612,11 @@ export function TaskBoard({
   );
 }
 
-// --- Additional imports needed for the enhanced version ---
-import { Plus } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-// import { Badge } from "@/components/ui/badge"; // Needed if using Status column
-// import { TaskActions } from "./task-actions"; // Needed if using Actions column
-
-// --- Make sure your ExtendedTask type includes these fields ---
-// Example definition (adjust based on your actual ../page file)
-// import { Task, User } from "@prisma/client";
+// Assume ExtendedTask might look like this (adjust based on your actual type)
 // export type ExtendedTask = Task & {
 //   assignee: Pick<User, "id" | "name"> | null;
-//   createdAt: Date; // Ensure this is included
-//   description?: string | null; // Ensure this is included if used
-//   status?: string; // Example for status column
+//   createdAt: Date;
+//   description?: string | null;
+//   dueDate: Date | null; // Ensure this matches Prisma schema
+//   filePath?: string | null; // Added for file path
 // };
