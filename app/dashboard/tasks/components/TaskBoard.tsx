@@ -1,6 +1,15 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react"; // Added Plus import back
+import {
+  Loader2,
+  Plus,
+  Download,
+  Eye,
+  FileIcon,
+  Image,
+  File,
+  FileText,
+} from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -44,7 +53,7 @@ import { Textarea } from "@/components/ui/textarea"; // Added Textarea import ba
 import { toast } from "sonner"; // Added toast import back
 
 import { User } from "@prisma/client";
-import { ExtendedTask } from "../page"; // Assuming ExtendedTask includes createdAt
+import { ExtendedTask } from "../page";
 
 interface TaskBoardProps {
   tasks: ExtendedTask[] | undefined;
@@ -126,8 +135,8 @@ const getPaginationRange = (
     Case 2: No left dots to show, but rights dots to be shown
   */
   if (!shouldShowLeftDots && shouldShowRightDots) {
-    let leftItemCount = 3 + 2 * siblingCount;
-    let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+    const leftItemCount = 3 + 2 * siblingCount;
+    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
     return [...leftRange, DOTS, totalPages];
   }
 
@@ -135,8 +144,8 @@ const getPaginationRange = (
     Case 3: No right dots to show, but left dots to be shown
   */
   if (shouldShowLeftDots && !shouldShowRightDots) {
-    let rightItemCount = 3 + 2 * siblingCount;
-    let rightRange = Array.from(
+    const rightItemCount = 3 + 2 * siblingCount;
+    const rightRange = Array.from(
       { length: rightItemCount },
       (_, i) => totalPages - rightItemCount + 1 + i,
     );
@@ -147,7 +156,7 @@ const getPaginationRange = (
     Case 4: Both left and right dots to be shown
   */
   if (shouldShowLeftDots && shouldShowRightDots) {
-    let middleRange = Array.from(
+    const middleRange = Array.from(
       { length: rightSiblingIndex - leftSiblingIndex + 1 },
       (_, i) => leftSiblingIndex + i,
     );
@@ -177,6 +186,11 @@ export function TaskBoard({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<ExtendedTask>();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const totalPages = Math.ceil(totalTasks / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -263,6 +277,112 @@ export function TaskBoard({
     if (page >= 1 && page <= totalPages && page !== currentPage) {
       setCurrentPage(page);
       setIsLoading(true); // Trigger loading state for data refetch
+    }
+  };
+
+  const handlePreview = async (taskId: string, filename: string) => {
+    try {
+      // 상태 초기화 후 로딩 시작
+      setIsPreviewOpen(true);
+      setIsPreviewLoading(true);
+      setPreviewName(filename);
+
+      // 파일 타입 확인
+      const fileExt = filename.split(".").pop()?.toLowerCase() || "";
+      const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(
+        fileExt,
+      );
+      const isPdf = fileExt === "pdf";
+      const isText = ["txt", "md", "html", "css", "js", "ts", "json"].includes(
+        fileExt,
+      );
+
+      // 10초 타임아웃 설정
+      const timeoutId = setTimeout(() => {
+        if (isPreviewLoading) {
+          setIsPreviewLoading(false);
+          toast.warning("파일 로딩 시간이 너무 오래 걸립니다.");
+        }
+      }, 10000);
+
+      if (isImage || isPdf) {
+        // 타입을 먼저 설정하고 URL은 나중에 설정
+        setPreviewType(isImage ? "image" : "pdf");
+
+        // 이미지는 미리 URL 설정하고, 실제 로드 완료 후 로딩 상태 해제
+        const preloadUrl = `/api/tasks/download/${taskId}`;
+
+        if (isImage) {
+          const img = document.createElement("img");
+          img.onload = () => {
+            clearTimeout(timeoutId);
+            setPreviewUrl(preloadUrl);
+            // URL 설정 후 약간의 지연 후에 로딩 상태 해제 (렌더링 시간 고려)
+            setTimeout(() => setIsPreviewLoading(false), 100);
+          };
+          img.onerror = () => {
+            clearTimeout(timeoutId);
+            toast.error("이미지를 불러오는 중 오류가 발생했습니다.");
+            setIsPreviewLoading(false);
+          };
+          img.src = preloadUrl;
+        } else {
+          // PDF는 URL 먼저 설정하고 짧은 로딩 시간 부여
+          setPreviewUrl(preloadUrl);
+          setTimeout(() => {
+            clearTimeout(timeoutId);
+            setIsPreviewLoading(false);
+          }, 1500); // PDF는 iframe 로드 시간 고려하여 약간 더 긴 시간 부여
+        }
+      } else if (isText) {
+        try {
+          const response = await fetch(`/api/tasks/download/${taskId}`);
+          if (!response.ok)
+            throw new Error("텍스트 파일을 불러올 수 없습니다.");
+
+          const text = await response.text();
+          // 콘텐츠 준비 후 타입과 URL 설정
+          setPreviewType("text");
+          setPreviewUrl(text);
+
+          // 약간의 지연 후 로딩 상태 해제 (렌더링 시간 고려)
+          clearTimeout(timeoutId);
+          setTimeout(() => setIsPreviewLoading(false), 100);
+        } catch (_) {
+          clearTimeout(timeoutId);
+          toast.error("텍스트 파일을 불러오는 중 오류가 발생했습니다.");
+          setIsPreviewLoading(false);
+          setIsPreviewOpen(false);
+        }
+      } else {
+        clearTimeout(timeoutId);
+        toast.info(
+          "이 파일 형식은 미리보기를 지원하지 않습니다. 다운로드하여 확인해주세요.",
+        );
+        setIsPreviewLoading(false);
+        setIsPreviewOpen(false);
+      }
+    } catch (error) {
+      console.error("파일 미리보기 오류:", error);
+      toast.error("파일 미리보기를 불러오는 중 오류가 발생했습니다.");
+      setIsPreviewLoading(false);
+      setIsPreviewOpen(false);
+    }
+  };
+
+  const getFileIcon = (filename: string) => {
+    if (!filename) return <FileIcon className="h-4 w-4" />;
+
+    const fileExt = filename.split(".").pop()?.toLowerCase() || "";
+
+    if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExt)) {
+      return <Image className="h-4 w-4" />;
+    } else if (
+      ["pdf", "doc", "docx", "xlsx", "ppt", "pptx"].includes(fileExt)
+    ) {
+      return <FileText className="h-4 w-4" />;
+    } else {
+      return <File className="h-4 w-4" />;
     }
   };
 
@@ -401,12 +521,9 @@ export function TaskBoard({
               <TableHead className="text-muted-foreground px-3 py-2 text-right text-sm font-medium md:text-start">
                 담당자
               </TableHead>
-              {/* ▼▼▼ 첨부 파일 헤더 추가 (선택 사항) ▼▼▼ */}
-              {/* Note: You'll need to add a corresponding TableCell below if you display file info */}
-              <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium lg:table-cell">
+              <TableHead className="text-muted-foreground px-3 py-2 text-sm font-medium lg:table-cell">
                 첨부 파일
               </TableHead>
-              {/* ▲▲▲ 첨부 파일 헤더 추가 ▲▲▲ */}
               <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell">
                 등록일
               </TableHead>
@@ -424,7 +541,7 @@ export function TaskBoard({
               </div>
             )}
 
-            {/* ② 첫 진입(데이터 전혀 없음)일 때만 ‘전체 스피너 행’ */}
+            {/* ② 첫 진입(데이터 전혀 없음)일 때만 '전체 스피너 행' */}
             {isInitialLoading ? (
               <TableRow>
                 <TableCell colSpan={6}>
@@ -458,7 +575,17 @@ export function TaskBoard({
                     <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
                       {task.assignee?.name ?? "미지정"}
                     </TableCell>
-                    {/* ▲▲▲ Add Cell for Attachment Info ▲▲▲ */}
+                    {/* ▼▼▼ 첨부 파일 셀 추가 ▼▼▼ */}
+                    <TableCell className="text-muted-foreground px-3 py-2 text-sm lg:table-cell">
+                      {task.fileUrl && task.fileName ? (
+                        <div className="flex items-center space-x-1">
+                          {getFileIcon(task.fileName)}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* ▲▲▲ 첨부 파일 셀 추가 ▲▲▲ */}
                     <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
                       {formatDate(task.createdAt)}
                     </TableCell>
@@ -567,20 +694,35 @@ export function TaskBoard({
               {currentTask?.assignee && (
                 <div>담당자: {currentTask.assignee.name ?? "미지정"}</div>
               )}
-              {/* Display attachment link if file exists */}
-              {/* {currentTask?.filePath && (
-                  <div className="mt-1">
-                      첨부 파일: {' '}
-                       <a
-                          href={`/api/tasks/download/${currentTask.id}`} // Use the same download link
-                          className="text-blue-600 hover:underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {currentTask.filePath.split('/').pop() || "파일 다운로드"}
-                        </a>
-                  </div> */}
-              {/* )} */}
+              {currentTask?.fileUrl && currentTask.fileName && (
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    {getFileIcon(currentTask.fileName)}
+                    <span>첨부 파일: {currentTask.fileName}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (currentTask.id && currentTask.fileName) {
+                          handlePreview(currentTask.id, currentTask.fileName);
+                        }
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <Eye className="h-5 w-5" />
+                    </button>
+                    <a
+                      href={`/api/tasks/download/${currentTask.id}`}
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      onClick={(e) => e.stopPropagation()}
+                      download
+                    >
+                      <Download className="h-5 w-5" />
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </DialogHeader>
           <div className="my-4 flex-grow overflow-y-auto border-t border-b py-4">
@@ -602,6 +744,82 @@ export function TaskBoard({
               variant="secondary"
               size="sm"
               onClick={() => setIsTaskViewOpen(false)}
+            >
+              닫기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="flex max-h-[90vh] min-h-[24rem] flex-col sm:max-w-md md:max-w-2xl lg:max-w-4xl">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>파일 미리보기: {previewName}</DialogTitle>
+          </DialogHeader>
+          <div className="my-4 flex flex-grow items-center overflow-auto border-t border-b py-4">
+            {isPreviewLoading ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+                <Loader2 className="h-10 w-10 animate-spin" />
+                <p className="text-muted-foreground text-sm">
+                  파일을 불러오는 중...
+                </p>
+              </div>
+            ) : (
+              <>
+                {previewType === "image" && previewUrl && (
+                  <div className="animate-in fade-in flex h-full items-center justify-center duration-200">
+                    <img
+                      src={previewUrl}
+                      alt={previewName || "이미지 미리보기"}
+                      className="max-h-[70vh] max-w-full object-contain"
+                    />
+                  </div>
+                )}
+                {previewType === "pdf" && previewUrl && (
+                  <div className="animate-in fade-in h-[70vh] w-full duration-200">
+                    <iframe
+                      src={`${previewUrl}#toolbar=0`}
+                      className="h-full w-full"
+                      title={previewName || "PDF 미리보기"}
+                    />
+                  </div>
+                )}
+                {previewType === "text" && previewUrl && (
+                  <pre className="bg-muted/30 animate-in fade-in max-h-[70vh] w-full overflow-auto rounded-md p-4 text-sm whitespace-pre-wrap duration-200">
+                    {previewUrl}
+                  </pre>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter className="mt-auto flex-shrink-0 gap-2">
+            {previewUrl && (
+              <a
+                href={
+                  typeof previewUrl === "string" &&
+                  previewUrl.startsWith("/api")
+                    ? previewUrl
+                    : "#"
+                }
+                download={previewName || undefined}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                다운로드
+              </a>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsPreviewOpen(false);
+                setTimeout(() => {
+                  setPreviewUrl(null);
+                  setPreviewType(null);
+                  setPreviewName(null);
+                  setIsPreviewLoading(false);
+                }, 300); // 닫힘 애니메이션 후에 상태 리셋
+              }}
             >
               닫기
             </Button>

@@ -7,7 +7,12 @@ import { useEffect, useState } from "react";
 import { Task, User } from "@prisma/client";
 import { TaskBoard } from "./components/TaskBoard";
 
-export type ExtendedTask = Task & { assignee: { name: string } };
+export type ExtendedTask = Task & {
+  assignee: { name: string };
+  fileUrl?: string | null; // 파일 공개 URL
+  fileName?: string | null; // 원본 파일명
+  fileType?: string | null; // 파일 MIME 타입
+};
 
 export default function TasksPage() {
   const [users, setUsers] = useState<Pick<User, "id" | "name">[]>();
