@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 
 import { Task, User } from "@prisma/client";
-import { TaskBoard } from "./components/TaskBoard";
+import TaskBoard from "@/app/dashboard/tasks/components/TaskBoard";
 
 export type ExtendedTask = Task & {
   assignee: { name: string };

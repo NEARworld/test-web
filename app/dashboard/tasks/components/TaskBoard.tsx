@@ -9,6 +9,14 @@ import {
   Image,
   File,
   FileText,
+  FileSpreadsheet,
+  FilePen,
+  Presentation,
+  FileJson,
+  FileCode,
+  FileCog,
+  Video,
+  Music,
 } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import {
@@ -29,7 +37,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import {
   Select,
   SelectContent,
@@ -37,19 +51,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// --- ▼▼▼ Pagination 컴포넌트 import 추가 ▼▼▼ ---
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis, // Import PaginationEllipsis
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"; // 경로 확인
-// --- ▲▲▲ Pagination 컴포넌트 import 추가 ▲▲▲ ---
-import { Label } from "@/components/ui/label"; // Added Label import back
-import { Textarea } from "@/components/ui/textarea"; // Added Textarea import back
+} from "@/components/ui/pagination";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 import { User } from "@prisma/client";
@@ -98,51 +110,36 @@ const formatDateWithWeekday = (
   }
 };
 
-// --- ▼▼▼ Pagination Range Helper Function ▼▼▼ ---
 const DOTS = "...";
 
 const getPaginationRange = (
   totalPages: number,
   currentPage: number,
-  siblingCount = 1, // Number of pages to show on each side of the current page
+  siblingCount = 1,
 ): (number | string)[] => {
-  const totalPageNumbers = siblingCount + 5; // siblingCount + firstPage + lastPage + currentPage + 2*DOTS
+  const totalPageNumbers = siblingCount + 5;
 
-  /*
-    Case 1:
-    If the number of pages is less than the page numbers we want to show in our
-    paginationComponent, we return the range [1..totalPages]
-  */
   if (totalPages <= totalPageNumbers) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (totalPages <= totalPageNumbers) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
   }
 
   const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
   const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
 
-  /*
-    We do not show dots just when there is just one page number to be inserted between
-    the extremes of sibling and the page limits i.e 1 and totalPages.
-    Hence, we are using leftSiblingIndex > 2 and rightSiblingIndex < totalPages - 1
-  */
   const shouldShowLeftDots = leftSiblingIndex > 2;
   const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
 
   const firstPageIndex = 1;
   const lastPageIndex = totalPages;
 
-  /*
-    Case 2: No left dots to show, but rights dots to be shown
-  */
   if (!shouldShowLeftDots && shouldShowRightDots) {
     const leftItemCount = 3 + 2 * siblingCount;
     const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
     return [...leftRange, DOTS, totalPages];
   }
 
-  /*
-    Case 3: No right dots to show, but left dots to be shown
-  */
   if (shouldShowLeftDots && !shouldShowRightDots) {
     const rightItemCount = 3 + 2 * siblingCount;
     const rightRange = Array.from(
@@ -152,9 +149,6 @@ const getPaginationRange = (
     return [firstPageIndex, DOTS, ...rightRange];
   }
 
-  /*
-    Case 4: Both left and right dots to be shown
-  */
   if (shouldShowLeftDots && shouldShowRightDots) {
     const middleRange = Array.from(
       { length: rightSiblingIndex - leftSiblingIndex + 1 },
@@ -163,12 +157,10 @@ const getPaginationRange = (
     return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex];
   }
 
-  // Default fallback (should be covered by case 1)
   return Array.from({ length: totalPages }, (_, i) => i + 1);
 };
-// --- ▲▲▲ Pagination Range Helper Function ▲▲▲ ---
 
-export function TaskBoard({
+export default function TaskBoard({
   tasks,
   users,
   isLoading,
@@ -181,7 +173,7 @@ export function TaskBoard({
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [description, setDescription] = useState(""); // Added description state
+  const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
@@ -280,6 +272,15 @@ export function TaskBoard({
     }
   };
 
+  // 이미지 파일인지 확인하는 함수
+  const isImageFile = useCallback((filename: string): boolean => {
+    if (!filename) return false;
+    const fileExt = filename.split(".").pop()?.toLowerCase() || "";
+    return ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"].includes(
+      fileExt,
+    );
+  }, []);
+
   const handlePreview = async (taskId: string, filename: string) => {
     try {
       // 상태 초기화 후 로딩 시작
@@ -289,9 +290,16 @@ export function TaskBoard({
 
       // 파일 타입 확인
       const fileExt = filename.split(".").pop()?.toLowerCase() || "";
-      const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(
-        fileExt,
-      );
+      const isImage = [
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "webp",
+        "svg",
+        "bmp",
+        "tiff",
+      ].includes(fileExt);
       const isPdf = fileExt === "pdf";
       const isText = ["txt", "md", "html", "css", "js", "ts", "json"].includes(
         fileExt,
@@ -374,12 +382,69 @@ export function TaskBoard({
 
     const fileExt = filename.split(".").pop()?.toLowerCase() || "";
 
-    if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExt)) {
-      return <Image className="h-4 w-4" />;
-    } else if (
-      ["pdf", "doc", "docx", "xlsx", "ppt", "pptx"].includes(fileExt)
+    // --- ▼▼▼ 파일 확장자별 아이콘 매핑 수정 ▼▼▼ ---
+    // 이미지 파일
+    if (
+      ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"].includes(
+        fileExt,
+      )
     ) {
-      return <FileText className="h-4 w-4" />;
+      return <Image className="h-4 w-4" />;
+    }
+    // 엑셀 파일 (엑셀 아이콘으로 표시)
+    else if (["xls", "xlsx", "csv", "xlsm", "xlt", "xltx"].includes(fileExt)) {
+      return <FileSpreadsheet className="h-4 w-4 text-green-600" />;
+    }
+    // 한글 문서
+    else if (["hwp", "hwpx"].includes(fileExt)) {
+      return <FilePen className="h-4 w-4 text-[#00a4ff]" />;
+    }
+    // 파워포인트 (프레젠테이션 아이콘으로 표시)
+    else if (
+      ["ppt", "pptx", "pptm", "pot", "potx", "pps", "ppsx"].includes(fileExt)
+    ) {
+      return <Presentation className="h-4 w-4 text-orange-600" />;
+    }
+    // 워드 문서
+    else if (["doc", "docx", "docm", "rtf", "odt"].includes(fileExt)) {
+      return <FileText className="h-4 w-4 text-blue-600" />;
+    }
+    // PDF 문서
+    else if (["pdf"].includes(fileExt)) {
+      return <FileText className="h-4 w-4 text-red-600" />;
+    }
+    // 동영상 파일
+    else if (
+      ["mp4", "avi", "mov", "wmv", "mkv", "flv", "webm"].includes(fileExt)
+    ) {
+      return <Video className="h-4 w-4" />;
+    }
+    // 오디오 파일
+    else if (["mp3", "wav", "ogg", "flac", "aac"].includes(fileExt)) {
+      return <Music className="h-4 w-4" />;
+    }
+    // 코드 파일
+    else if (
+      [
+        "js",
+        "ts",
+        "jsx",
+        "tsx",
+        "html",
+        "css",
+        "py",
+        "java",
+        "c",
+        "cpp",
+      ].includes(fileExt)
+    ) {
+      return <FileCode className="h-4 w-4" />;
+    } else if (
+      ["json", "xml", "yaml", "yml", "toml", "ini", "conf"].includes(fileExt)
+    ) {
+      return <FileJson className="h-4 w-4" />;
+    } else if (["exe", "dll", "bin", "sh", "bat", "cmd"].includes(fileExt)) {
+      return <FileCog className="h-4 w-4" />;
     } else {
       return <File className="h-4 w-4" />;
     }
@@ -716,17 +781,19 @@ export function TaskBoard({
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (currentTask.id && currentTask.fileName) {
-                      handlePreview(currentTask.id, currentTask.fileName);
-                    }
-                  }}
-                  className="inline-flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                >
-                  <Eye className="h-5 w-5" />
-                </button>
+                {currentTask.fileName && isImageFile(currentTask.fileName) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (currentTask.id && currentTask.fileName) {
+                        handlePreview(currentTask.id, currentTask.fileName);
+                      }
+                    }}
+                    className="inline-flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                )}
                 <a
                   href={`/api/tasks/download/${currentTask.id}`}
                   className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
@@ -746,6 +813,7 @@ export function TaskBoard({
             <Button
               variant="secondary"
               size="sm"
+              className="cursor-pointer"
               onClick={() => setIsTaskViewOpen(false)}
             >
               닫기
@@ -832,12 +900,3 @@ export function TaskBoard({
     </CardContent>
   );
 }
-
-// Assume ExtendedTask might look like this (adjust based on your actual type)
-// export type ExtendedTask = Task & {
-//   assignee: Pick<User, "id" | "name"> | null;
-//   createdAt: Date;
-//   description?: string | null;
-//   dueDate: Date | null; // Ensure this matches Prisma schema
-//   filePath?: string | null; // Added for file path
-// };
