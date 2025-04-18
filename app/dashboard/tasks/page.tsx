@@ -15,7 +15,7 @@ export type ExtendedTask = Task & {
 };
 
 export default function TasksPage() {
-  const [users, setUsers] = useState<Pick<User, "id" | "name">[]>();
+  const [users, setUsers] = useState<Pick<User, "id" | "name" | "image">[]>();
   const [tasks, setTasks] = useState<ExtendedTask[]>();
   const [totalTasks, setTotalTasks] = useState<number>(0);
 
@@ -26,8 +26,10 @@ export default function TasksPage() {
   useEffect(() => {
     const getUsers = async () => {
       const res = await fetch("/api/users");
-      setUsers(await res.json());
+      const data = await res.json();
+      setUsers(data);
     };
+
     const getTasks = async () => {
       fetch(`/api/tasks?page=${currentPage}&limit=${itemsPerPage}`)
         .then((res) => res.json())

@@ -64,13 +64,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Image from "next/image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
 
 interface TaskBoardProps {
   tasks: ExtendedTask[] | undefined;
-  users: Pick<User, "id" | "name">[] | undefined;
+  users: Pick<User, "id" | "name" | "image">[] | undefined;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   currentPage: number;
@@ -258,18 +259,15 @@ export default function TaskBoard({
       toast.error("업무 등록 중 오류가 발생했습니다.");
     } finally {
       setIsSubmitting(false);
-      // No need to set isLoading(false) here, parent will do it after fetch
     }
   };
 
-  // --- ▼▼▼ 페이지네이션 번호 계산 ▼▼▼ ---
   const paginationRange = getPaginationRange(totalPages, currentPage);
-  // --- ▲▲▲ 페이지네이션 번호 계산 ▲▲▲ ---
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== currentPage) {
       setCurrentPage(page);
-      setIsLoading(true); // Trigger loading state for data refetch
+      setIsLoading(true);
     }
   };
 
@@ -383,7 +381,6 @@ export default function TaskBoard({
 
     const fileExt = filename.split(".").pop()?.toLowerCase() || "";
 
-    // --- ▼▼▼ 파일 확장자별 아이콘 매핑 수정 ▼▼▼ ---
     // 이미지 파일
     if (
       ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"].includes(
@@ -453,16 +450,13 @@ export default function TaskBoard({
 
   return (
     <CardContent className="p-0">
-      {/* --- Add Task Dialog --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <div className="mb-4 flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
           {" "}
-          {/* Added padding */}
           <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
           <DialogTrigger asChild>
             <Button size="sm" className="cursor-pointer text-sm">
               {" "}
-              {/* Adjusted button style */}
               <Plus className="mr-2 h-4 w-4" /> 업무 등록
             </Button>
           </DialogTrigger>
@@ -475,7 +469,6 @@ export default function TaskBoard({
 
           <form className="grid gap-4 py-4" onSubmit={handleSubmit}>
             {" "}
-            {/* Use grid layout */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="title" className="text-right text-sm">
                 업무 제목
@@ -495,16 +488,74 @@ export default function TaskBoard({
               </Label>
               <Select value={assignee} onValueChange={setAssignee} required>
                 {" "}
-                {/* Added required */}
                 <SelectTrigger id="assignee" className="col-span-3">
-                  <SelectValue placeholder="담당자 선택" />
+                  <SelectValue placeholder="담당자 선택">
+                    {assignee && users ? (
+                      (() => {
+                        const selectedUser = users.find(
+                          (user) => user.id === assignee,
+                        );
+                        return selectedUser ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage
+                                src={
+                                  typeof selectedUser.image === "string"
+                                    ? selectedUser.image
+                                    : undefined
+                                }
+                                alt={selectedUser.name ?? ""}
+                              />
+                              <AvatarFallback className="text-xs">
+                                {selectedUser.name?.charAt(0) ?? "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{selectedUser.name ?? "이름 없음"}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarFallback className="text-xs">
+                                담
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>담당자 선택</span>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-xs">
+                            담
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>담당자 선택</span>
+                      </div>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {users && users.length > 0 ? (
                     users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        {user.name ?? "이름 없음"}{" "}
-                        {/* Handle potential null names */}
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage
+                              src={
+                                typeof user.image === "string"
+                                  ? user.image
+                                  : undefined
+                              }
+                              alt={user.name ?? ""}
+                            />
+                            {/* 이미지가 없을 경우 이름 첫 글자 표시 */}
+                            <AvatarFallback className="text-xs">
+                              {user.name?.charAt(0) ?? "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{user.name ?? "이름 없음"}</span>{" "}
+                        </div>
                       </SelectItem>
                     ))
                   ) : (
@@ -515,7 +566,6 @@ export default function TaskBoard({
                 </SelectContent>
               </Select>
             </div>
-            {/* Added Description Field */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right text-sm">
                 설명 (선택)
@@ -638,7 +688,24 @@ export default function TaskBoard({
                       {task.title}
                     </TableCell>
                     <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
-                      {task.assignee?.name ?? "미지정"}
+                      <div className="flex items-center justify-end gap-1 md:justify-start">
+                        <Avatar className="h-5 w-5">
+                          {task.assignee && "image" in task.assignee ? (
+                            <AvatarImage
+                              src={
+                                typeof task.assignee.image === "string"
+                                  ? task.assignee.image
+                                  : undefined
+                              }
+                              alt={task.assignee.name ?? ""}
+                            />
+                          ) : null}
+                          <AvatarFallback className="text-xs">
+                            {task.assignee?.name?.charAt(0) ?? "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{task.assignee?.name ?? "미지정"}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground px-3 py-2 text-sm lg:table-cell">
                       {task.fileUrl && task.fileName ? (
@@ -673,8 +740,7 @@ export default function TaskBoard({
         </Table>
       </div>
 
-      {/* --- ▼▼▼ 페이지네이션 컨트롤 수정 (shadcn/ui Pagination + Page Numbers) ▼▼▼ --- */}
-      {totalPages > 1 && ( // Show only if more than one page
+      {totalPages > 1 && (
         <div className="mt-4 flex flex-col items-center justify-between gap-y-2 border-t px-4 py-3 sm:flex-row sm:gap-y-0">
           <div className="text-muted-foreground text-sm">
             총 {totalTasks}개 중 {startIndex + 1} - {endIndex} 표시 중 (페이지{" "}
@@ -744,18 +810,32 @@ export default function TaskBoard({
           </Pagination>
         </div>
       )}
-      {/* --- ▲▲▲ 페이지네이션 컨트롤 수정 ▲▲▲ --- */}
 
-      {/* --- Task View Dialog --- */}
       <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
         <DialogContent className="flex max-h-[85vh] min-h-[24rem] flex-col sm:max-w-md lg:max-w-2xl">
           {" "}
-          {/* Added max-height */}
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{currentTask?.title ?? "업무 정보"}</DialogTitle>
             <div className="text-muted-foreground pt-1 text-sm">
               {currentTask?.assignee && (
-                <div>담당자: {currentTask.assignee.name ?? "미지정"}</div>
+                <div className="flex items-center gap-1">
+                  <Avatar className="h-5 w-5">
+                    {currentTask.assignee && "image" in currentTask.assignee ? (
+                      <AvatarImage
+                        src={
+                          typeof currentTask.assignee.image === "string"
+                            ? currentTask.assignee.image
+                            : undefined
+                        }
+                        alt={currentTask.assignee.name ?? ""}
+                      />
+                    ) : null}
+                    <AvatarFallback className="text-xs">
+                      {currentTask.assignee.name?.charAt(0) ?? "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{currentTask.assignee.name ?? "미지정"}</span>
+                </div>
               )}
             </div>
           </DialogHeader>
