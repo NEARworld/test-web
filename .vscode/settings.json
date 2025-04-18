@@ -13,5 +13,8 @@
   ],
   "typescript.preferences.importModuleSpecifier": "non-relative",
   "javascript.updateImportsOnFileMove.enabled": "always",
-  "typescript.updateImportsOnFileMove.enabled": "always"
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "editor.wordWrap": "off",
+  "editor.wrappingIndent": "none",
+  "diffEditor.wordWrap": "off"
 }
