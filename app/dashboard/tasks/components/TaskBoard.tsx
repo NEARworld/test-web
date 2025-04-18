@@ -64,7 +64,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Image from "next/image";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
@@ -497,39 +497,26 @@ export default function TaskBoard({
                         );
                         return selectedUser ? (
                           <div className="flex items-center gap-2">
-                            <Avatar className="h-5 w-5">
-                              <AvatarImage
-                                src={
-                                  typeof selectedUser.image === "string"
-                                    ? selectedUser.image
-                                    : undefined
-                                }
-                                alt={selectedUser.name ?? ""}
-                              />
-                              <AvatarFallback className="text-xs">
-                                {selectedUser.name?.charAt(0) ?? "?"}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              src={
+                                typeof selectedUser.image === "string"
+                                  ? selectedUser.image
+                                  : undefined
+                              }
+                              name={selectedUser.name ?? ""}
+                            />
                             <span>{selectedUser.name ?? "이름 없음"}</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Avatar className="h-5 w-5">
-                              <AvatarFallback className="text-xs">
-                                담
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar fallback="담" />
                             <span>담당자 선택</span>
                           </div>
                         );
                       })()
                     ) : (
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarFallback className="text-xs">
-                            담
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar fallback="담" />
                         <span>담당자 선택</span>
                       </div>
                     )}
@@ -540,20 +527,14 @@ export default function TaskBoard({
                     users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         <div className="flex items-center gap-2">
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage
-                              src={
-                                typeof user.image === "string"
-                                  ? user.image
-                                  : undefined
-                              }
-                              alt={user.name ?? ""}
-                            />
-                            {/* 이미지가 없을 경우 이름 첫 글자 표시 */}
-                            <AvatarFallback className="text-xs">
-                              {user.name?.charAt(0) ?? "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            src={
+                              typeof user.image === "string"
+                                ? user.image
+                                : undefined
+                            }
+                            name={user.name ?? ""}
+                          />
                           <span>{user.name ?? "이름 없음"}</span>{" "}
                         </div>
                       </SelectItem>
@@ -689,21 +670,16 @@ export default function TaskBoard({
                     </TableCell>
                     <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
                       <div className="flex items-center justify-end gap-1 md:justify-start">
-                        <Avatar className="h-5 w-5">
-                          {task.assignee && "image" in task.assignee ? (
-                            <AvatarImage
-                              src={
-                                typeof task.assignee.image === "string"
-                                  ? task.assignee.image
-                                  : undefined
-                              }
-                              alt={task.assignee.name ?? ""}
-                            />
-                          ) : null}
-                          <AvatarFallback className="text-xs">
-                            {task.assignee?.name?.charAt(0) ?? "?"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          src={
+                            task.assignee && "image" in task.assignee
+                              ? typeof task.assignee.image === "string"
+                                ? task.assignee.image
+                                : undefined
+                              : undefined
+                          }
+                          name={task.assignee?.name ?? ""}
+                        />
                         <span>{task.assignee?.name ?? "미지정"}</span>
                       </div>
                     </TableCell>
@@ -819,21 +795,16 @@ export default function TaskBoard({
             <div className="text-muted-foreground pt-1 text-sm">
               {currentTask?.assignee && (
                 <div className="flex items-center gap-1">
-                  <Avatar className="h-5 w-5">
-                    {currentTask.assignee && "image" in currentTask.assignee ? (
-                      <AvatarImage
-                        src={
-                          typeof currentTask.assignee.image === "string"
-                            ? currentTask.assignee.image
-                            : undefined
-                        }
-                        alt={currentTask.assignee.name ?? ""}
-                      />
-                    ) : null}
-                    <AvatarFallback className="text-xs">
-                      {currentTask.assignee.name?.charAt(0) ?? "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    src={
+                      currentTask.assignee && "image" in currentTask.assignee
+                        ? typeof currentTask.assignee.image === "string"
+                          ? currentTask.assignee.image
+                          : undefined
+                        : undefined
+                    }
+                    name={currentTask.assignee.name ?? ""}
+                  />
                   <span>{currentTask.assignee.name ?? "미지정"}</span>
                 </div>
               )}
