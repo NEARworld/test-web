@@ -6,9 +6,6 @@ export async function GET(req: NextRequest) {
   try {
     const taskId = req.nextUrl.pathname.split("/").pop();
 
-    const searchParams = req.nextUrl.searchParams;
-    const forceDownload = searchParams.get("download") === "true";
-
     if (!taskId) {
       return NextResponse.json(
         { error: "Task ID is required" },
@@ -71,10 +68,9 @@ export async function GET(req: NextRequest) {
     const headers = new Headers();
     headers.set("Content-Type", contentType);
 
-    const disposition = forceDownload ? "attachment" : "inline";
     headers.set(
       "Content-Disposition",
-      `${disposition}; filename="${task.fileName}"`,
+      `attachment; filename="${task.fileName}"`,
     );
 
     return new NextResponse(data, {
