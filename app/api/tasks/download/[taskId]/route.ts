@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { supabase } from "@/lib/supabase";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { taskId: string } },
-) {
+export async function GET(req: NextRequest) {
   try {
-    const taskId = params.taskId;
+    const taskId = req.nextUrl.pathname.split("/").pop();
 
     if (!taskId) {
       return NextResponse.json(
@@ -70,7 +67,11 @@ export async function GET(
     // 6. 브라우저로 파일 스트림 반환
     const headers = new Headers();
     headers.set("Content-Type", contentType);
-    headers.set("Content-Disposition", `inline; filename="${task.fileName}"`);
+
+    headers.set(
+      "Content-Disposition",
+      `attachment; filename="${task.fileName}"`,
+    );
 
     return new NextResponse(data, {
       status: 200,
