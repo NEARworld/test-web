@@ -70,6 +70,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
+import { useSearch } from "@/app/hooks/useSearch";
 
 interface TaskBoardProps {
   tasks: ExtendedTask[] | undefined;
@@ -203,63 +204,19 @@ export default function TaskBoard({
   const [previewName, setPreviewName] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isPageChanging, setIsPageChanging] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredTasks, setFilteredTasks] = useState<
-    ExtendedTask[] | undefined
-  >(tasks);
-  const [isSearching, setIsSearching] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredData: filteredTasks,
+    isSearching,
+    handleSearch,
+  } = useSearch<ExtendedTask>(tasks, "/api/tasks/search");
 
   const totalPages = Math.ceil(totalTasks / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalTasks);
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  const handleSearch = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
-
-    if (!searchTerm.trim()) {
-      // 검색어가 비어있으면 원래 데이터 표시
-      setFilteredTasks(tasks);
-      return;
-    }
-
-    try {
-      setIsSearching(true);
-
-      // API 엔드포인트 호출
-      const response = await fetch(
-        `/api/tasks/search?term=${encodeURIComponent(searchTerm.trim())}`,
-      );
-
-      if (!response.ok) {
-        throw new Error("검색 중 오류가 발생했습니다");
-      }
-
-      const data = await response.json();
-      setFilteredTasks(data);
-    } catch (error) {
-      console.error("검색 오류:", error);
-      toast.error("검색 중 오류가 발생했습니다");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // 검색어가 변경될 때 로컬 필터링 (서버 검색이 아닌 경우)
-  useEffect(() => {
-    if (!searchTerm.trim() || !tasks) {
-      setFilteredTasks(tasks);
-      return;
-    }
-  }, [searchTerm, tasks]);
-
-  // tasks가 변경될 때 filteredTasks 업데이트
-  useEffect(() => {
-    setFilteredTasks(tasks);
-  }, [tasks]);
 
   // 초기 로딩 상태와 페이지 전환 로딩 상태 구분
   const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
