@@ -55,6 +55,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.position = dbUser.position;
         }
       }
+
+      if (token.sub) {
+        const user = await prisma.user.findUnique({
+          where: { id: token.sub },
+        });
+        if (user) token.position = user.position;
+      }
       return token;
     },
 
