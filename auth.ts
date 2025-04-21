@@ -2,7 +2,7 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
-import { PrismaClient, UserRole } from "@prisma/client";
+import { JobPosition, PrismaClient } from "@prisma/client";
 import authConfig from "./auth.config";
 
 // NextAuth 설정 타입 정의
@@ -67,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.name = token.name as string;
         session.user.email = token.email as string;
         session.user.image = token.image as string;
-        session.user.role = user?.role || "UNKNOWN";
+        session.user.position = user?.position || "UNKNOWN";
       }
       return session;
     },
@@ -94,7 +94,8 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      role: UserRole;
+      // role: UserRole;
+      position: JobPosition;
     };
   }
 

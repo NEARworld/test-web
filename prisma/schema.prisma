@@ -15,6 +15,15 @@ enum UserRole {
   UNKNOWN
 }
 
+enum JobPosition {
+  STAFF     // 사원
+  SENIOR    // 대리
+  MANAGER   // 과장
+  DIRECTOR  // 부장
+  EXECUTIVE // 임원 (예시)
+  UNKNOWN   // 미지정 또는 해당 없음
+}
+
 enum ReservationStatus {
   PENDING
   CONFIRMED
@@ -31,7 +40,10 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  role         UserRole      @default(UNKNOWN)
+  // // --- 추천하는 변경/추가 필드 ---
+  position      JobPosition @default(UNKNOWN)   // 직급 필드 (enum 사용)
+  // 또는 position String?                       // 직급 필드 (문자열 사용)
+  hireDate      DateTime?   @db.Date           // 입사일 필드 (날짜만 저장, 필요시 Null 허용)
   reservations Reservation[] // Reservations created by this user
 
   createdAt DateTime @default(now())
