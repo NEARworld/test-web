@@ -80,7 +80,9 @@ interface TaskBoardProps {
   itemsPerPage: number;
 }
 
-// Helper function for date formatting (optional, but good for DRY)
+// 파일 크기 제한 상수 추가 (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 const formatDate = (date: Date | string | undefined): string => {
   if (!date) return "날짜 없음";
   try {
@@ -192,13 +194,11 @@ export default function TaskBoard({
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // --- ▼▼▼ 로딩 상태 구분 변수 추가 ▼▼▼ ---
   // isLoading이 true이고, tasks 데이터가 아직 없거나 비어있으면 초기 로딩
   const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
 
   // isLoading이 true이지만, tasks 데이터가 이미 존재하면 페이지 전환 로딩
   const isPageTransitionLoading = isLoading && tasks && tasks.length > 0;
-  // --- ▲▲▲ 로딩 상태 구분 변수 추가 ▲▲▲ ---
 
   useEffect(() => {
     if (!isDialogOpen) {
@@ -212,7 +212,16 @@ export default function TaskBoard({
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setSelectedFile(event.target.files[0]);
+      const file = event.target.files[0];
+
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error("파일 크기는 10MB를 초과할 수 없습니다.");
+        event.target.value = ""; // 파일 선택 초기화
+        setSelectedFile(null);
+        return;
+      }
+
+      setSelectedFile(file);
     } else {
       setSelectedFile(null);
     }
@@ -558,7 +567,7 @@ export default function TaskBoard({
                   setDescription(e.target.value)
                 }
                 placeholder="업무에 대한 상세 내용을 입력하세요."
-                className="col-span-3 min-h-60 lg:min-h-[250px]" // Adjusted textarea style
+                className="col-span-3 min-h-60 lg:min-h-[250px]"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -571,23 +580,25 @@ export default function TaskBoard({
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 className="col-span-3"
-                required // Added required attribute
+                required
               />
             </div>
-            {/* --- ▼▼▼ 파일 첨부 필드 추가 ▼▼▼ --- */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="taskFile" className="text-right text-sm">
                 파일 첨부 (선택)
               </Label>
-              {/* shadcn/ui의 Input 컴포넌트를 type="file"로 사용 */}
-              <Input
-                id="taskFile"
-                type="file"
-                onChange={handleFileChange} // Updated onChange handler
-                className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 col-span-3 rounded-md file:border-0 file:p-4 file:px-4 file:py-2 file:text-sm file:font-semibold" // 기본 스타일링 예시
-              />
+              <div className="col-span-3">
+                <Input
+                  id="taskFile"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 rounded-md file:border-0 file:p-4 file:px-4 file:py-2 file:text-sm file:font-semibold"
+                />
+                <p className="text-muted-foreground mt-1 text-xs">
+                  최대 파일 크기: 10MB
+                </p>
+              </div>
             </div>
-            {/* --- ▲▲▲ 파일 첨부 필드 추가 ▲▲▲ --- */}
             <DialogFooter>
               <Button
                 type="submit"
