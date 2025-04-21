@@ -295,7 +295,7 @@ export default function TaskBoard({
           `업무 등록 실패: ${errorData.error || response.statusText}`,
         );
       } else {
-        setIsLoading(true); // Trigger refetch in parent
+        setIsLoading(true);
         toast.success("새로운 업무가 성공적으로 등록되었습니다.");
       }
     } catch (error) {
@@ -652,25 +652,25 @@ export default function TaskBoard({
 
       {/* --- Task Table --- */}
       <div className="rounded-none border">
-        <Table>
+        <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow className="bg-muted hover:bg-muted h-10 border-b">
               <TableHead className="text-muted-foreground w-[60px] px-3 py-2 text-center text-sm font-medium">
                 번호
               </TableHead>
-              <TableHead className="text-muted-foreground px-3 py-2 text-sm font-medium">
+              <TableHead className="text-muted-foreground w-[200px] px-3 py-2 text-sm font-medium">
                 업무 제목
               </TableHead>
-              <TableHead className="text-muted-foreground px-3 py-2 text-right text-sm font-medium md:text-start">
+              <TableHead className="text-muted-foreground w-[120px] px-3 py-2 text-right text-sm font-medium md:text-start">
                 담당자
               </TableHead>
-              <TableHead className="text-muted-foreground px-3 py-2 text-sm font-medium lg:table-cell">
+              <TableHead className="text-muted-foreground w-[100px] px-3 py-2 text-sm font-medium lg:table-cell">
                 첨부 파일
               </TableHead>
-              <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell">
+              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell">
                 등록일
               </TableHead>
-              <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell">
+              <TableHead className="text-muted-foreground hidden w-[150px] px-3 py-2 text-sm font-medium md:table-cell">
                 마감일
               </TableHead>
             </TableRow>
@@ -709,17 +709,25 @@ export default function TaskBoard({
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <TableCell className="text-muted-foreground text-center text-sm">
-                      {itemNumber}
+                    <TableCell className="text-muted-foreground w-[60px] text-center text-sm">
+                      {renderContent(
+                        isPageChanging,
+                        <Skeleton width="w-full" height="h-4" />,
+                        itemNumber,
+                      )}
                     </TableCell>
-                    <TableCell className="w-1/2 max-w-xs truncate px-3 py-2 text-sm font-medium md:max-w-md lg:max-w-lg">
-                      {task.title}
+                    <TableCell className="w-[200px] truncate px-3 py-2 text-sm font-medium">
+                      {renderContent(
+                        isPageChanging,
+                        <Skeleton width="w-full" height="h-4" />,
+                        task.title,
+                      )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
+                    <TableCell className="text-muted-foreground w-[120px] px-3 py-2 text-right md:text-start md:text-sm">
                       <div className="flex items-center justify-end gap-1 md:justify-start">
                         {renderContent(
                           isPageChanging,
-                          <Skeleton width="h-5" height="w-5" rounded />,
+                          <div className="h-5 w-5 animate-pulse rounded-full bg-gray-200" />,
                           <UserAvatar
                             src={
                               task.assignee && "image" in task.assignee
@@ -733,15 +741,17 @@ export default function TaskBoard({
                         )}
                         {renderContent(
                           isPageChanging,
-                          <Skeleton width="w-20" height="h-4" />,
-                          <span>{task.assignee?.name ?? "미지정"}</span>,
+                          <Skeleton width="w-14" height="h-4" />,
+                          <span className="max-w-[80px] overflow-hidden text-ellipsis whitespace-nowrap">
+                            {task.assignee?.name ?? "미지정"}
+                          </span>,
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground px-3 py-2 text-sm lg:table-cell">
+                    <TableCell className="text-muted-foreground w-[100px] px-3 py-2 text-sm lg:table-cell">
                       {renderContent(
                         isPageChanging,
-                        <Skeleton width="w-16" height="h-4" />,
+                        <Skeleton width="w-full" height="h-4" />,
                         task.fileUrl && task.fileName ? (
                           <div className="flex items-center space-x-1">
                             {getFileIcon(task.fileName)}
@@ -751,17 +761,17 @@ export default function TaskBoard({
                         ),
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell">
                       {renderContent(
                         isPageChanging,
-                        <Skeleton width="w-24" height="h-4" />,
+                        <Skeleton width="w-full" height="h-4" />,
                         formatDate(task.createdAt),
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
+                    <TableCell className="text-muted-foreground hidden w-[150px] px-3 py-2 text-sm md:table-cell">
                       {renderContent(
                         isPageChanging,
-                        <Skeleton width="w-32" height="h-4" />,
+                        <Skeleton width="w-full" height="h-4" />,
                         formatDateWithWeekday(task.dueDate),
                       )}
                     </TableCell>
@@ -822,7 +832,7 @@ export default function TaskBoard({
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
-                        handlePageChange(page as number); // Type assertion
+                        handlePageChange(page as number);
                       }}
                       isActive={page === currentPage}
                       aria-current={page === currentPage ? "page" : undefined}
@@ -887,15 +897,15 @@ export default function TaskBoard({
             </p>
           </div>
           {currentTask?.fileUrl && currentTask.fileName && (
-            <div className="mt-2 flex w-full items-center justify-between">
-              <div>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="w-[60%]">
                 <div className="mb-2 flex items-center gap-1.5">
                   <div className="shrink-0">
                     {getFileIcon(currentTask.fileName)}
                   </div>
                   <span className="text-sm text-nowrap">첨부 파일</span>
                 </div>
-                <span className="text-muted-foreground text-sm">
+                <span className="text-muted-foreground block overflow-hidden text-sm text-ellipsis">
                   {currentTask.fileName}
                 </span>
               </div>
