@@ -31,6 +31,13 @@ enum ReservationStatus {
   COMPLETED
 }
 
+enum Department {
+  UNKNOWN // 미지정
+  YOUTH_RESTAURANT     // 청년식당
+  BAZAUL               // 바자울
+  FOOD_CARE_CENTER     // 먹거리돌봄센터
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String?
@@ -44,6 +51,7 @@ model User {
   position      JobPosition @default(UNKNOWN)   // 직급 필드 (enum 사용)
   // 또는 position String?                       // 직급 필드 (문자열 사용)
   hireDate      DateTime?   @db.Date           // 입사일 필드 (날짜만 저장, 필요시 Null 허용)
+  department Department @default(UNKNOWN) // 부서
   reservations Reservation[] // Reservations created by this user
 
   createdAt DateTime @default(now())
