@@ -2,7 +2,7 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
-import { JobPosition, PrismaClient } from "@prisma/client";
+import { JobPosition, PrismaClient, Department } from "@prisma/client";
 import authConfig from "./auth.config";
 
 // NextAuth 설정 타입 정의
@@ -96,6 +96,7 @@ declare module "next-auth" {
       image?: string | null;
       // role: UserRole;
       position: JobPosition;
+      department: Department;
     };
   }
 
