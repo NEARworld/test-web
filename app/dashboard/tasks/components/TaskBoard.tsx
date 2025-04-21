@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Loader2,
   Plus,
   Download,
   Eye,
@@ -17,6 +16,8 @@ import {
   FileCog,
   Video,
   Music,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import {
@@ -202,6 +203,11 @@ export default function TaskBoard({
   const [previewName, setPreviewName] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isPageChanging, setIsPageChanging] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredTasks, setFilteredTasks] = useState<
+    ExtendedTask[] | undefined
+  >(tasks);
+  const [isSearching, setIsSearching] = useState(false);
 
   const totalPages = Math.ceil(totalTasks / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -209,9 +215,54 @@ export default function TaskBoard({
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    if (!searchTerm.trim()) {
+      // 검색어가 비어있으면 원래 데이터 표시
+      setFilteredTasks(tasks);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+
+      // API 엔드포인트 호출
+      const response = await fetch(
+        `/api/tasks/search?term=${encodeURIComponent(searchTerm.trim())}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("검색 중 오류가 발생했습니다");
+      }
+
+      const data = await response.json();
+      setFilteredTasks(data);
+    } catch (error) {
+      console.error("검색 오류:", error);
+      toast.error("검색 중 오류가 발생했습니다");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // 검색어가 변경될 때 로컬 필터링 (서버 검색이 아닌 경우)
+  useEffect(() => {
+    if (!searchTerm.trim() || !tasks) {
+      setFilteredTasks(tasks);
+      return;
+    }
+  }, [searchTerm, tasks]);
+
+  // tasks가 변경될 때 filteredTasks 업데이트
+  useEffect(() => {
+    setFilteredTasks(tasks);
+  }, [tasks]);
+
   // 초기 로딩 상태와 페이지 전환 로딩 상태 구분
   const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
-  const isPageTransitionLoading = isLoading && tasks && tasks.length > 0;
 
   // 조건부 렌더링 헬퍼 함수
   const renderContent = (
@@ -650,6 +701,27 @@ export default function TaskBoard({
         </DialogContent>
       </Dialog>
 
+      {/* Search Bar */}
+      <div className="flex items-center justify-end px-4 py-3">
+        <div className="relative w-full max-w-sm">
+          <form onSubmit={handleSearch}>
+            <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="업무 검색"
+              className="pr-4 pl-9 text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {isSearching && (
+              <div className="absolute top-2.5 right-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
+
       {/* --- Task Table --- */}
       <div className="rounded-none border">
         <Table className="w-full table-fixed">
@@ -677,13 +749,6 @@ export default function TaskBoard({
           </TableHeader>
 
           <TableBody className="relative">
-            {/* ① 페이지 전환 중일 때: rows + 반투명 오버레이 + 스피너 */}
-            {isPageTransitionLoading && (
-              <div className="bg-background/70 absolute inset-0 flex items-center justify-center backdrop-blur-sm">
-                <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-              </div>
-            )}
-
             {/* ② 첫 진입(데이터 전혀 없음)일 때만 '전체 스피너 행' */}
             {isInitialLoading ? (
               <TableRow>
@@ -696,8 +761,8 @@ export default function TaskBoard({
                   </div>
                 </TableCell>
               </TableRow>
-            ) : tasks && tasks.length > 0 ? (
-              tasks.map((task, index) => {
+            ) : filteredTasks && filteredTasks.length > 0 ? (
+              filteredTasks.map((task, index) => {
                 const itemNumber = totalTasks - startIndex - index;
                 return (
                   <TableRow
@@ -785,7 +850,9 @@ export default function TaskBoard({
                   colSpan={6}
                   className="text-muted-foreground h-24 text-center"
                 >
-                  등록된 업무가 없습니다.
+                  {searchTerm.trim()
+                    ? "검색 결과가 없습니다."
+                    : "등록된 업무가 없습니다."}
                 </TableCell>
               </TableRow>
             )}
