@@ -16,13 +16,13 @@ enum UserRole {
 }
 
 enum JobPosition {
-  STAFF     // 사원
-  SENIOR    // 대리
-  MANAGER   // 과장
-  DIRECTOR  // 부장
-  EXECUTIVE // 임원 (예시)
-  UNKNOWN   // 미지정 또는 해당 없음
-}
+  STAFF
+  TEAM_LEADER
+  GENERAL_SECRETARY
+  CHAIRPERSON
+  CEO
+  UNKNOWN
+} 
 
 enum ReservationStatus {
   PENDING
@@ -53,6 +53,7 @@ model User {
   hireDate      DateTime?   @db.Date           // 입사일 필드 (날짜만 저장, 필요시 Null 허용)
   department Department @default(UNKNOWN) // 부서
   reservations Reservation[] // Reservations created by this user
+  phone String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
