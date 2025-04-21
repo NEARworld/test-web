@@ -43,6 +43,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  ReactNode,
 } from "react";
 import {
   Select,
@@ -164,6 +165,19 @@ const getPaginationRange = (
   return Array.from({ length: totalPages }, (_, i) => i + 1);
 };
 
+// 스켈레톤 UI 컴포넌트 추가
+interface SkeletonProps {
+  width: string;
+  height: string;
+  rounded?: boolean;
+}
+
+const Skeleton = ({ width, height, rounded = false }: SkeletonProps) => (
+  <div
+    className={`animate-pulse bg-gray-200 ${rounded ? "rounded-full" : "rounded"} ${width} ${height}`}
+  />
+);
+
 export default function TaskBoard({
   tasks,
   users,
@@ -187,6 +201,7 @@ export default function TaskBoard({
   const [previewType, setPreviewType] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isPageChanging, setIsPageChanging] = useState(false);
 
   const totalPages = Math.ceil(totalTasks / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -194,12 +209,20 @@ export default function TaskBoard({
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // isLoading이 true이고, tasks 데이터가 아직 없거나 비어있으면 초기 로딩
+  // 초기 로딩 상태와 페이지 전환 로딩 상태 구분
   const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
-
-  // isLoading이 true이지만, tasks 데이터가 이미 존재하면 페이지 전환 로딩
   const isPageTransitionLoading = isLoading && tasks && tasks.length > 0;
 
+  // 조건부 렌더링 헬퍼 함수
+  const renderContent = (
+    isLoading: boolean,
+    skeleton: ReactNode,
+    content: ReactNode,
+  ): ReactNode => {
+    return isLoading ? skeleton : content;
+  };
+
+  // 업무 등록 대화 상자 초기화
   useEffect(() => {
     if (!isDialogOpen) {
       setTitle("");
@@ -209,6 +232,18 @@ export default function TaskBoard({
       setSelectedFile(null);
     }
   }, [isDialogOpen]);
+
+  // 페이지 전환 로딩 상태 관리
+  useEffect(() => {
+    if (isLoading) {
+      setIsPageChanging(true);
+    } else {
+      const timer = setTimeout(() => {
+        setIsPageChanging(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -277,6 +312,7 @@ export default function TaskBoard({
     if (page >= 1 && page <= totalPages && page !== currentPage) {
       setCurrentPage(page);
       setIsLoading(true);
+      setIsPageChanging(true);
     }
   };
 
@@ -681,33 +717,53 @@ export default function TaskBoard({
                     </TableCell>
                     <TableCell className="text-muted-foreground px-3 py-2 text-right md:text-start md:text-sm">
                       <div className="flex items-center justify-end gap-1 md:justify-start">
-                        <UserAvatar
-                          src={
-                            task.assignee && "image" in task.assignee
-                              ? typeof task.assignee.image === "string"
-                                ? task.assignee.image
+                        {renderContent(
+                          isPageChanging,
+                          <Skeleton width="h-5" height="w-5" rounded />,
+                          <UserAvatar
+                            src={
+                              task.assignee && "image" in task.assignee
+                                ? typeof task.assignee.image === "string"
+                                  ? task.assignee.image
+                                  : undefined
                                 : undefined
-                              : undefined
-                          }
-                          name={task.assignee?.name ?? ""}
-                        />
-                        <span>{task.assignee?.name ?? "미지정"}</span>
+                            }
+                            name={task.assignee?.name ?? ""}
+                          />,
+                        )}
+                        {renderContent(
+                          isPageChanging,
+                          <Skeleton width="w-20" height="h-4" />,
+                          <span>{task.assignee?.name ?? "미지정"}</span>,
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground px-3 py-2 text-sm lg:table-cell">
-                      {task.fileUrl && task.fileName ? (
-                        <div className="flex items-center space-x-1">
-                          {getFileIcon(task.fileName)}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
+                      {renderContent(
+                        isPageChanging,
+                        <Skeleton width="w-16" height="h-4" />,
+                        task.fileUrl && task.fileName ? (
+                          <div className="flex items-center space-x-1">
+                            {getFileIcon(task.fileName)}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        ),
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                      {formatDate(task.createdAt)}
+                      {renderContent(
+                        isPageChanging,
+                        <Skeleton width="w-24" height="h-4" />,
+                        formatDate(task.createdAt),
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell">
-                      {formatDateWithWeekday(task.dueDate)}
+                      {renderContent(
+                        isPageChanging,
+                        <Skeleton width="w-32" height="h-4" />,
+                        formatDateWithWeekday(task.dueDate),
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -931,19 +987,20 @@ export default function TaskBoard({
           </div>
           <DialogFooter className="mt-auto flex-shrink-0 gap-2">
             {previewUrl && (
-              <a
-                href={
-                  typeof previewUrl === "string" &&
-                  previewUrl.startsWith("/api")
-                    ? previewUrl
-                    : "#"
-                }
-                download={previewName || undefined}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                다운로드
-              </a>
+              <Button variant="default" size="sm" asChild>
+                <a
+                  href={
+                    typeof previewUrl === "string" &&
+                    previewUrl.startsWith("/api")
+                      ? previewUrl
+                      : "#"
+                  }
+                  download={previewName || undefined}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  다운로드
+                </a>
+              </Button>
             )}
             <Button
               variant="outline"
