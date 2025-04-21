@@ -37,7 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (account?.provider === "kakao") {
           // upsert를 사용하여 생성/업데이트 로직 통합
-          await prisma.user.upsert({
+          const dbUser = await prisma.user.upsert({
             where: { id: user.id },
             create: {
               id: user.id,
@@ -50,7 +50,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: user.email,
               image: user.image,
             },
+            select: { position: true },
           });
+          token.position = dbUser.position;
         }
       }
       return token;
