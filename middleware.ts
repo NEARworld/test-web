@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import { getToken } from "next-auth/jwt";
 import authConfig from "./auth.config";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -6,6 +7,8 @@ const { auth } = NextAuth(authConfig);
 
 export default auth(async function middleware(req: NextRequest) {
   const session = await auth();
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
+  const userPosition = token?.position;
 
   // 세션이 없거나 만료된 경우 로그인 페이지로 리다이렉트
   if (!session) {
@@ -14,6 +17,11 @@ export default auth(async function middleware(req: NextRequest) {
     if (!isLoginPage) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
+  }
+
+  // 직급이 UNKNOWN인 경우 access-denied 페이지로 리다이렉트
+  if (req.nextUrl.pathname !== "/access-denied" && userPosition === "UNKNOWN") {
+    return NextResponse.redirect(new URL("/access-denied", req.url));
   }
 
   // 로그인된 사용자가 로그인 페이지나 홈페이지에 접근하면 대시보드로 리다이렉트
