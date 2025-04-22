@@ -12,6 +12,7 @@ export default auth(async function middleware(req: NextRequest) {
 
   console.log("전체 토큰 정보:", token);
   console.log("userPosition", userPosition);
+  console.log("session", session);
 
   // 세션이 없거나 만료된 경우 로그인 페이지로 리다이렉트
   if (!session) {
