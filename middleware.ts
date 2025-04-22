@@ -7,12 +7,15 @@ const { auth } = NextAuth(authConfig);
 
 export default auth(async function middleware(req: NextRequest) {
   const session = await auth();
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET!,
+    cookieName:
+      process.env.NODE_ENV === "production"
+        ? "__Secure-authjs.session-token"
+        : "authjs. session-token", // 개발 환경에서 기본 사용되는 쿠키 이름
+  });
   const userPosition = token?.position;
-
-  console.log("전체 토큰 정보:", token);
-  console.log("userPosition", userPosition);
-  console.log("session", session);
 
   // 세션이 없거나 만료된 경우 로그인 페이지로 리다이렉트
   if (!session) {
