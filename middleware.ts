@@ -19,17 +19,29 @@ export default auth(async function middleware(req: NextRequest) {
     if (!isLoginPage) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
+    return NextResponse.next();
   }
 
-  // 로그인된 사용자가 로그인 페이지나 홈페이지에 접근하면 대시보드로 리다이렉트
+  // 로그인된 사용자 처리
   if (session?.user.name) {
-    // 직급이 UNKNOWN인 경우 access-denied 페이지로 리다이렉트
-    if (req.nextUrl.pathname !== "/access-denied" && userPosition === "UNKNOWN")
-      return NextResponse.redirect(new URL("/access-denied", req.url));
+    const isLoginOrHome =
+      req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/";
+    const isAccessDenied = req.nextUrl.pathname === "/access-denied";
 
-    const isLoginOrHome = req.nextUrl.pathname === "/login";
-    if (isLoginOrHome)
+    // 직급이 UNKNOWN인 경우 access-denied 페이지로 리다이렉트 (이미 access-denied 페이지가 아닌 경우에만)
+    if (userPosition === "UNKNOWN" && !isAccessDenied) {
+      return NextResponse.redirect(new URL("/access-denied", req.url));
+    }
+
+    // 직급이 UNKNOWN이 아닌 경우, access-denied 페이지에 접근하면 dashboard로 리다이렉트
+    if (userPosition !== "UNKNOWN" && isAccessDenied) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    // 로그인된 모든 사용자가 로그인 페이지나 홈페이지에 접근하면 대시보드로 리다이렉트
+    if (isLoginOrHome) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
   }
 
   // 그 외의 경우 다음 단계로 진행
