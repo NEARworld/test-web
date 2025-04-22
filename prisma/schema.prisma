@@ -57,7 +57,8 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Task      Task[]
+  tasks     Task[]            // 담당하는 태스크 (assignee 관계)
+  createdTasks Task[] @relation("TaskCreator") // 생성한 태스크 관계
 }
 
 model Account {
@@ -201,11 +202,12 @@ model Task {
   assigneeId  String?
   assignee    User?   @relation(fields: [assigneeId], references: [id])
 
-  // --- ▼▼▼ 파일 정보 필드 추가 ▼▼▼ ---
+  createdById String?
+  createdBy   User?   @relation("TaskCreator", fields: [createdById], references: [id])
+
   fileUrl     String?   // 업로드된 파일의 URL (선택적)
   fileName    String?   // 원본 파일 이름 (선택적)
   fileType    String?   // 파일 MIME 타입 (선택적)
-  // --- ▲▲▲ 파일 정보 필드 추가 ▲▲▲ ---
 }
 
 enum TaskStatus {
