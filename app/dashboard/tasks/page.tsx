@@ -8,7 +8,8 @@ import { Task, User } from "@prisma/client";
 import TaskBoard from "@/app/dashboard/tasks/components/TaskBoard";
 
 export type ExtendedTask = Task & {
-  assignee: { name: string };
+  assignee: { name: string; image?: string }; // 담당자 정보
+  creator?: { id: string; name: string; image?: string } | null; // 작성자 정보
   fileUrl?: string | null; // 파일 공개 URL
   fileName?: string | null; // 원본 파일명
   fileType?: string | null; // 파일 MIME 타입

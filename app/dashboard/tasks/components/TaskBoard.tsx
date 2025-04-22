@@ -687,11 +687,14 @@ export default function TaskBoard({
               <TableHead className="text-muted-foreground w-[60px] px-3 py-2 text-center text-sm font-medium">
                 번호
               </TableHead>
-              <TableHead className="text-muted-foreground w-[200px] px-3 py-2 text-sm font-medium">
+              <TableHead className="text-muted-foreground w-[180px] px-3 py-2 text-sm font-medium">
                 업무 제목
               </TableHead>
               <TableHead className="text-muted-foreground w-[120px] px-3 py-2 text-right text-sm font-medium md:text-start">
                 담당자
+              </TableHead>
+              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell">
+                작성자
               </TableHead>
               <TableHead className="text-muted-foreground w-[100px] px-3 py-2 text-sm font-medium lg:table-cell">
                 첨부 파일
@@ -709,7 +712,7 @@ export default function TaskBoard({
             {/* ② 첫 진입(데이터 전혀 없음)일 때만 '전체 스피너 행' */}
             {isInitialLoading ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <div className="flex h-60 flex-col items-center justify-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <p className="text-muted-foreground text-sm">
@@ -738,7 +741,7 @@ export default function TaskBoard({
                         itemNumber,
                       )}
                     </TableCell>
-                    <TableCell className="w-[200px] truncate px-3 py-2 text-sm font-medium">
+                    <TableCell className="w-[180px] truncate px-3 py-2 text-sm font-medium">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
@@ -769,6 +772,29 @@ export default function TaskBoard({
                           </span>,
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell">
+                      {renderContent(
+                        isPageChanging,
+                        <Skeleton width="w-full" height="h-4" />,
+                        task.creator ? (
+                          <div className="flex items-center gap-1">
+                            <UserAvatar
+                              src={
+                                typeof task.creator.image === "string"
+                                  ? task.creator.image
+                                  : undefined
+                              }
+                              name={task.creator.name ?? ""}
+                            />
+                            <span className="max-w-[80px] overflow-hidden text-ellipsis whitespace-nowrap">
+                              {task.creator.name ?? ""}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        ),
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground w-[100px] px-3 py-2 text-sm lg:table-cell">
                       {renderContent(
@@ -804,7 +830,7 @@ export default function TaskBoard({
               <TableRow>
                 {/* Adjust colSpan if file header is added */}
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-muted-foreground h-24 text-center"
                 >
                   {searchTerm.trim()
@@ -962,6 +988,9 @@ export default function TaskBoard({
             <div className="text-muted-foreground mb-4 space-y-1 text-sm sm:mb-0">
               <div>등록일: {formatDate(currentTask?.createdAt)}</div>
               <div>마감일: {formatDateWithWeekday(currentTask?.dueDate)}</div>
+              <div>
+                작성자: {currentTask?.creator ? currentTask.creator.name : "-"}
+              </div>
             </div>
             <Button
               variant="secondary"

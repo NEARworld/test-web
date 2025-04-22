@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // prisma 클라이언트
-import { supabase } from "@/lib/supabase"; // 또는 createClientServerAdmin
-import { v4 as uuidv4 } from "uuid"; // 파일 이름 중복 방지를 위해 UUID 사용
+import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
+import { v4 as uuidv4 } from "uuid";
+import { auth } from "@/auth";
+import { getToken } from "next-auth/jwt";
 
 export async function POST(req: NextRequest) {
   try {
+    // 카카오 사용자 인증 정보 획득
+    const session = await auth();
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    });
+
+    // 인증된 사용자가 없는 경우 오류 반환
+    if (!session?.user || !token?.id) {
+      return NextResponse.json(
+        { success: false, error: "카카오 로그인이 필요합니다" },
+        { status: 401 },
+      );
+    }
+
+    const currentUser = {
+      id: token.id as string,
+    };
+
     // 1. FormData 파싱
     const formData = await req.formData();
     // 2. 텍스트 데이터 추출
@@ -78,6 +99,9 @@ export async function POST(req: NextRequest) {
         assignee: {
           connect: { id: assignee },
         },
+        createdBy: {
+          connect: { id: currentUser.id },
+        },
         dueDate: new Date(dueDate),
         status: "INCOMPLETE",
         // 파일 정보 필드 추가
@@ -87,13 +111,21 @@ export async function POST(req: NextRequest) {
       },
       include: {
         assignee: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, image: true },
+        },
+        createdBy: {
+          select: { id: true, name: true, image: true },
         },
       },
     });
 
+    const taskWithCreator = {
+      ...newTask,
+      creator: newTask.createdBy,
+    };
+
     // 7. 성공 응답 반환
-    return NextResponse.json({ success: true, task: newTask });
+    return NextResponse.json({ success: true, task: taskWithCreator });
   } catch (err) {
     console.error("Task creation error:", err);
     return NextResponse.json(
@@ -104,28 +136,53 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams;
-  const limit: string | null | number = searchParams.get("limit");
-  const page: string | null | number = searchParams.get("page");
+  try {
+    const searchParams = req.nextUrl.searchParams;
+    const limit: string | null | number = searchParams.get("limit");
+    const page: string | null | number = searchParams.get("page");
 
-  const verifiedPage = page ? parseInt(page, 10) : 1;
-  const verifiedLimit = limit ? parseInt(limit, 10) : 1;
+    const verifiedPage = page ? parseInt(page, 10) : 1;
+    const verifiedLimit = limit ? parseInt(limit, 10) : 10; // 기본값을 1에서 10으로 변경
 
-  const skip = (verifiedPage - 1) * verifiedLimit;
+    const skip = (verifiedPage - 1) * verifiedLimit;
 
-  const totalTasks = await prisma.task.count();
+    const totalTasks = await prisma.task.count();
 
-  console.log(limit, page, skip);
+    const tasks = await prisma.task.findMany({
+      skip,
+      take: verifiedLimit,
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-  const tasks = await prisma.task.findMany({
-    skip,
-    take: verifiedLimit,
-    include: {
-      assignee: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-  return NextResponse.json({ tasks, totalTasks });
+    const tasksWithCreator = tasks.map((task) => ({
+      ...task,
+      creator: task.createdBy,
+    }));
+
+    return NextResponse.json({ tasks: tasksWithCreator, totalTasks });
+  } catch (error) {
+    console.error("태스크 조회 중 오류 발생:", error);
+    return NextResponse.json(
+      { success: false, error: "태스크 조회 중 서버 오류가 발생했습니다" },
+      { status: 500 },
+    );
+  }
 }
