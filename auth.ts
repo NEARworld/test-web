@@ -68,15 +68,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // 세션 커스터마이징
     async session({ session, token }) {
       if (typeof token.id === "string") {
-        const user = await prisma.user.findUnique({
-          where: { id: token.id },
-        });
-
         session.user.id = token.id;
         session.user.name = token.name as string;
         session.user.email = token.email as string;
         session.user.image = token.image as string;
-        session.user.position = user?.position || "UNKNOWN";
+        session.user.position = token?.position as JobPosition;
       }
       return session;
     },
