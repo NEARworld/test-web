@@ -11,7 +11,11 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const token = await getToken({
       req,
-      secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+      secret: process.env.AUTH_SECRET,
+      cookieName:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token", // 개발 환경에서 기본 사용되는 쿠키 이름
     });
 
     // 인증된 사용자가 없는 경우 오류 반환
