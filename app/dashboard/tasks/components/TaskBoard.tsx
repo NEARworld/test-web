@@ -109,7 +109,6 @@ const formatDateWithWeekday = (
       year: "numeric",
       month: "long",
       day: "numeric",
-      weekday: "long",
     }).format(new Date(date));
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -665,7 +664,7 @@ export default function TaskBoard({
             <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
             <Input
               type="text"
-              placeholder="업무 검색"
+              placeholder="검색어를 입력 후 엔터를 눌러주세요"
               className="pr-4 pl-9 text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -684,25 +683,25 @@ export default function TaskBoard({
         <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow className="bg-muted hover:bg-muted h-10 border-b">
-              <TableHead className="text-muted-foreground w-[60px] px-3 py-2 text-center text-sm font-medium">
+              <TableHead className="text-muted-foreground w-[50px] px-3 py-2 text-center text-sm font-medium md:w-[60px]">
                 번호
               </TableHead>
-              <TableHead className="text-muted-foreground w-[180px] px-3 py-2 text-sm font-medium">
+              <TableHead className="text-muted-foreground w-auto px-3 py-2 text-sm font-medium md:w-[30%]">
                 업무 제목
               </TableHead>
-              <TableHead className="text-muted-foreground w-[120px] px-3 py-2 text-right text-sm font-medium md:text-start">
+              <TableHead className="text-muted-foreground w-[80px] px-3 py-2 text-right text-sm font-medium md:w-[15%] md:text-start">
                 담당자
               </TableHead>
-              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell">
+              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell md:w-[15%]">
                 작성자
               </TableHead>
-              <TableHead className="text-muted-foreground w-[100px] px-3 py-2 text-sm font-medium lg:table-cell">
+              <TableHead className="text-muted-foreground hidden w-[100px] px-3 py-2 text-sm font-medium md:table-cell md:w-[10%]">
                 첨부 파일
               </TableHead>
-              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell">
+              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell md:w-[15%]">
                 등록일
               </TableHead>
-              <TableHead className="text-muted-foreground hidden w-[150px] px-3 py-2 text-sm font-medium md:table-cell">
+              <TableHead className="text-muted-foreground hidden w-[150px] px-3 py-2 text-sm font-medium md:table-cell md:w-[15%]">
                 마감일
               </TableHead>
             </TableRow>
@@ -734,21 +733,24 @@ export default function TaskBoard({
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <TableCell className="text-muted-foreground w-[60px] text-center text-sm">
+                    {/* 번호 */}
+                    <TableCell className="text-muted-foreground w-[50px] text-center text-sm md:w-[60px]">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
                         itemNumber,
                       )}
                     </TableCell>
-                    <TableCell className="w-[180px] truncate px-3 py-2 text-sm font-medium">
+                    {/* 업무 제목 */}
+                    <TableCell className="w-auto truncate px-3 py-2 text-sm font-medium md:w-[30%]">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
-                        task.title,
+                        <div className="truncate">{task.title}</div>,
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground w-[120px] px-3 py-2 text-right md:text-start md:text-sm">
+                    {/* 담당자 */}
+                    <TableCell className="text-muted-foreground w-[80px] px-3 py-2 text-right md:w-[15%] md:text-start md:text-sm">
                       <div className="flex items-center justify-end gap-1 md:justify-start">
                         {renderContent(
                           isPageChanging,
@@ -773,7 +775,8 @@ export default function TaskBoard({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell">
+                    {/* 작성자 */}
+                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell md:w-[15%]">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
@@ -796,7 +799,8 @@ export default function TaskBoard({
                         ),
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground w-[100px] px-3 py-2 text-sm lg:table-cell">
+                    {/* 첨부 파일 */}
+                    <TableCell className="text-muted-foreground hidden w-[100px] px-3 py-2 text-sm md:table-cell md:w-[10%]">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
@@ -809,14 +813,16 @@ export default function TaskBoard({
                         ),
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell">
+                    {/* 등록일 */}
+                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell md:w-[15%]">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
                         formatDate(task.createdAt),
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden w-[150px] px-3 py-2 text-sm md:table-cell">
+                    {/* 마감일 */}
+                    <TableCell className="text-muted-foreground hidden w-[150px] px-3 py-2 text-sm md:table-cell md:w-[15%]">
                       {renderContent(
                         isPageChanging,
                         <Skeleton width="w-full" height="h-4" />,
