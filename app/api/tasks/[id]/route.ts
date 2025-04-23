@@ -6,9 +6,9 @@ import { auth } from "@/auth"; // Example: If using Auth.js v5 / NextAuth.js v5
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { taskId: string } }, // Context for dynamic route parameters (App Router)
+  { params }: { params: Promise<{ taskId: string }> }, // Context for dynamic route parameters (App Router)
 ) {
-  const taskId = params.taskId; // Get taskId from the URL path
+  const taskId = (await params).taskId; // Get taskId from the URL path
 
   // --- Authentication & Authorization (Placeholder) ---
   // In a real application, you would get the user ID from the session or token
