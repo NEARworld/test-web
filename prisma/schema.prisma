@@ -210,6 +210,10 @@ model Task {
   fileName    String?   // 원본 파일 이름 (선택적)
   fileType    String?   // 파일 MIME 타입 (선택적)
   
+  isDeleted   Boolean  @default(false)
+
+  @@index([isDeleted])
+
   // 새로운 관계 추가: Task 수정 내역
   modificationHistory TaskModificationHistory[]
 }
