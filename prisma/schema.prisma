@@ -219,7 +219,7 @@ enum TaskStatus {
   COMPLETE // 완료
 }
 
-// 새로운 모델: Task 수정 내역
+// 수정된 TaskModificationHistory 모델
 model TaskModificationHistory {
   id           String   @id @default(uuid())
   taskId       String
@@ -230,7 +230,7 @@ model TaskModificationHistory {
   modifiedById String
   modifiedBy   User     @relation(fields: [modifiedById], references: [id])
   
-  // 수정 전 데이터
+  // 수정 전 데이터만 저장
   previousTitle       String
   previousDescription String?
   previousStatus      TaskStatus
@@ -239,16 +239,6 @@ model TaskModificationHistory {
   previousFileUrl     String?
   previousFileName    String?
   previousFileType    String?
-  
-  // 수정 후 데이터
-  newTitle       String
-  newDescription String?
-  newStatus      TaskStatus
-  newDueDate     DateTime?
-  newAssigneeId  String?
-  newFileUrl     String?
-  newFileName    String?
-  newFileType    String?
   
   @@index([taskId])
   @@index([modifiedById])
