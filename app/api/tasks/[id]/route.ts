@@ -114,8 +114,12 @@ export async function PATCH(
 }
 
 // --- DELETE Handler ---
-export async function DELETE({ params }: { params: { taskId: string } }) {
-  const taskId = params.taskId;
+export async function DELETE({
+  params,
+}: {
+  params: Promise<{ taskId: string }>;
+}) {
+  const taskId = (await params).taskId;
 
   // 1. Authentication: Get session data
   const session = await auth();
