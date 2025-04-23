@@ -22,6 +22,7 @@ export async function GET(request: Request) {
     // Prisma를 사용하여 Task 검색
     const tasks = await prisma.task.findMany({
       where: {
+        isDeleted: false,
         OR: [
           { title: { contains: term, mode: "insensitive" } },
           { description: { contains: term, mode: "insensitive" } },
@@ -41,14 +42,26 @@ export async function GET(request: Request) {
             image: true,
           },
         },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
+    const tasksWithCreator = tasks.map((task) => ({
+      ...task,
+      creator: task.createdBy,
+    }));
+
     // 결과 반환
-    return NextResponse.json(tasks);
+    return NextResponse.json(tasksWithCreator);
   } catch (error) {
     console.error("검색 API 오류:", error);
     return new NextResponse("검색 중 오류가 발생했습니다", { status: 500 });

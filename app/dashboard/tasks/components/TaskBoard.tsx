@@ -637,16 +637,23 @@ export default function TaskBoard({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          status: "CANCELLED",
+          isDeleted: true,
         }),
       });
 
       console.log("업무 삭제 응답 상태:", response.status);
 
       if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "오류 응답 파싱 실패" }));
+        const errorText = await response.text();
+        console.error("Error response text:", errorText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: "오류 응답 파싱 실패" };
+        }
+
         console.error("Failed to delete task:", response.status, errorData);
         toast.error(
           `업무 삭제 실패: ${errorData.error || response.statusText}`,
