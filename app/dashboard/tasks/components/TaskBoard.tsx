@@ -66,11 +66,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Image from "next/image";
-import { UserAvatar } from "@/components/UserAvatar";
+import { useSession } from "next-auth/react";
 
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
 import { useSearch } from "@/app/hooks/useSearch";
+import { UserAvatar } from "@/components/user-avatar";
 
 interface TaskBoardProps {
   tasks: ExtendedTask[] | undefined;
@@ -189,6 +190,8 @@ export default function TaskBoard({
   currentPage,
   setCurrentPage,
 }: TaskBoardProps) {
+  const { data: session } = useSession();
+
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -229,7 +232,7 @@ export default function TaskBoard({
     return isLoading ? skeleton : content;
   };
 
-  // 업무 등록 대화 상자 초기화
+  // 업무 등록 대화 상자 초기화 및 현재 사용자 설정
   useEffect(() => {
     if (!isDialogOpen) {
       setTitle("");
@@ -237,8 +240,10 @@ export default function TaskBoard({
       setDueDate("");
       setDescription("");
       setSelectedFile(null);
+    } else if (isDialogOpen && session?.user?.id && users) {
+      setAssignee(session.user.id);
     }
-  }, [isDialogOpen]);
+  }, [isDialogOpen, session?.user?.id, users]);
 
   // 페이지 전환 로딩 상태 관리
   useEffect(() => {
