@@ -150,9 +150,16 @@ export async function GET(req: NextRequest) {
 
     const skip = (verifiedPage - 1) * verifiedLimit;
 
-    const totalTasks = await prisma.task.count();
+    const totalTasks = await prisma.task.count({
+      where: {
+        isDeleted: false, // 삭제되지 않은 업무만 포함
+      },
+    });
 
     const tasks = await prisma.task.findMany({
+      where: {
+        isDeleted: false, // 삭제되지 않은 업무만 조회
+      },
       skip,
       take: verifiedLimit,
       include: {
