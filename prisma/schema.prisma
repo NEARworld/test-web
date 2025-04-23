@@ -47,9 +47,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  // // --- 추천하는 변경/추가 필드 ---
   position      JobPosition @default(UNKNOWN)   // 직급 필드 (enum 사용)
-  // 또는 position String?                       // 직급 필드 (문자열 사용)
   hireDate      DateTime?   @db.Date           // 입사일 필드 (날짜만 저장, 필요시 Null 허용)
   department Department @default(UNKNOWN) // 부서
   reservations Reservation[] // Reservations created by this user
@@ -59,6 +57,9 @@ model User {
   updatedAt DateTime @updatedAt
   tasks     Task[]            // 담당하는 태스크 (assignee 관계)
   createdTasks Task[] @relation("TaskCreator") // 생성한 태스크 관계
+  
+  // 새로운 관계 추가: Task 수정 내역
+  taskModifications TaskModificationHistory[] // 사용자가 수행한 Task 수정 내역
 }
 
 model Account {
@@ -208,6 +209,9 @@ model Task {
   fileUrl     String?   // 업로드된 파일의 URL (선택적)
   fileName    String?   // 원본 파일 이름 (선택적)
   fileType    String?   // 파일 MIME 타입 (선택적)
+  
+  // 새로운 관계 추가: Task 수정 내역
+  modificationHistory TaskModificationHistory[]
 }
 
 enum TaskStatus {
@@ -215,3 +219,27 @@ enum TaskStatus {
   COMPLETE // 완료
 }
 
+// 수정된 TaskModificationHistory 모델
+model TaskModificationHistory {
+  id           String   @id @default(uuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  modifiedAt   DateTime @default(now())
+  
+  // 수정을 수행한 사용자
+  modifiedById String
+  modifiedBy   User     @relation(fields: [modifiedById], references: [id])
+  
+  // 수정 전 데이터만 저장
+  previousTitle       String
+  previousDescription String?
+  previousStatus      TaskStatus
+  previousDueDate     DateTime?
+  previousAssigneeId  String?
+  previousFileUrl     String?
+  previousFileName    String?
+  previousFileType    String?
+  
+  @@index([taskId])
+  @@index([modifiedById])
+}

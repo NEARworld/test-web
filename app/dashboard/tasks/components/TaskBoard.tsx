@@ -531,7 +531,7 @@ export default function TaskBoard({
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="예: 주간 보고서 작성"
                 className="col-span-3"
-                required // Added required attribute
+                required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
