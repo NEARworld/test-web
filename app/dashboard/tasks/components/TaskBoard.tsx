@@ -582,22 +582,25 @@ export default function TaskBoard({
     setIsEditing(true);
     // 대화 상자를 즉시 닫지 않고 로딩 상태를 먼저 보여줌
 
-    const formData = new FormData();
-    formData.append("id", currentTask.id);
-    formData.append("title", editTitle);
-    formData.append("assignee", editAssignee);
-    formData.append("dueDate", editDueDate);
-    if (editDescription) {
-      formData.append("description", editDescription);
-    }
-    if (editSelectedFile) {
-      formData.append("taskFile", editSelectedFile, editSelectedFile.name);
-    }
-
     try {
+      const updateData = {
+        title: editTitle,
+        assigneeId: editAssignee,
+        dueDate: new Date(editDueDate),
+        description: editDescription || null,
+      };
+
+      // 파일 변경이 있는 경우 별도 처리 필요
+      // 현재 API에서 JSON 형식만 지원하므로 파일 업로드는 별도 API가 필요
+      if (editSelectedFile) {
+      }
+
       const response = await fetch(`/api/tasks/${currentTask.id}`, {
-        method: "PUT",
-        body: formData,
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
@@ -629,8 +632,16 @@ export default function TaskBoard({
 
     try {
       const response = await fetch(`/api/tasks/${currentTask.id}`, {
-        method: "DELETE",
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "CANCELLED",
+        }),
       });
+
+      console.log("업무 삭제 응답 상태:", response.status);
 
       if (!response.ok) {
         const errorData = await response
@@ -1462,6 +1473,7 @@ export default function TaskBoard({
             <Button
               variant="outline"
               size="sm"
+              className="cursor-pointer"
               onClick={() => setIsDeleteConfirmOpen(false)}
               disabled={isDeleting}
             >
@@ -1470,6 +1482,7 @@ export default function TaskBoard({
             <Button
               variant="destructive"
               size="sm"
+              className="cursor-pointer"
               onClick={handleDeleteTask}
               disabled={isDeleting}
             >
