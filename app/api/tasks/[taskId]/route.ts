@@ -74,7 +74,7 @@ export async function PUT(
       );
     }
 
-    // 수정 내역 저장 (TaskModificationHistory)
+    // 수정 내역 저장
     await prisma.taskModificationHistory.create({
       data: {
         task: {

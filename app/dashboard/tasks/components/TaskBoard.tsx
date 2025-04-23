@@ -219,7 +219,7 @@ export default function TaskBoard({
   const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // 삭제 관련 상태 추가
+  // 삭제 관련 상태
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -580,7 +580,7 @@ export default function TaskBoard({
     if (!editTitle || !editAssignee || !editDueDate || !currentTask?.id) return;
 
     setIsEditing(true);
-    setIsEditDialogOpen(false);
+    // 대화 상자를 즉시 닫지 않고 로딩 상태를 먼저 보여줌
 
     const formData = new FormData();
     formData.append("id", currentTask.id);
@@ -610,6 +610,7 @@ export default function TaskBoard({
         );
       } else {
         setIsLoading(true);
+        setIsEditDialogOpen(false);
         setIsTaskViewOpen(false);
         toast.success("업무가 성공적으로 수정되었습니다.");
       }
@@ -621,12 +622,10 @@ export default function TaskBoard({
     }
   };
 
-  // 삭제 버튼 핸들러 추가
   const handleDeleteTask = async () => {
     if (!currentTask?.id) return;
 
     setIsDeleting(true);
-    setIsDeleteConfirmOpen(false);
 
     try {
       const response = await fetch(`/api/tasks/${currentTask.id}`, {
@@ -643,6 +642,7 @@ export default function TaskBoard({
         );
       } else {
         setIsLoading(true);
+        setIsDeleteConfirmOpen(false);
         setIsTaskViewOpen(false);
         toast.success("업무가 성공적으로 삭제되었습니다.");
       }
@@ -1163,8 +1163,13 @@ export default function TaskBoard({
                       e.stopPropagation();
                       setIsEditDialogOpen(true);
                     }}
+                    disabled={isEditing || isDeleting}
                   >
-                    <Edit className="mr-2 h-4 w-4" />
+                    {isEditing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Edit className="mr-2 h-4 w-4" />
+                    )}
                     수정
                   </Button>
                   <Button
@@ -1175,8 +1180,13 @@ export default function TaskBoard({
                       e.stopPropagation();
                       setIsDeleteConfirmOpen(true);
                     }}
+                    disabled={isEditing || isDeleting}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    {isDeleting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
                     삭제
                   </Button>
                 </>
@@ -1347,9 +1357,12 @@ export default function TaskBoard({
                 }
               >
                 {isEditing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                수정 완료
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 수정 중
+                  </>
+                ) : (
+                  "수정"
+                )}
               </Button>
             </DialogFooter>
           </form>
