@@ -1,65 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum UserRole {
-  ADMIN
-  MANAGER
-  STAFF
-  UNKNOWN
-}
-
-enum JobPosition {
-  STAFF
-  TEAM_LEADER
-  GENERAL_SECRETARY
-  CHAIRPERSON
-  CEO
-  UNKNOWN
-} 
-
-enum ReservationStatus {
-  PENDING
-  CONFIRMED
-  CANCELED
-  COMPLETED
-}
-
-enum Department {
-  UNKNOWN // 미지정
-  YOUTH_RESTAURANT     // 청년식당
-  BAZAUL               // 바자울
-  FOOD_CARE_CENTER     // 먹거리돌봄센터
-}
-
 model User {
-  id            String    @id @default(uuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-
-  position      JobPosition @default(UNKNOWN)   // 직급 필드 (enum 사용)
-  hireDate      DateTime?   @db.Date           // 입사일 필드 (날짜만 저장, 필요시 Null 허용)
-  department Department @default(UNKNOWN) // 부서
-  reservations Reservation[] // Reservations created by this user
-  phone String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tasks     Task[]            // 담당하는 태스크 (assignee 관계)
-  createdTasks Task[] @relation("TaskCreator") // 생성한 태스크 관계
-  
-  // 새로운 관계 추가: Task 수정 내역
-  taskModifications TaskModificationHistory[] // 사용자가 수행한 Task 수정 내역
+  id                String                    @id @default(uuid())
+  email             String?                   @unique
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  image             String?
+  name              String?
+  emailVerified     DateTime?
+  hireDate          DateTime?                 @db.Date
+  position          JobPosition               @default(UNKNOWN)
+  department        Department                @default(UNKNOWN)
+  role              UserRole                  @default(USER)
+  phone             String?
+  accounts          Account[]
+  reservations      Reservation[]
+  sessions          Session[]
+  tasks             Task[]
+  createdTasks      Task[]                    @relation("TaskCreator")
+  taskModifications TaskModificationHistory[]
 }
 
 model Account {
@@ -74,11 +41,9 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -87,10 +52,9 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -102,30 +66,20 @@ model VerificationToken {
 }
 
 model Reservation {
-  id         String   @id @default(cuid())
-  groupName  String // 예약자/단체명
-  dateTime   DateTime // 예약 날짜 및 시간
-  seatNumber String // 예약석 번호
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // 예약을 등록한 직원 정보
+  id          String                @id @default(cuid())
+  groupName   String
+  dateTime    DateTime
+  seatNumber  String
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
   createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-
-  // 예약된 메뉴 아이템
-  menuItems MenuItem[]
-
-  // 상태 관리
-  status ReservationStatus @default(CONFIRMED)
-
-  // 예약 날짜별 통계 연결
-  dailyStats DailyReservationStats @relation(fields: [date], references: [date])
-  date       String // YYYY-MM-DD 형식
-
-  // 테이블 정보 추가
-  tableId String?
-  table   Table?  @relation(fields: [tableId], references: [id])
+  status      ReservationStatus     @default(CONFIRMED)
+  date        String
+  tableId     String?
+  menuItems   MenuItem[]
+  createdBy   User                  @relation(fields: [createdById], references: [id])
+  dailyStats  DailyReservationStats @relation(fields: [date], references: [date])
+  table       Table?                @relation(fields: [tableId], references: [id])
 
   @@index([dateTime])
   @@index([createdById])
@@ -134,17 +88,14 @@ model Reservation {
 }
 
 model MenuItem {
-  id       String @id @default(cuid())
-  name     String
-  price    Int
-  quantity Int
-
-  // 이 메뉴 아이템이 속한 예약
+  id            String      @id @default(cuid())
+  name          String
+  price         Int
+  quantity      Int
   reservationId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([reservationId])
 }
@@ -161,80 +112,51 @@ model Menu {
 }
 
 model DailyReservationStats {
-  date              String        @id // YYYY-MM-DD 형식
+  date              String        @id
   totalReservations Int           @default(0)
-  reservations      Reservation[]
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+  reservations      Reservation[]
 }
 
-// 테이블 모델
 model Table {
-  id        String      @id @default(uuid())
-  number    Int         @default(0) //테이블 번호
-  seats     Int // 좌석 수
-  status    TableStatus @default(AVAILABLE) // 테이블 상태
-  positionX Float // X 좌표
-  positionY Float // Y 좌표
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-
-  // 테이블에 연결된 예약 정보
+  id           String        @id @default(uuid())
+  seats        Int
+  status       TableStatus   @default(AVAILABLE)
+  positionX    Float
+  positionY    Float
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  number       Int           @default(0)
   reservations Reservation[]
 }
 
-// 테이블 상태 열거형
-enum TableStatus {
-  AVAILABLE // 이용 가능
-  OCCUPIED // 사용 중
-  RESERVED // 예약됨
-  UNAVAILABLE // 이용 불가
-}
-
 model Task {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  status      TaskStatus @default(INCOMPLETE)
-  dueDate     DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  assigneeId  String?
-  assignee    User?   @relation(fields: [assigneeId], references: [id])
-
-  createdById String?
-  createdBy   User?   @relation("TaskCreator", fields: [createdById], references: [id])
-
-  fileUrl     String?   // 업로드된 파일의 URL (선택적)
-  fileName    String?   // 원본 파일 이름 (선택적)
-  fileType    String?   // 파일 MIME 타입 (선택적)
-  
-  isDeleted   Boolean  @default(false)
+  id                  String                    @id @default(uuid())
+  title               String
+  description         String?
+  status              TaskStatus                @default(INCOMPLETE)
+  dueDate             DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  assigneeId          String?
+  fileName            String?
+  fileType            String?
+  fileUrl             String?
+  createdById         String?
+  isDeleted           Boolean                   @default(false)
+  assignee            User?                     @relation(fields: [assigneeId], references: [id])
+  createdBy           User?                     @relation("TaskCreator", fields: [createdById], references: [id])
+  modificationHistory TaskModificationHistory[]
 
   @@index([isDeleted])
-
-  // 새로운 관계 추가: Task 수정 내역
-  modificationHistory TaskModificationHistory[]
 }
 
-enum TaskStatus {
-  INCOMPLETE // 미완료
-  COMPLETE // 완료
-}
-
-// 수정된 TaskModificationHistory 모델
 model TaskModificationHistory {
-  id           String   @id @default(uuid())
-  taskId       String
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  modifiedAt   DateTime @default(now())
-  
-  // 수정을 수행한 사용자
-  modifiedById String
-  modifiedBy   User     @relation(fields: [modifiedById], references: [id])
-  
-  // 수정 전 데이터만 저장
+  id                  String     @id @default(uuid())
+  taskId              String
+  modifiedAt          DateTime   @default(now())
+  modifiedById        String
   previousTitle       String
   previousDescription String?
   previousStatus      TaskStatus
@@ -243,7 +165,49 @@ model TaskModificationHistory {
   previousFileUrl     String?
   previousFileName    String?
   previousFileType    String?
-  
+  modifiedBy          User       @relation(fields: [modifiedById], references: [id])
+  task                Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
   @@index([taskId])
   @@index([modifiedById])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum JobPosition {
+  STAFF
+  TEAM_LEADER
+  GENERAL_SECRETARY
+  CHAIRPERSON
+  CEO
+  UNKNOWN
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  COMPLETED
+}
+
+enum Department {
+  UNKNOWN
+  YOUTH_RESTAURANT
+  BAZAUL
+  FOOD_CARE_CENTER
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  UNAVAILABLE
+}
+
+enum TaskStatus {
+  INCOMPLETE
+  COMPLETE
 }

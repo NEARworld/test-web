@@ -229,8 +229,8 @@ export default function TaskBoard({
     // 작성자인 경우 수정 가능
     if (task.createdById === session.user.id) return true;
 
-    // TODO: 관리자 권한 확인 로직 추가
-    // if (session.user.role === 'ADMIN') return true;
+    // role이 ADMIN인 경우 수정 가능
+    if (session.user.role === "ADMIN") return true;
 
     return false;
   };
