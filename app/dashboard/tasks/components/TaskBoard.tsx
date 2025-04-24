@@ -1,79 +1,19 @@
 "use client";
 
-import {
-  Plus,
-  Download,
-  Eye,
-  FileIcon,
-  Image as ImageIcon,
-  File,
-  FileText,
-  FileSpreadsheet,
-  FilePen,
-  Presentation,
-  FileJson,
-  FileCode,
-  FileCog,
-  Video,
-  Music,
-  Search,
-  Loader2,
-  Edit,
-  Trash2,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import React, {
-  ChangeEvent,
-  FormEvent,
-  useEffect,
-  useState,
-  useCallback,
-  ReactNode,
-} from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import Image from "next/image";
-import { useSession } from "next-auth/react";
-
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
 import { useSearch } from "@/app/hooks/useSearch";
-import { UserAvatar } from "@/components/user-avatar";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+
+import TaskForm from "./TaskForm";
+import TaskTable from "./TaskTable";
+import TaskView from "./TaskView";
+import TaskEdit from "./TaskEdit";
+import FilePreview from "./FilePreview";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
 interface TaskBoardProps {
   tasks: ExtendedTask[] | undefined;
@@ -85,102 +25,6 @@ interface TaskBoardProps {
   totalTasks: number;
   itemsPerPage: number;
 }
-
-// 파일 크기 제한 상수 추가 (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-const formatDate = (date: Date | string | undefined): string => {
-  if (!date) return "없음";
-  try {
-    return new Intl.DateTimeFormat("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(new Date(date));
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return "날짜 형식 오류";
-  }
-};
-
-const formatDateWithWeekday = (
-  date: Date | string | undefined | null,
-): string => {
-  if (!date) return "없음";
-  try {
-    return new Intl.DateTimeFormat("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(new Date(date));
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return "날짜 형식 오류";
-  }
-};
-
-const DOTS = "...";
-
-const getPaginationRange = (
-  totalPages: number,
-  currentPage: number,
-  siblingCount = 1,
-): (number | string)[] => {
-  const totalPageNumbers = siblingCount + 5;
-
-  if (totalPages <= totalPageNumbers) {
-    if (totalPages <= totalPageNumbers) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-  }
-
-  const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
-  const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
-
-  const shouldShowLeftDots = leftSiblingIndex > 2;
-  const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
-
-  const firstPageIndex = 1;
-  const lastPageIndex = totalPages;
-
-  if (!shouldShowLeftDots && shouldShowRightDots) {
-    const leftItemCount = 3 + 2 * siblingCount;
-    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
-    return [...leftRange, DOTS, totalPages];
-  }
-
-  if (shouldShowLeftDots && !shouldShowRightDots) {
-    const rightItemCount = 3 + 2 * siblingCount;
-    const rightRange = Array.from(
-      { length: rightItemCount },
-      (_, i) => totalPages - rightItemCount + 1 + i,
-    );
-    return [firstPageIndex, DOTS, ...rightRange];
-  }
-
-  if (shouldShowLeftDots && shouldShowRightDots) {
-    const middleRange = Array.from(
-      { length: rightSiblingIndex - leftSiblingIndex + 1 },
-      (_, i) => leftSiblingIndex + i,
-    );
-    return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex];
-  }
-
-  return Array.from({ length: totalPages }, (_, i) => i + 1);
-};
-
-// 스켈레톤 UI 컴포넌트 추가
-interface SkeletonProps {
-  width: string;
-  height: string;
-  rounded?: boolean;
-}
-
-const Skeleton = ({ width, height, rounded = false }: SkeletonProps) => (
-  <div
-    className={`animate-pulse bg-gray-200 ${rounded ? "rounded-full" : "rounded"} ${width} ${height}`}
-  />
-);
 
 export default function TaskBoard({
   tasks,
@@ -194,46 +38,25 @@ export default function TaskBoard({
 }: TaskBoardProps) {
   const { data: session } = useSession();
 
-  const [title, setTitle] = useState("");
-  const [assignee, setAssignee] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<ExtendedTask>();
+
+  // 페이지 전환 상태
+  const [isPageChanging, setIsPageChanging] = useState(false);
+
+  // 파일 미리보기 관련 상태
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [isPageChanging, setIsPageChanging] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // 수정 관련 상태
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState("");
-  const [editAssignee, setEditAssignee] = useState("");
-  const [editDueDate, setEditDueDate] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-
-  // 삭제 관련 상태
+  // 작업 상태 관련
+  const [isEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  const canEditTask = (task: ExtendedTask | undefined) => {
-    if (!task || !session?.user?.id) return false;
-
-    // 작성자인 경우 수정 가능
-    if (task.createdById === session.user.id) return true;
-
-    // role이 ADMIN인 경우 수정 가능
-    if (session.user.role === "ADMIN") return true;
-
-    return false;
-  };
 
   const {
     searchTerm,
@@ -250,28 +73,6 @@ export default function TaskBoard({
   // 초기 로딩 상태와 페이지 전환 로딩 상태 구분
   const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
 
-  // 조건부 렌더링 헬퍼 함수
-  const renderContent = (
-    isLoading: boolean,
-    skeleton: ReactNode,
-    content: ReactNode,
-  ): ReactNode => {
-    return isLoading ? skeleton : content;
-  };
-
-  // 업무 등록 대화 상자 초기화 및 현재 사용자 설정
-  useEffect(() => {
-    if (!isDialogOpen) {
-      setTitle("");
-      setAssignee("");
-      setDueDate("");
-      setDescription("");
-      setSelectedFile(null);
-    } else if (isDialogOpen && session?.user?.id && users) {
-      setAssignee(session.user.id);
-    }
-  }, [isDialogOpen, session?.user?.id, users]);
-
   // 페이지 전환 로딩 상태 관리
   useEffect(() => {
     if (isLoading) {
@@ -284,71 +85,6 @@ export default function TaskBoard({
     }
   }, [isLoading]);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error("파일 크기는 10MB를 초과할 수 없습니다.");
-        event.target.value = ""; // 파일 선택 초기화
-        setSelectedFile(null);
-        return;
-      }
-
-      setSelectedFile(file);
-    } else {
-      setSelectedFile(null);
-    }
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!title || !assignee) return;
-
-    setIsSubmitting(true);
-    setIsDialogOpen(false);
-
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("assignee", assignee);
-    if (dueDate) {
-      formData.append("dueDate", dueDate);
-    }
-    if (description) {
-      formData.append("description", description);
-    }
-    if (selectedFile) {
-      formData.append("taskFile", selectedFile, selectedFile.name);
-    }
-
-    try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "오류 응답 파싱 실패" }));
-        console.error("Failed to create task:", response.status, errorData);
-        toast.error(
-          `업무 등록 실패: ${errorData.error || response.statusText}`,
-        );
-      } else {
-        setIsLoading(true);
-        toast.success("새로운 업무가 성공적으로 등록되었습니다.");
-      }
-    } catch (error) {
-      console.error("Error submitting task:", error);
-      toast.error("업무 등록 중 오류가 발생했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const paginationRange = getPaginationRange(totalPages, currentPage);
-
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== currentPage) {
       setCurrentPage(page);
@@ -357,15 +93,7 @@ export default function TaskBoard({
     }
   };
 
-  // 이미지 파일인지 확인하는 함수
-  const isImageFile = useCallback((filename: string): boolean => {
-    if (!filename) return false;
-    const fileExt = filename.split(".").pop()?.toLowerCase() || "";
-    return ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"].includes(
-      fileExt,
-    );
-  }, []);
-
+  // 파일 미리보기 처리 함수
   const handlePreview = async (taskId: string, filename: string) => {
     try {
       // 상태 초기화 후 로딩 시작
@@ -462,171 +190,7 @@ export default function TaskBoard({
     }
   };
 
-  const getFileIcon = (filename: string) => {
-    if (!filename) return <FileIcon className="h-4 w-4" />;
-
-    const fileExt = filename.split(".").pop()?.toLowerCase() || "";
-
-    // 이미지 파일
-    if (
-      ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"].includes(
-        fileExt,
-      )
-    ) {
-      return <ImageIcon className="h-4 w-4" />;
-    }
-    // 엑셀 파일 (엑셀 아이콘으로 표시)
-    else if (["xls", "xlsx", "csv", "xlsm", "xlt", "xltx"].includes(fileExt)) {
-      return <FileSpreadsheet className="h-4 w-4 text-green-600" />;
-    }
-    // 한글 문서
-    else if (["hwp", "hwpx"].includes(fileExt)) {
-      return <FilePen className="h-4 w-4 text-[#00a4ff]" />;
-    }
-    // 파워포인트 (프레젠테이션 아이콘으로 표시)
-    else if (
-      ["ppt", "pptx", "pptm", "pot", "potx", "pps", "ppsx"].includes(fileExt)
-    ) {
-      return <Presentation className="h-4 w-4 text-orange-600" />;
-    }
-    // 워드 문서
-    else if (["doc", "docx", "docm", "rtf", "odt"].includes(fileExt)) {
-      return <FileText className="h-4 w-4 text-blue-600" />;
-    }
-    // PDF 문서
-    else if (["pdf"].includes(fileExt)) {
-      return <FileText className="h-4 w-4 text-red-600" />;
-    }
-    // 동영상 파일
-    else if (
-      ["mp4", "avi", "mov", "wmv", "mkv", "flv", "webm"].includes(fileExt)
-    ) {
-      return <Video className="h-4 w-4" />;
-    }
-    // 오디오 파일
-    else if (["mp3", "wav", "ogg", "flac", "aac"].includes(fileExt)) {
-      return <Music className="h-4 w-4" />;
-    }
-    // 코드 파일
-    else if (
-      [
-        "js",
-        "ts",
-        "jsx",
-        "tsx",
-        "html",
-        "css",
-        "py",
-        "java",
-        "c",
-        "cpp",
-      ].includes(fileExt)
-    ) {
-      return <FileCode className="h-4 w-4" />;
-    } else if (
-      ["json", "xml", "yaml", "yml", "toml", "ini", "conf"].includes(fileExt)
-    ) {
-      return <FileJson className="h-4 w-4" />;
-    } else if (["exe", "dll", "bin", "sh", "bat", "cmd"].includes(fileExt)) {
-      return <FileCog className="h-4 w-4" />;
-    } else {
-      return <File className="h-4 w-4" />;
-    }
-  };
-
-  // 수정 대화상자 초기화 함수
-  useEffect(() => {
-    if (isEditDialogOpen && currentTask) {
-      setEditTitle(currentTask.title);
-      // ExtendedTask에서 assignee 정보 추출 - 타입 명시적 처리
-      let assigneeId = "";
-      if (
-        currentTask.assignee &&
-        typeof currentTask.assignee === "object" &&
-        "id" in currentTask.assignee
-      ) {
-        assigneeId = currentTask.assignee.id as string;
-      }
-      setEditAssignee(assigneeId);
-      setEditDueDate(
-        currentTask.dueDate
-          ? new Date(currentTask.dueDate).toISOString().split("T")[0]
-          : "",
-      );
-      setEditDescription(currentTask.description || "");
-      setEditSelectedFile(null);
-    }
-  }, [isEditDialogOpen, currentTask]);
-
-  // 파일 변경 핸들러(수정용)
-  const handleEditFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error("파일 크기는 10MB를 초과할 수 없습니다.");
-        event.target.value = ""; // 파일 선택 초기화
-        setEditSelectedFile(null);
-        return;
-      }
-
-      setEditSelectedFile(file);
-    } else {
-      setEditSelectedFile(null);
-    }
-  };
-
-  // 수정 핸들러
-  const handleEditSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!editTitle || !editAssignee || !currentTask?.id) return;
-
-    setIsEditing(true);
-    // 대화 상자를 즉시 닫지 않고 로딩 상태를 먼저 보여줌
-
-    try {
-      const updateData = {
-        title: editTitle,
-        assigneeId: editAssignee,
-        dueDate: editDueDate ? new Date(editDueDate) : null,
-        description: editDescription || null,
-      };
-
-      // 파일 변경이 있는 경우 별도 처리 필요
-      // 현재 API에서 JSON 형식만 지원하므로 파일 업로드는 별도 API가 필요
-      if (editSelectedFile) {
-      }
-
-      const response = await fetch(`/api/tasks/${currentTask.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "오류 응답 파싱 실패" }));
-        console.error("Failed to update task:", response.status, errorData);
-        toast.error(
-          `업무 수정 실패: ${errorData.error || response.statusText}`,
-        );
-      } else {
-        setIsLoading(true);
-        setIsEditDialogOpen(false);
-        setIsTaskViewOpen(false);
-        toast.success("업무가 성공적으로 수정되었습니다.");
-      }
-    } catch (error) {
-      console.error("Error updating task:", error);
-      toast.error("업무 수정 중 오류가 발생했습니다.");
-    } finally {
-      setIsEditing(false);
-    }
-  };
-
+  // 업무 삭제 처리 함수
   const handleDeleteTask = async () => {
     if (!currentTask?.id) return;
 
@@ -676,829 +240,76 @@ export default function TaskBoard({
 
   return (
     <CardContent className="p-0">
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <div className="mb-4 flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
-          {" "}
-          <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
-          <DialogTrigger asChild>
-            <Button size="sm" className="cursor-pointer text-sm">
-              {" "}
-              <Plus className="mr-2 h-4 w-4" /> 업무 등록
-            </Button>
-          </DialogTrigger>
-        </div>
-
-        <DialogContent className="sm:max-w-md lg:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>새 업무 등록</DialogTitle>
-          </DialogHeader>
-
-          <form className="grid gap-4 py-4" onSubmit={handleSubmit}>
-            {" "}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right text-sm">
-                업무 제목
-              </Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="예: 주간 보고서 작성"
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dueDate" className="text-right text-sm">
-                마감일
-              </Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="assignee" className="text-right text-sm">
-                담당자
-              </Label>
-              <Select value={assignee} onValueChange={setAssignee} required>
-                {" "}
-                <SelectTrigger id="assignee" className="col-span-3">
-                  <SelectValue placeholder="담당자 선택">
-                    {assignee && users ? (
-                      (() => {
-                        const selectedUser = users.find(
-                          (user) => user.id === assignee,
-                        );
-                        return selectedUser ? (
-                          <div className="flex items-center gap-2">
-                            <UserAvatar
-                              src={
-                                typeof selectedUser.image === "string"
-                                  ? selectedUser.image
-                                  : undefined
-                              }
-                              name={selectedUser.name ?? ""}
-                            />
-                            <span>{selectedUser.name ?? "이름 없음"}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <UserAvatar fallback="담" />
-                            <span>담당자 선택</span>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <UserAvatar fallback="담" />
-                        <span>담당자 선택</span>
-                      </div>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {users && users.length > 0 ? (
-                    users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        <div className="flex items-center gap-2">
-                          <UserAvatar
-                            src={
-                              typeof user.image === "string"
-                                ? user.image
-                                : undefined
-                            }
-                            name={user.name ?? ""}
-                          />
-                          <span>{user.name ?? "이름 없음"}</span>{" "}
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-users" disabled>
-                      사용자 정보 없음
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right text-sm">
-                설명 (선택)
-              </Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                  setDescription(e.target.value)
-                }
-                placeholder="업무에 대한 상세 내용을 입력하세요."
-                className="col-span-3 min-h-60 lg:min-h-[250px]"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="taskFile" className="text-right text-sm">
-                파일 첨부 (선택)
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="taskFile"
-                  type="file"
-                  onChange={handleFileChange}
-                  className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 rounded-md file:border-0 file:p-4 file:px-4 file:py-2 file:text-sm file:font-semibold"
-                />
-                <p className="text-muted-foreground mt-1 text-xs">
-                  최대 파일 크기: 10MB
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !title || !assignee}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                등록
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Search Bar */}
-      <div className="flex items-center justify-end px-4 py-3">
-        <div className="relative w-full max-w-sm">
-          <form onSubmit={handleSearch}>
-            <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="검색어를 입력 후 엔터를 눌러주세요"
-              className="pr-4 pl-9 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {isSearching && (
-              <div className="absolute top-2.5 right-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </div>
-            )}
-          </form>
-        </div>
+      <div className="mb-4 flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
+        <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
+        <TaskForm
+          isDialogOpen={isDialogOpen}
+          setIsDialogOpen={setIsDialogOpen}
+          users={users}
+          sessionUserId={session?.user?.id}
+          setIsLoading={setIsLoading}
+        />
       </div>
 
-      {/* --- Task Table --- */}
-      <div className="overflow-x-auto rounded-none border">
-        <Table className="w-full table-fixed md:min-w-[800px]">
-          <TableHeader>
-            <TableRow className="bg-muted hover:bg-muted h-10 border-b">
-              <TableHead className="text-muted-foreground w-[50px] px-3 py-2 text-center text-sm font-medium md:w-[60px]">
-                번호
-              </TableHead>
-              <TableHead className="text-muted-foreground w-auto px-3 py-2 text-sm font-medium md:w-[30%]">
-                업무 제목
-              </TableHead>
-              <TableHead className="text-muted-foreground w-[100px] px-3 py-2 text-sm font-medium md:text-start">
-                담당자
-              </TableHead>
-              <TableHead className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm font-medium md:table-cell md:w-[15%]">
-                작성자
-              </TableHead>
-              <TableHead className="text-muted-foreground hidden w-[100px] px-3 py-2 text-sm font-medium md:table-cell md:w-[10%]">
-                첨부 파일
-              </TableHead>
-              <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell md:w-[140px]">
-                등록일
-              </TableHead>
-              <TableHead className="text-muted-foreground hidden px-3 py-2 text-sm font-medium md:table-cell md:w-[140px]">
-                마감일
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+      <TaskTable
+        filteredTasks={filteredTasks}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        handleSearch={handleSearch}
+        isSearching={isSearching}
+        isInitialLoading={isInitialLoading}
+        isPageChanging={isPageChanging}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalTasks={totalTasks}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        setCurrentTask={setCurrentTask}
+        setIsTaskViewOpen={setIsTaskViewOpen}
+        handlePageChange={handlePageChange}
+      />
 
-          <TableBody className="relative">
-            {/* ② 첫 진입(데이터 전혀 없음)일 때만 '전체 스피너 행' */}
-            {isInitialLoading ? (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <div className="flex h-60 flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <p className="text-muted-foreground text-sm">
-                      업무 불러오는 중...
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredTasks && filteredTasks.length > 0 ? (
-              filteredTasks.map((task, index) => {
-                const itemNumber = totalTasks - startIndex - index;
-                return (
-                  <TableRow
-                    className="hover:bg-muted/50 data-[state=selected]:bg-muted h-12 border-b transition-colors"
-                    key={task.id}
-                    onClick={() => {
-                      setCurrentTask(task);
-                      setIsTaskViewOpen(true);
-                    }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {/* 번호 */}
-                    <TableCell className="text-muted-foreground w-[50px] text-center text-sm md:w-[60px]">
-                      {renderContent(
-                        isPageChanging,
-                        <Skeleton width="w-full" height="h-4" />,
-                        itemNumber,
-                      )}
-                    </TableCell>
-                    {/* 업무 제목 */}
-                    <TableCell className="w-auto truncate px-3 py-2 text-sm font-medium md:w-[30%]">
-                      {renderContent(
-                        isPageChanging,
-                        <Skeleton width="w-full" height="h-4" />,
-                        <div className="truncate">{task.title}</div>,
-                      )}
-                    </TableCell>
-                    {/* 담당자 */}
-                    <TableCell className="text-muted-foreground w-[100px] px-3 py-2 text-right md:text-start md:text-sm">
-                      <div className="flex items-center justify-start gap-1">
-                        {renderContent(
-                          isPageChanging,
-                          <div className="h-5 w-5 animate-pulse rounded-full bg-gray-200" />,
-                          <UserAvatar
-                            src={
-                              task.assignee && "image" in task.assignee
-                                ? typeof task.assignee.image === "string"
-                                  ? task.assignee.image
-                                  : undefined
-                                : undefined
-                            }
-                            name={task.assignee?.name ?? ""}
-                          />,
-                        )}
-                        {renderContent(
-                          isPageChanging,
-                          <Skeleton width="w-14" height="h-4" />,
-                          <span className="max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap md:max-w-[80px]">
-                            {task.assignee?.name ?? "미지정"}
-                          </span>,
-                        )}
-                      </div>
-                    </TableCell>
-                    {/* 작성자 */}
-                    <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell md:w-[15%]">
-                      {renderContent(
-                        isPageChanging,
-                        <Skeleton width="w-full" height="h-4" />,
-                        task.creator ? (
-                          <div className="flex items-center gap-1">
-                            <UserAvatar
-                              src={
-                                typeof task.creator.image === "string"
-                                  ? task.creator.image
-                                  : undefined
-                              }
-                              name={task.creator.name ?? ""}
-                            />
-                            <span className="max-w-[80px] overflow-hidden text-ellipsis whitespace-nowrap">
-                              {task.creator.name ?? ""}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        ),
-                      )}
-                    </TableCell>
-                    {/* 첨부 파일 */}
-                    <TableCell className="text-muted-foreground hidden w-[100px] px-3 py-2 text-sm md:table-cell md:w-[10%]">
-                      {renderContent(
-                        isPageChanging,
-                        <Skeleton width="w-full" height="h-4" />,
-                        task.fileUrl && task.fileName ? (
-                          <div className="flex items-center space-x-1">
-                            {getFileIcon(task.fileName)}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        ),
-                      )}
-                    </TableCell>
-                    {/* 등록일 */}
-                    <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell md:w-[140px]">
-                      {renderContent(
-                        isPageChanging,
-                        <Skeleton width="w-full" height="h-4" />,
-                        formatDate(task.createdAt),
-                      )}
-                    </TableCell>
-                    {/* 마감일 */}
-                    <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell md:w-[140px]">
-                      {renderContent(
-                        isPageChanging,
-                        <Skeleton width="w-full" height="h-4" />,
-                        formatDateWithWeekday(task.dueDate),
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                {/* Adjust colSpan if file header is added */}
-                <TableCell
-                  colSpan={7}
-                  className="text-muted-foreground h-24 text-center"
-                >
-                  {searchTerm.trim()
-                    ? "검색 결과가 없습니다."
-                    : "등록된 업무가 없습니다."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TaskView
+        isTaskViewOpen={isTaskViewOpen}
+        setIsTaskViewOpen={setIsTaskViewOpen}
+        currentTask={currentTask}
+        setIsEditDialogOpen={setIsEditDialogOpen}
+        setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
+        handlePreview={handlePreview}
+        isEditing={isEditing}
+        isDeleting={isDeleting}
+        sessionUserId={session?.user?.id}
+        sessionUserRole={session?.user?.role}
+      />
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex flex-col items-center justify-between gap-y-2 border-t px-4 py-3 sm:flex-row sm:gap-y-0">
-          <div className="text-muted-foreground text-sm">
-            총 {totalTasks}개 중 {startIndex + 1} - {endIndex} 표시 중 (페이지{" "}
-            {currentPage}/{totalPages})
-          </div>
-          <Pagination>
-            <PaginationContent>
-              {/* 이전 페이지 버튼 */}
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handlePageChange(currentPage - 1);
-                  }}
-                  className={
-                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
-                  }
-                  aria-disabled={currentPage === 1}
-                />
-              </PaginationItem>
+      <TaskEdit
+        isEditDialogOpen={isEditDialogOpen}
+        setIsEditDialogOpen={setIsEditDialogOpen}
+        setIsTaskViewOpen={setIsTaskViewOpen}
+        currentTask={currentTask}
+        users={users}
+        setIsLoading={setIsLoading}
+      />
 
-              {/* 페이지 번호 링크들 */}
-              {paginationRange.map((page, index) => {
-                if (page === DOTS) {
-                  return (
-                    <PaginationItem key={DOTS + index}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  );
-                }
+      <FilePreview
+        isPreviewOpen={isPreviewOpen}
+        setIsPreviewOpen={setIsPreviewOpen}
+        previewUrl={previewUrl}
+        previewType={previewType}
+        previewName={previewName}
+        isPreviewLoading={isPreviewLoading}
+        setPreviewUrl={setPreviewUrl}
+        setPreviewType={setPreviewType}
+        setPreviewName={setPreviewName}
+        setIsPreviewLoading={setIsPreviewLoading}
+      />
 
-                return (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handlePageChange(page as number);
-                      }}
-                      isActive={page === currentPage}
-                      aria-current={page === currentPage ? "page" : undefined}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-
-              {/* 다음 페이지 버튼 */}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handlePageChange(currentPage + 1);
-                  }}
-                  className={
-                    currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                  aria-disabled={currentPage === totalPages}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
-
-      <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
-        <DialogContent className="flex max-h-[85vh] min-h-[24rem] flex-col sm:max-w-md lg:max-w-2xl">
-          {" "}
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{currentTask?.title ?? "업무 정보"}</DialogTitle>
-            <div className="text-muted-foreground pt-1 text-sm">
-              {currentTask?.assignee && (
-                <div className="flex items-center gap-1">
-                  <UserAvatar
-                    src={
-                      currentTask.assignee && "image" in currentTask.assignee
-                        ? typeof currentTask.assignee.image === "string"
-                          ? currentTask.assignee.image
-                          : undefined
-                        : undefined
-                    }
-                    name={currentTask.assignee.name ?? ""}
-                  />
-                  <span>{currentTask.assignee.name ?? "미지정"}</span>
-                </div>
-              )}
-            </div>
-          </DialogHeader>
-          <div className="my-4 flex-grow overflow-y-auto border-t border-b py-4">
-            {" "}
-            <h4 className="mb-2 text-sm font-medium">설명</h4>
-            <p className="text-muted-foreground text-sm break-words whitespace-pre-wrap">
-              {currentTask?.description
-                ? currentTask.description
-                : "설명이 없습니다."}
-            </p>
-          </div>
-          {currentTask?.fileUrl && currentTask.fileName && (
-            <div className="mt-2 flex items-center justify-between">
-              <div className="w-[60%]">
-                <div className="mb-2 flex items-center gap-1.5">
-                  <div className="shrink-0">
-                    {getFileIcon(currentTask.fileName)}
-                  </div>
-                  <span className="text-sm text-nowrap">첨부 파일</span>
-                </div>
-                <span className="text-muted-foreground block overflow-hidden text-sm text-ellipsis">
-                  {currentTask.fileName}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {currentTask.fileName && isImageFile(currentTask.fileName) && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (currentTask.id && currentTask.fileName) {
-                        handlePreview(currentTask.id, currentTask.fileName);
-                      }
-                    }}
-                    className="inline-flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    <Eye className="h-5 w-5" />
-                  </button>
-                )}
-                <a
-                  href={`/api/tasks/download/${currentTask.id}`}
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                  onClick={(e) => e.stopPropagation()}
-                  download
-                >
-                  <Download className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="mt-auto flex-shrink-0 pt-4 sm:flex sm:items-end sm:justify-between">
-            <div className="text-muted-foreground mb-4 space-y-1 text-sm sm:mb-0">
-              <div>등록일: {formatDate(currentTask?.createdAt)}</div>
-              <div>마감일: {formatDateWithWeekday(currentTask?.dueDate)}</div>
-              <div>
-                작성자: {currentTask?.creator ? currentTask.creator.name : "-"}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {canEditTask(currentTask) && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsEditDialogOpen(true);
-                    }}
-                    disabled={isEditing || isDeleting}
-                  >
-                    {isEditing ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Edit className="mr-2 h-4 w-4" />
-                    )}
-                    수정
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    size="sm"
-                    className="cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDeleteConfirmOpen(true);
-                    }}
-                    disabled={isEditing || isDeleting}
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="mr-2 h-4 w-4" />
-                    )}
-                    삭제
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="cursor-pointer"
-                onClick={() => setIsTaskViewOpen(false)}
-              >
-                닫기
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 업무 수정 다이얼로그 */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md lg:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>업무 수정</DialogTitle>
-          </DialogHeader>
-
-          <form className="grid gap-4 py-4" onSubmit={handleEditSubmit}>
-            {" "}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editTitle" className="text-right text-sm">
-                업무 제목
-              </Label>
-              <Input
-                id="editTitle"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="예: 주간 보고서 작성"
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editDueDate" className="text-right text-sm">
-                마감일
-              </Label>
-              <Input
-                id="editDueDate"
-                type="date"
-                value={editDueDate}
-                onChange={(e) => setEditDueDate(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editAssignee" className="text-right text-sm">
-                담당자
-              </Label>
-              <Select
-                value={editAssignee}
-                onValueChange={setEditAssignee}
-                required
-              >
-                {" "}
-                <SelectTrigger id="editAssignee" className="col-span-3">
-                  <SelectValue placeholder="담당자 선택">
-                    {editAssignee && users ? (
-                      (() => {
-                        const selectedUser = users.find(
-                          (user) => user.id === editAssignee,
-                        );
-                        return selectedUser ? (
-                          <div className="flex items-center gap-2">
-                            <UserAvatar
-                              src={
-                                typeof selectedUser.image === "string"
-                                  ? selectedUser.image
-                                  : undefined
-                              }
-                              name={selectedUser.name ?? ""}
-                            />
-                            <span>{selectedUser.name ?? "이름 없음"}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <UserAvatar fallback="담" />
-                            <span>담당자 선택</span>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <UserAvatar fallback="담" />
-                        <span>담당자 선택</span>
-                      </div>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {users && users.length > 0 ? (
-                    users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        <div className="flex items-center gap-2">
-                          <UserAvatar
-                            src={
-                              typeof user.image === "string"
-                                ? user.image
-                                : undefined
-                            }
-                            name={user.name ?? ""}
-                          />
-                          <span>{user.name ?? "이름 없음"}</span>{" "}
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-users" disabled>
-                      사용자 정보 없음
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editDescription" className="text-right text-sm">
-                설명 (선택)
-              </Label>
-              <Textarea
-                id="editDescription"
-                value={editDescription}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                  setEditDescription(e.target.value)
-                }
-                placeholder="업무에 대한 상세 내용을 입력하세요."
-                className="col-span-3 min-h-60 lg:min-h-[250px]"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editTaskFile" className="text-right text-sm">
-                파일 첨부 (선택)
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="editTaskFile"
-                  type="file"
-                  onChange={handleEditFileChange}
-                  className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 rounded-md file:border-0 file:p-4 file:px-4 file:py-2 file:text-sm file:font-semibold"
-                />
-                <p className="text-muted-foreground mt-1 text-xs">
-                  최대 파일 크기: 10MB
-                </p>
-                {currentTask?.fileName && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-muted-foreground text-xs">
-                      현재 파일:{" "}
-                    </span>
-                    <div className="flex items-center gap-1 text-xs">
-                      {getFileIcon(currentTask.fileName)}
-                      <span className="ml-1">{currentTask.fileName}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                disabled={isEditing || !editTitle || !editAssignee}
-              >
-                {isEditing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 수정 중
-                  </>
-                ) : (
-                  "수정"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="flex max-h-[90vh] min-h-[24rem] flex-col sm:max-w-md md:max-w-2xl lg:max-w-4xl">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>파일 미리보기: {previewName}</DialogTitle>
-          </DialogHeader>
-          <div className="my-4 flex flex-grow items-center overflow-auto border-t border-b py-4">
-            {isPreviewLoading ? (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-3">
-                <Loader2 className="h-10 w-10 animate-spin" />
-                <p className="text-muted-foreground text-sm">
-                  파일을 불러오는 중...
-                </p>
-              </div>
-            ) : (
-              <>
-                {previewType === "image" && previewUrl && (
-                  <div className="animate-in fade-in flex h-full items-center justify-center duration-200">
-                    <Image
-                      src={previewUrl}
-                      alt={previewName || "이미지 미리보기"}
-                      className="max-h-[70vh] max-w-full object-contain"
-                      width={800}
-                      height={600}
-                      unoptimized
-                    />
-                  </div>
-                )}
-                {previewType === "pdf" && previewUrl && (
-                  <div className="animate-in fade-in h-[70vh] w-full duration-200">
-                    <iframe
-                      src={`${previewUrl}#toolbar=0`}
-                      className="h-full w-full"
-                      title={previewName || "PDF 미리보기"}
-                    />
-                  </div>
-                )}
-                {previewType === "text" && previewUrl && (
-                  <pre className="bg-muted/30 animate-in fade-in max-h-[70vh] w-full overflow-auto rounded-md p-4 text-sm whitespace-pre-wrap duration-200">
-                    {previewUrl}
-                  </pre>
-                )}
-              </>
-            )}
-          </div>
-          <DialogFooter className="mt-auto flex-shrink-0 gap-2">
-            {previewUrl && (
-              <Button variant="default" size="sm" asChild>
-                <a
-                  href={
-                    typeof previewUrl === "string" &&
-                    previewUrl.startsWith("/api")
-                      ? previewUrl
-                      : "#"
-                  }
-                  download={previewName || undefined}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  다운로드
-                </a>
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setIsPreviewOpen(false);
-                setTimeout(() => {
-                  setPreviewUrl(null);
-                  setPreviewType(null);
-                  setPreviewName(null);
-                  setIsPreviewLoading(false);
-                }, 300); // 닫힘 애니메이션 후에 상태 리셋
-              }}
-            >
-              닫기
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 삭제 확인 다이얼로그 */}
-      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>업무 삭제 확인</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 text-sm">
-            <p>정말로 이 업무를 삭제하시겠습니까?</p>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-              onClick={() => setIsDeleteConfirmOpen(false)}
-              disabled={isDeleting}
-            >
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="cursor-pointer"
-              onClick={handleDeleteTask}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteConfirmDialog
+        isDeleteConfirmOpen={isDeleteConfirmOpen}
+        setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
+        handleDeleteTask={handleDeleteTask}
+        isDeleting={isDeleting}
+      />
     </CardContent>
   );
 }
