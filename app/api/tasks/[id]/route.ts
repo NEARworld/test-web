@@ -35,6 +35,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if ("dueDate" in updateData) {
+      updateData.dueDate = updateData.dueDate
+        ? new Date(updateData.dueDate)
+        : null;
+    }
+
     // 2. Fetch the current state of the task *before* the update
     const currentTask = await prisma.task.findUnique({
       where: { id: taskId },

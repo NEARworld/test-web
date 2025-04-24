@@ -90,7 +90,7 @@ interface TaskBoardProps {
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const formatDate = (date: Date | string | undefined): string => {
-  if (!date) return "날짜 없음";
+  if (!date) return "없음";
   try {
     return new Intl.DateTimeFormat("ko-KR", {
       year: "numeric",
@@ -106,7 +106,7 @@ const formatDate = (date: Date | string | undefined): string => {
 const formatDateWithWeekday = (
   date: Date | string | undefined | null,
 ): string => {
-  if (!date) return "날짜 없음";
+  if (!date) return "없음";
   try {
     return new Intl.DateTimeFormat("ko-KR", {
       year: "numeric",
@@ -303,7 +303,7 @@ export default function TaskBoard({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!title || !assignee || !dueDate) return;
+    if (!title || !assignee) return;
 
     setIsSubmitting(true);
     setIsDialogOpen(false);
@@ -311,7 +311,9 @@ export default function TaskBoard({
     const formData = new FormData();
     formData.append("title", title);
     formData.append("assignee", assignee);
-    formData.append("dueDate", dueDate);
+    if (dueDate) {
+      formData.append("dueDate", dueDate);
+    }
     if (description) {
       formData.append("description", description);
     }
@@ -577,7 +579,7 @@ export default function TaskBoard({
   // 수정 핸들러
   const handleEditSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!editTitle || !editAssignee || !editDueDate || !currentTask?.id) return;
+    if (!editTitle || !editAssignee || !currentTask?.id) return;
 
     setIsEditing(true);
     // 대화 상자를 즉시 닫지 않고 로딩 상태를 먼저 보여줌
@@ -586,7 +588,7 @@ export default function TaskBoard({
       const updateData = {
         title: editTitle,
         assigneeId: editAssignee,
-        dueDate: new Date(editDueDate),
+        dueDate: editDueDate ? new Date(editDueDate) : null,
         description: editDescription || null,
       };
 
@@ -707,6 +709,18 @@ export default function TaskBoard({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="dueDate" className="text-right text-sm">
+                마감일
+              </Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="assignee" className="text-right text-sm">
                 담당자
               </Label>
@@ -786,19 +800,6 @@ export default function TaskBoard({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dueDate" className="text-right text-sm">
-                마감일
-              </Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="taskFile" className="text-right text-sm">
                 파일 첨부 (선택)
               </Label>
@@ -817,7 +818,7 @@ export default function TaskBoard({
             <DialogFooter>
               <Button
                 type="submit"
-                disabled={isSubmitting || !title || !assignee || !dueDate}
+                disabled={isSubmitting || !title || !assignee}
               >
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1245,6 +1246,18 @@ export default function TaskBoard({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editDueDate" className="text-right text-sm">
+                마감일
+              </Label>
+              <Input
+                id="editDueDate"
+                type="date"
+                value={editDueDate}
+                onChange={(e) => setEditDueDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="editAssignee" className="text-right text-sm">
                 담당자
               </Label>
@@ -1328,19 +1341,6 @@ export default function TaskBoard({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editDueDate" className="text-right text-sm">
-                마감일
-              </Label>
-              <Input
-                id="editDueDate"
-                type="date"
-                value={editDueDate}
-                onChange={(e) => setEditDueDate(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="editTaskFile" className="text-right text-sm">
                 파일 첨부 (선택)
               </Label>
@@ -1370,9 +1370,7 @@ export default function TaskBoard({
             <DialogFooter>
               <Button
                 type="submit"
-                disabled={
-                  isEditing || !editTitle || !editAssignee || !editDueDate
-                }
+                disabled={isEditing || !editTitle || !editAssignee}
               >
                 {isEditing ? (
                   <>
