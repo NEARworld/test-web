@@ -1,8 +1,8 @@
-// app/api/reservation/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma, $Enums } from "@prisma/client";
+import { Prisma, $Enums } from "@prisma/client";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { validateUserInDB } from "@/lib/auth-utils";
 
 interface MenuItem {
   name: string;
@@ -10,20 +10,24 @@ interface MenuItem {
   quantity: number;
 }
 
-const prismaClient = new PrismaClient();
-
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication using App Router auth
+    // App Router auth를 사용하여 인증 확인
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // DB에 유효한 사용자 정보가 있는지 확인
+    const isValidUser = await validateUserInDB(session);
+    if (!session || !isValidUser) {
+      return NextResponse.json(
+        { error: "Unauthorized", redirectToLogin: true },
+        { status: 401 },
+      );
     }
 
-    // Get query parameters
+    // 쿼리 매개변수 가져오기
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
-    const status = searchParams.get("status") as $Enums.ReservationStatus; // Get status parameter if present
+    const status = searchParams.get("status") as $Enums.ReservationStatus; // 상태 매개변수가 있는 경우
 
     if (!date) {
       return NextResponse.json(
@@ -32,11 +36,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Create date range for the requested date (full day)
+    // 요청된 날짜에 대한 날짜 범위 생성 (하루 전체)
     const startDate = new Date(`${date}T00:00:00.000Z`);
     const endDate = new Date(`${date}T23:59:59.999Z`);
 
-    // Build the where clause with date range
+    // 날짜 범위를 사용하여 조건 생성
     const whereClause: Prisma.ReservationWhereInput = {
       dateTime: {
         gte: startDate,
@@ -44,13 +48,13 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Add status filter if provided
+    // 상태 필터가 제공되면 추가
     if (status) {
       whereClause.status = status;
     }
 
-    // Query reservations with the constructed where clause
-    const reservations = await prismaClient.reservation.findMany({
+    // 쿼리 예약 생성 조건
+    const reservations = await prisma.reservation.findMany({
       where: whereClause,
       include: {
         menuItems: true,
@@ -78,8 +82,14 @@ export async function GET(request: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    // DB에 유효한 사용자 정보가 있는지 확인
+    const isValidUser = await validateUserInDB(session);
+    if (!session?.user?.id || !isValidUser) {
+      return NextResponse.json(
+        { message: "Unauthorized", redirectToLogin: true },
+        { status: 401 },
+      );
     }
 
     const data = await req.json();

@@ -19,11 +19,11 @@ export default auth(async function middleware(req: NextRequest) {
   console.log("token:", token);
   console.log("NODE_ENV:", process.env.NODE_ENV);
 
+  const isAuthenticated = !!session && !!token?.sub;
   const userPosition = token?.position;
 
-  // 세션이 없거나 만료된 경우 로그인 페이지로 리다이렉트
-  if (!session) {
-    // 현재 로그인 페이지가 아닌 경우에만 리다이렉트
+  // 세션이 없는 경우 로그인 페이지로 리다이렉트
+  if (!isAuthenticated) {
     const isLoginPage = req.nextUrl.pathname === "/login";
     if (!isLoginPage) {
       return NextResponse.redirect(new URL("/login", req.url));
