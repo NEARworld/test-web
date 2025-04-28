@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { CardContent } from "@/components/ui/card";
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
-import { useSearch } from "@/app/hooks/useSearch";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
@@ -42,7 +41,9 @@ export default function TaskBoard({
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [currentTask, setCurrentTask] = useState<ExtendedTask>();
+  const [currentTask, setCurrentTask] = useState<ExtendedTask | undefined>(
+    undefined,
+  );
 
   // 페이지 전환 상태
   const [isPageChanging, setIsPageChanging] = useState(false);
@@ -58,19 +59,10 @@ export default function TaskBoard({
   const [isEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const {
-    searchTerm,
-    setSearchTerm,
-    filteredData: filteredTasks,
-    isSearching,
-    handleSearch,
-  } = useSearch<ExtendedTask>(tasks, "/api/tasks/search");
-
   const totalPages = Math.ceil(totalTasks / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalTasks);
 
-  // 초기 로딩 상태와 페이지 전환 로딩 상태 구분
   const isInitialLoading = isLoading && (!tasks || tasks.length === 0);
 
   // 페이지 전환 로딩 상태 관리
@@ -78,9 +70,7 @@ export default function TaskBoard({
     if (isLoading) {
       setIsPageChanging(true);
     } else {
-      const timer = setTimeout(() => {
-        setIsPageChanging(false);
-      }, 300);
+      const timer = setTimeout(() => setIsPageChanging(false), 300);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
@@ -252,11 +242,7 @@ export default function TaskBoard({
       </div>
 
       <TaskTable
-        filteredTasks={filteredTasks}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        handleSearch={handleSearch}
-        isSearching={isSearching}
+        initialTasks={tasks}
         isInitialLoading={isInitialLoading}
         isPageChanging={isPageChanging}
         currentPage={currentPage}
