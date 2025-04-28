@@ -35,6 +35,7 @@ export default function EmployeeTable({
   employees,
   currentUserPosition,
 }: EmployeeTableProps) {
+  // 접속 중인 사용자의 직급이 staff나 unknown이 아닌 경우에만 편집 가능
   const canEditEmployees = !["staff", "unknown"].includes(currentUserPosition);
 
   const handleDepartmentChange = async (
