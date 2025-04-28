@@ -62,7 +62,6 @@ export default function EmployeeTable({
             <TableHead>직급</TableHead>
             <TableHead>입사일</TableHead>
             <TableHead>연락처</TableHead>
-            {canEditEmployees && <TableHead>작업</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -102,7 +101,7 @@ export default function EmployeeTable({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 등록된 직원이 없습니다.
               </TableCell>
             </TableRow>
