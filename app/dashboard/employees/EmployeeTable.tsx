@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { departmentLabels } from "@/constants/department";
 import { jobPositionLabels } from "@/constants/jobPosition";
-import { updateEmployeeDepartment } from "./actions";
+import { updateEmployeeDepartment, updateEmployeePosition } from "./actions";
 
 // Helper function to format date
 function formatDate(date: Date | null): string {
@@ -49,6 +49,18 @@ export default function EmployeeTable({
       await updateEmployeeDepartment(formData);
     } catch (error) {
       console.error("Failed to update department:", error);
+    }
+  };
+
+  const handlePositionChange = async (employeeId: string, position: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("employeeId", employeeId);
+      formData.append("position", position);
+
+      await updateEmployeePosition(formData);
+    } catch (error) {
+      console.error("Failed to update position:", error);
     }
   };
 
@@ -94,7 +106,31 @@ export default function EmployeeTable({
                     departmentLabels[employee.department]
                   )}
                 </TableCell>
-                <TableCell>{jobPositionLabels[employee.position]}</TableCell>
+                <TableCell>
+                  {canEditEmployees ? (
+                    <Select
+                      defaultValue={employee.position}
+                      onValueChange={(value) =>
+                        handlePositionChange(employee.id, value)
+                      }
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="직급 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(jobPositionLabels).map(
+                          ([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                              {label}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    jobPositionLabels[employee.position]
+                  )}
+                </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {formatDate(employee.hireDate)}
                 </TableCell>
