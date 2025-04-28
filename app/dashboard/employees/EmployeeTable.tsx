@@ -60,7 +60,7 @@ export default function EmployeeTable({
             <TableHead>이름</TableHead>
             <TableHead>부서</TableHead>
             <TableHead>직급</TableHead>
-            <TableHead>입사일</TableHead>
+            <TableHead className="hidden md:table-cell">입사일</TableHead>
             <TableHead>연락처</TableHead>
           </TableRow>
         </TableHeader>
@@ -95,7 +95,9 @@ export default function EmployeeTable({
                   )}
                 </TableCell>
                 <TableCell>{jobPositionLabels[employee.position]}</TableCell>
-                <TableCell>{formatDate(employee.hireDate)}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {formatDate(employee.hireDate)}
+                </TableCell>
                 <TableCell>010-5555-5555</TableCell>
               </TableRow>
             ))
