@@ -116,12 +116,12 @@ export default function EmployeesPage() {
                   <TableCell className="font-medium">{employee.name}</TableCell>
                   <TableCell>
                     {departmentLabels[employee.department] ?? "미지정"}
-                  </TableCell>{" "}
+                  </TableCell>
                   <TableCell>
                     {jobPositionLabels[employee.position] ?? "미지정"}
-                  </TableCell>{" "}
+                  </TableCell>
                   <TableCell>{formatDate(employee.hireDate)}</TableCell>
-                  <TableCell>{employee.phone ?? "없음"}</TableCell>{" "}
+                  <TableCell>{employee.phone ?? "없음"}</TableCell>
                 </TableRow>
               ))
             ) : (
