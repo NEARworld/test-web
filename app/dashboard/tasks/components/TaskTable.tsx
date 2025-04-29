@@ -1,4 +1,10 @@
-import React, { ReactNode } from "react";
+import React, {
+  ReactNode,
+  useState,
+  FormEvent,
+  useRef,
+  useEffect,
+} from "react";
 import { Search, Loader2 } from "lucide-react";
 import {
   Table,
@@ -28,13 +34,10 @@ import {
   getPaginationRange,
   getFileIcon,
 } from "../utils/TaskUtils";
+import { useSearch } from "@/app/hooks/useSearch";
 
 interface TaskTableProps {
-  filteredTasks: ExtendedTask[] | undefined;
-  searchTerm: string;
-  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  handleSearch: (e: React.FormEvent) => void;
-  isSearching: boolean;
+  initialTasks: ExtendedTask[] | undefined;
   isInitialLoading: boolean;
   isPageChanging: boolean;
   currentPage: number;
@@ -50,11 +53,7 @@ interface TaskTableProps {
 }
 
 export default function TaskTable({
-  filteredTasks,
-  searchTerm,
-  setSearchTerm,
-  handleSearch,
-  isSearching,
+  initialTasks,
   isInitialLoading,
   isPageChanging,
   currentPage,
@@ -66,7 +65,38 @@ export default function TaskTable({
   setIsTaskViewOpen,
   handlePageChange,
 }: TaskTableProps) {
-  // 조건부 렌더링 헬퍼 함수
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredData: filteredTasks,
+    isSearching,
+    handleSearch: triggerSearch,
+  } = useSearch<ExtendedTask>(initialTasks, "/api/tasks/search");
+
+  const [inputValue, setInputValue] = useState(searchTerm);
+  const isInitialMount = useRef(true);
+
+  const changeInputValue = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    if (newValue === "") {
+      setSearchTerm("");
+    }
+  };
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    triggerSearch();
+  }, [searchTerm]);
+
+  const handleFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSearchTerm(inputValue);
+  };
+
   const renderContent = (
     isLoading: boolean,
     skeleton: ReactNode,
@@ -81,14 +111,16 @@ export default function TaskTable({
     <>
       <div className="flex items-center justify-end px-4 py-3">
         <div className="relative w-full max-w-sm">
-          <form onSubmit={handleSearch}>
+          <form onSubmit={handleFormSubmit}>
             <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
             <Input
               type="text"
-              placeholder="검색어를 입력 후 엔터를 눌러주세요"
+              placeholder="업무 제목, 담당자 검색..."
               className="pr-4 pl-9 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={inputValue}
+              onChange={(e) => {
+                changeInputValue(e);
+              }}
             />
             {isSearching && (
               <div className="absolute top-2.5 right-2">
@@ -99,7 +131,6 @@ export default function TaskTable({
         </div>
       </div>
 
-      {/* Task Table */}
       <div className="overflow-x-auto rounded-none border">
         <Table className="w-full table-fixed md:min-w-[800px]">
           <TableHeader>
@@ -129,7 +160,6 @@ export default function TaskTable({
           </TableHeader>
 
           <TableBody className="relative">
-            {/* 첫 진입(데이터 전혀 없음)일 때만 '전체 스피너 행' */}
             {isInitialLoading ? (
               <TableRow>
                 <TableCell colSpan={7}>
@@ -138,6 +168,15 @@ export default function TaskTable({
                     <p className="text-muted-foreground text-sm">
                       업무 불러오는 중...
                     </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : isSearching ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <div className="flex h-60 flex-col items-center justify-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <p className="text-muted-foreground text-sm">검색 중...</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -154,7 +193,6 @@ export default function TaskTable({
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    {/* 번호 */}
                     <TableCell className="text-muted-foreground w-[50px] text-center text-sm md:w-[60px]">
                       {renderContent(
                         isPageChanging,
@@ -162,7 +200,6 @@ export default function TaskTable({
                         itemNumber,
                       )}
                     </TableCell>
-                    {/* 업무 제목 */}
                     <TableCell className="w-auto truncate px-3 py-2 text-sm font-medium md:w-[30%]">
                       {renderContent(
                         isPageChanging,
@@ -170,7 +207,6 @@ export default function TaskTable({
                         <div className="truncate">{task.title}</div>,
                       )}
                     </TableCell>
-                    {/* 담당자 */}
                     <TableCell className="text-muted-foreground w-[100px] px-3 py-2 text-right md:text-start md:text-sm">
                       <div className="flex items-center justify-start gap-1">
                         {renderContent(
@@ -196,7 +232,6 @@ export default function TaskTable({
                         )}
                       </div>
                     </TableCell>
-                    {/* 작성자 */}
                     <TableCell className="text-muted-foreground hidden w-[120px] px-3 py-2 text-sm md:table-cell md:w-[15%]">
                       {renderContent(
                         isPageChanging,
@@ -220,7 +255,6 @@ export default function TaskTable({
                         ),
                       )}
                     </TableCell>
-                    {/* 첨부 파일 */}
                     <TableCell className="text-muted-foreground hidden w-[100px] px-3 py-2 text-sm md:table-cell md:w-[10%]">
                       {renderContent(
                         isPageChanging,
@@ -234,7 +268,6 @@ export default function TaskTable({
                         ),
                       )}
                     </TableCell>
-                    {/* 등록일 */}
                     <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell md:w-[140px]">
                       {renderContent(
                         isPageChanging,
@@ -242,7 +275,6 @@ export default function TaskTable({
                         formatDate(task.createdAt),
                       )}
                     </TableCell>
-                    {/* 마감일 */}
                     <TableCell className="text-muted-foreground hidden px-3 py-2 text-sm md:table-cell md:w-[140px]">
                       {renderContent(
                         isPageChanging,
@@ -255,7 +287,6 @@ export default function TaskTable({
               })
             ) : (
               <TableRow>
-                {/* Adjust colSpan if file header is added */}
                 <TableCell
                   colSpan={7}
                   className="text-muted-foreground h-24 text-center"
@@ -278,7 +309,6 @@ export default function TaskTable({
           </div>
           <Pagination>
             <PaginationContent>
-              {/* 이전 페이지 버튼 */}
               <PaginationItem>
                 <PaginationPrevious
                   href="#"
@@ -293,7 +323,6 @@ export default function TaskTable({
                 />
               </PaginationItem>
 
-              {/* 페이지 번호 링크들 */}
               {paginationRange.map((page, index) => {
                 if (page === DOTS) {
                   return (
@@ -320,7 +349,6 @@ export default function TaskTable({
                 );
               })}
 
-              {/* 다음 페이지 버튼 */}
               <PaginationItem>
                 <PaginationNext
                   href="#"
