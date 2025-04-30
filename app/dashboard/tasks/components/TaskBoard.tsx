@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { CardContent } from "@/components/ui/card";
 import { User } from "@prisma/client";
 import { ExtendedTask } from "../page";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 import TaskForm from "./TaskForm";
 import TaskTable from "./TaskTable";
@@ -44,6 +47,15 @@ export default function TaskBoard({
   const [currentTask, setCurrentTask] = useState<ExtendedTask | undefined>(
     undefined,
   );
+
+  // 검색 관련 상태 추가
+  const [searchTerm, setSearchTerm] = useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [filteredTasks, setFilteredTasks] = useState<
+    ExtendedTask[] | undefined
+  >(tasks);
+  const isInitialMount = useRef(true);
 
   // 페이지 전환 상태
   const [isPageChanging, setIsPageChanging] = useState(false);
@@ -228,21 +240,90 @@ export default function TaskBoard({
     }
   };
 
+  const changeInputValue = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    if (newValue === "") {
+      setSearchTerm("");
+    }
+  };
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const triggerSearch = async () => {
+      if (!searchTerm.trim()) {
+        setFilteredTasks(tasks);
+        return;
+      }
+
+      setIsSearching(true);
+
+      try {
+        const response = await fetch(
+          `/api/tasks/search?q=${encodeURIComponent(searchTerm)}`,
+        );
+        if (!response.ok) throw new Error("검색 중 오류가 발생했습니다");
+
+        const data = await response.json();
+        setFilteredTasks(data);
+      } catch (error) {
+        console.error("Search error:", error);
+        toast.error("검색 중 오류가 발생했습니다");
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    triggerSearch();
+  }, [searchTerm, tasks]);
+
   return (
     <CardContent className="p-0">
-      <div className="mb-4 flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
-        <h1 className="text-2xl font-bold">업무 관리 대시보드</h1>
-        <TaskForm
-          isDialogOpen={isDialogOpen}
-          setIsDialogOpen={setIsDialogOpen}
-          users={users}
-          sessionUserId={session?.user?.id}
-          setIsLoading={setIsLoading}
-        />
+      <div className="mb-4 block flex-row items-start justify-between sm:flex">
+        <h1 className="mb-4 text-center text-2xl font-bold sm:mb-0 sm:text-left">
+          업무 관리 대시보드
+        </h1>
+
+        <div className="flex flex-col-reverse items-end gap-4 sm:flex-row sm:items-center">
+          <div className="relative mb-2 w-64 w-full sm:mb-0 md:w-80">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSearchTerm(inputValue);
+              }}
+            >
+              <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="업무 제목, 담당자 검색..."
+                className="pr-4 pl-9 text-sm"
+                value={inputValue}
+                onChange={changeInputValue}
+              />
+              {isSearching && (
+                <div className="absolute top-2.5 right-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              )}
+            </form>
+          </div>
+
+          <TaskForm
+            isDialogOpen={isDialogOpen}
+            setIsDialogOpen={setIsDialogOpen}
+            users={users}
+            sessionUserId={session?.user?.id}
+            setIsLoading={setIsLoading}
+          />
+        </div>
       </div>
 
       <TaskTable
-        initialTasks={tasks}
+        initialTasks={filteredTasks}
         isInitialLoading={isInitialLoading}
         isPageChanging={isPageChanging}
         currentPage={currentPage}

@@ -1,11 +1,5 @@
-import React, {
-  ReactNode,
-  useState,
-  FormEvent,
-  useRef,
-  useEffect,
-} from "react";
-import { Search, Loader2 } from "lucide-react";
+import React, { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -34,7 +27,6 @@ import {
   getPaginationRange,
   getFileIcon,
 } from "../utils/TaskUtils";
-import { useSearch } from "@/app/hooks/useSearch";
 
 interface TaskTableProps {
   initialTasks: ExtendedTask[] | undefined;
@@ -50,6 +42,8 @@ interface TaskTableProps {
   >;
   setIsTaskViewOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handlePageChange: (page: number) => void;
+  searchTerm?: string;
+  isSearching?: boolean;
 }
 
 export default function TaskTable({
@@ -64,39 +58,9 @@ export default function TaskTable({
   setCurrentTask,
   setIsTaskViewOpen,
   handlePageChange,
+  searchTerm = "",
+  isSearching = false,
 }: TaskTableProps) {
-  const {
-    searchTerm,
-    setSearchTerm,
-    filteredData: filteredTasks,
-    isSearching,
-    handleSearch: triggerSearch,
-  } = useSearch<ExtendedTask>(initialTasks, "/api/tasks/search");
-
-  const [inputValue, setInputValue] = useState(searchTerm);
-  const isInitialMount = useRef(true);
-
-  const changeInputValue = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
-    if (newValue === "") {
-      setSearchTerm("");
-    }
-  };
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    triggerSearch();
-  }, [searchTerm]);
-
-  const handleFormSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSearchTerm(inputValue);
-  };
-
   const renderContent = (
     isLoading: boolean,
     skeleton: ReactNode,
@@ -109,28 +73,6 @@ export default function TaskTable({
 
   return (
     <>
-      <div className="flex items-center justify-end px-4 py-3">
-        <div className="relative w-full max-w-sm">
-          <form onSubmit={handleFormSubmit}>
-            <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="업무 제목, 담당자 검색..."
-              className="pr-4 pl-9 text-sm"
-              value={inputValue}
-              onChange={(e) => {
-                changeInputValue(e);
-              }}
-            />
-            {isSearching && (
-              <div className="absolute top-2.5 right-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </div>
-            )}
-          </form>
-        </div>
-      </div>
-
       <div className="overflow-x-auto rounded-none border">
         <Table className="w-full table-fixed md:min-w-[800px]">
           <TableHeader>
@@ -180,8 +122,8 @@ export default function TaskTable({
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredTasks && filteredTasks.length > 0 ? (
-              filteredTasks.map((task, index) => {
+            ) : initialTasks && initialTasks.length > 0 ? (
+              initialTasks.map((task, index) => {
                 const itemNumber = totalTasks - startIndex - index;
                 return (
                   <TableRow
