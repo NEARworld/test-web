@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @plugin "tailwindcss-animate";
 
@@ -121,6 +124,17 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer base {
+  :root {
+    --font-sans: var(--font-pretendard);
+    --font-mono: var(--font-geist-mono);
+  }
+
+  body {
+    font-family: var(--font-sans);
   }
 }
