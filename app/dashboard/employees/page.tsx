@@ -69,7 +69,7 @@ export default function EmployeesPage() {
 
   return (
     <div className="container mx-auto py-8">
-      {/* ---------------- 페이지 헤더 ---------------- */}
+      {/* 페이지 헤더 */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">직원 관리</h1>
       </div>
@@ -116,12 +116,12 @@ export default function EmployeesPage() {
                   <TableCell className="font-medium">{employee.name}</TableCell>
                   <TableCell>
                     {departmentLabels[employee.department] ?? "미지정"}
-                  </TableCell>{" "}
+                  </TableCell>
                   <TableCell>
                     {jobPositionLabels[employee.position] ?? "미지정"}
-                  </TableCell>{" "}
+                  </TableCell>
                   <TableCell>{formatDate(employee.hireDate)}</TableCell>
-                  <TableCell>{employee.phone ?? "없음"}</TableCell>{" "}
+                  <TableCell>{employee.phone ?? "없음"}</TableCell>
                 </TableRow>
               ))
             ) : (

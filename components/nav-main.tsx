@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  ChevronRight,
-  Monitor,
-  NotebookText,
-  BarChart3,
-  type LucideIcon,
-  Users,
-} from "lucide-react";
+import { ChevronRight, type LucideIcon } from "lucide-react";
 
 import {
   Collapsible,
@@ -16,7 +9,6 @@ import {
 } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -44,7 +36,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>업무 관리</SidebarGroupLabel>
+      {/* <SidebarGroupLabel>청소년자립학교</SidebarGroupLabel> */}
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
@@ -52,7 +44,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/tasks")}
           >
-            <Users />
+            {/* <Users /> */}
             <span>업무 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -62,7 +54,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard")}
           >
-            <Monitor />
+            {/* <Monitor /> */}
             <span>종합</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -72,7 +64,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/reservation")}
           >
-            <NotebookText />
+            {/* <NotebookText /> */}
             <span>예약 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -82,7 +74,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/statistics")}
           >
-            <BarChart3 />
+            {/* <BarChart3 /> */}
             <span>예약 통계</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -92,7 +84,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/employees")}
           >
-            <BarChart3 />
+            {/* <BarChart3 /> */}
             <span>직원 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
