@@ -37,7 +37,6 @@ export default function AppSidebar({
         </div>
         <div className="text-sm font-light">
           <p>청소년자립학교</p>
-          <p>워크스페이스</p>
         </div>
       </SidebarHeader>
       <SidebarContent>
