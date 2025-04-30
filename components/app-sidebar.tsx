@@ -31,7 +31,7 @@ export default function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="flex flex-row items-center">
+      <SidebarHeader className="flex flex-row items-center p-4">
         <div className="rounded-md bg-yellow-400">
           <Image src="/logo.png" alt="logo" width={30} height={30} />
         </div>
