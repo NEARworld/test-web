@@ -125,7 +125,7 @@ export default function TaskForm({
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="cursor-pointer text-sm">
+        <Button size="sm" className="w-full cursor-pointer text-sm sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> 업무 등록
         </Button>
       </DialogTrigger>
