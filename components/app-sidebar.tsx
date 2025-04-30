@@ -35,7 +35,10 @@ export default function AppSidebar({
         <div className="rounded-md bg-yellow-400">
           <Image src="/logo.png" alt="logo" width={30} height={30} />
         </div>
-        <span className="text-sm">사회적 협동조합 청소년자립학교</span>
+        <div className="text-sm font-light">
+          <p>청소년자립학교</p>
+          <p>워크스페이스</p>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
