@@ -93,12 +93,10 @@ export function TableCanvas({
   };
 
   const handleWheel = (e: WheelEvent) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      const newZoom = Math.max(0.5, Math.min(2, zoomLevel + delta));
-      setZoomLevel(newZoom);
-    }
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newZoom = Math.max(0.5, Math.min(2, zoomLevel + delta));
+    setZoomLevel(newZoom);
   };
 
   useEffect(() => {
