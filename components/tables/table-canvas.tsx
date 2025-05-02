@@ -380,12 +380,8 @@ export function TableCanvas({
           const newY =
             Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
-          const maxX = containerRef.current
-            ? containerRef.current.clientWidth - 128
-            : 0;
-          const maxY = containerRef.current
-            ? containerRef.current.clientHeight - 128
-            : 0;
+          const maxX = canvasSize.width - 128;
+          const maxY = canvasSize.height - 128;
 
           const boundedX = Math.max(0, Math.min(newX, maxX));
           const boundedY = Math.max(0, Math.min(newY, maxY));
@@ -420,12 +416,8 @@ export function TableCanvas({
           const newY =
             Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
-          const maxX = containerRef.current
-            ? containerRef.current.clientWidth - 128
-            : 0;
-          const maxY = containerRef.current
-            ? containerRef.current.clientHeight - 128
-            : 0;
+          const maxX = canvasSize.width - 128;
+          const maxY = canvasSize.height - 128;
 
           const boundedX = Math.max(0, Math.min(newX, maxX));
           const boundedY = Math.max(0, Math.min(newY, maxY));
