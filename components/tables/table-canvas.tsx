@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { TableCard } from "@/components/table-card";
 import { Loader2 } from "lucide-react";
 import { TableFromApi } from "@/types/tables";
@@ -51,7 +51,16 @@ export function TableCanvas({
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 4000, height: 3000 });
+
+  // 드래그 상태를 참조로 관리
+  const dragState = useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastY: 0,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -62,74 +71,178 @@ export function TableCanvas({
     useSensor(KeyboardSensor),
   );
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === contentRef.current) {
+  // 테이블 요소 감지 함수
+  const isTableElement = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false;
+    return (
+      !!target.closest("[data-drag-handle]") ||
+      !!target.closest(".table-card") ||
+      !!target.closest("[role='button']")
+    );
+  }, []);
+
+  // 캔버스 크기 업데이트 함수
+  const updateCanvasSize = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    // 줌 레벨에 따라 캔버스 크기 조정
+    // 줌이 작아질수록 캔버스는 커짐 (역비례)
+    const scaleFactor = 1.5 / zoomLevel; // 줌 레벨이 작을수록 scaleFactor는 커짐
+
+    setCanvasSize({
+      width: Math.max(containerWidth * scaleFactor, 4000),
+      height: Math.max(containerHeight * scaleFactor, 3000),
+    });
+
+    // 위치 조정 (캔버스가 항상 중앙에 오도록)
+    const newX =
+      (containerWidth - containerWidth * scaleFactor * zoomLevel) / 2;
+    const newY =
+      (containerHeight - containerHeight * scaleFactor * zoomLevel) / 2;
+
+    setCanvasPosition({
+      x: newX,
+      y: newY,
+    });
+  }, [containerRef, zoomLevel]);
+
+  // 마우스 이벤트 핸들러
+  const handleMouseDown = useCallback(
+    (e: MouseEvent) => {
+      // 테이블 요소를 클릭한 경우 드래그를 시작하지 않음
+      if (isTableElement(e.target)) {
+        return;
+      }
+
+      // 드래그 시작
+      dragState.current.isDragging = true;
+      dragState.current.startX = e.clientX - canvasPosition.x;
+      dragState.current.startY = e.clientY - canvasPosition.y;
+      dragState.current.lastX = canvasPosition.x;
+      dragState.current.lastY = canvasPosition.y;
+
       setSelectedTables([]);
       setIsDraggingCanvas(true);
-      setDragStart({
-        x: e.clientX - canvasPosition.x,
-        y: e.clientY - canvasPosition.y,
-      });
-      if (contentRef.current) {
-        contentRef.current.style.cursor = "grabbing";
-      }
-    }
-  };
+      document.body.style.cursor = "grabbing";
 
-  const handleCanvasMouseMove = (e: MouseEvent) => {
-    if (isDraggingCanvas) {
-      setCanvasPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
-    }
-  };
+      // 이벤트 전파 방지
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [canvasPosition, setSelectedTables, isTableElement],
+  );
 
-  const handleCanvasMouseUp = () => {
-    setIsDraggingCanvas(false);
-    if (contentRef.current) {
-      contentRef.current.style.cursor = "grab";
-    }
-  };
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragState.current.isDragging) return;
 
-  const handleWheel = (e: WheelEvent) => {
+    const newX = e.clientX - dragState.current.startX;
+    const newY = e.clientY - dragState.current.startY;
+
+    setCanvasPosition({
+      x: newX,
+      y: newY,
+    });
+
+    dragState.current.lastX = newX;
+    dragState.current.lastY = newY;
+
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newZoom = Math.max(0.5, Math.min(2, zoomLevel + delta));
-    setZoomLevel(newZoom);
-  };
+  }, []);
 
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (!dragState.current.isDragging) return;
+
+    dragState.current.isDragging = false;
+    setIsDraggingCanvas(false);
+    document.body.style.cursor = "auto";
+
+    e.preventDefault();
+  }, []);
+
+  // 휠 이벤트 핸들러
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const newZoom = Math.max(0.5, Math.min(2, zoomLevel + delta));
+      setZoomLevel(newZoom);
+    },
+    [zoomLevel, setZoomLevel],
+  );
+
+  // 줌 레벨이 변경될 때마다 캔버스 크기 업데이트
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      handleCanvasMouseMove(e);
-    };
+    updateCanvasSize();
+  }, [zoomLevel, updateCanvasSize]);
 
-    const handleGlobalMouseUp = () => {
-      handleCanvasMouseUp();
-    };
+  // 컨테이너 크기가 변경될 때마다 캔버스 크기 업데이트
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
 
-    const handleWheelEvent = (e: WheelEvent) => {
-      handleWheel(e);
-    };
-
-    window.addEventListener("mousemove", handleGlobalMouseMove);
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-
-    const currentContentRef = contentRef.current;
-    if (currentContentRef) {
-      currentContentRef.addEventListener("wheel", handleWheelEvent, {
-        passive: false,
-      });
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
 
     return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove);
-      window.removeEventListener("mouseup", handleGlobalMouseUp);
-      if (currentContentRef) {
-        currentContentRef.removeEventListener("wheel", handleWheelEvent);
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
       }
+      observer.disconnect();
     };
-  }, [isDraggingCanvas, dragStart, zoomLevel]);
+  }, [containerRef, updateCanvasSize]);
+
+  // 초기 마운트 시 캔버스 크기 설정
+  useEffect(() => {
+    updateCanvasSize();
+  }, [updateCanvasSize]);
+
+  // 이벤트 리스너 등록 및 해제
+  useEffect(() => {
+    // 이벤트 핸들러 등록
+    const parentElement = containerRef.current;
+    if (!parentElement) return;
+
+    // 마우스 이벤트 리스너 등록
+    parentElement.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    // 휠 이벤트 리스너 등록 (document 레벨에서도 등록하여 어디서든 작동하도록)
+    parentElement.addEventListener("wheel", handleWheel, { passive: false });
+    document.addEventListener(
+      "wheel",
+      (e) => {
+        if (parentElement.contains(e.target as Node)) {
+          handleWheel(e);
+        }
+      },
+      { passive: false },
+    );
+
+    // 클린업 함수
+    return () => {
+      parentElement.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      parentElement.removeEventListener("wheel", handleWheel);
+      document.removeEventListener("wheel", (e) => {
+        if (parentElement.contains(e.target as Node)) {
+          handleWheel(e);
+        }
+      });
+    };
+  }, [
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleWheel,
+    containerRef,
+  ]);
 
   const createSnapModifier = (gridSize: number): Modifier => {
     return ({ transform }) => {
@@ -352,11 +465,11 @@ export function TableCanvas({
         transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${zoomLevel})`,
         transformOrigin: "center center",
         cursor: isDraggingCanvas ? "grabbing" : "grab",
-        width: "100%",
-        height: "100%",
+        width: `${canvasSize.width}px`,
+        height: `${canvasSize.height}px`,
         position: "absolute",
+        backgroundColor: "rgba(200, 220, 240, 0.5)", // 배경색 약간 추가
       }}
-      onMouseDown={handleCanvasMouseDown}
     >
       {isClient && !isLoading ? (
         <DndContext
@@ -392,6 +505,7 @@ export function TableCanvas({
                 onDoubleClick={() => onTableDoubleClick(table.id)}
                 additionalTransform={additionalTransform}
                 reservation={table.reservation}
+                className="table-card"
               />
             );
           })}
