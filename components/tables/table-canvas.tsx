@@ -51,11 +51,19 @@ export function TableCanvas({
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [canvasSize, setCanvasSize] = useState({ width: 4000, height: 3000 });
+  const [canvasSize, setCanvasSize] = useState({
+    width: 8000,
+    height: 6000,
+    minX: -4000,
+    minY: -3000,
+    maxX: 4000,
+    maxY: 3000,
+  });
 
   // 드래그 상태를 참조로 관리
   const dragState = useRef({
     isDragging: false,
+    isZooming: false,
     startX: 0,
     startY: 0,
     lastX: 0,
@@ -92,22 +100,75 @@ export function TableCanvas({
     // 줌이 작아질수록 캔버스는 커짐 (역비례)
     const scaleFactor = 1.5 / zoomLevel; // 줌 레벨이 작을수록 scaleFactor는 커짐
 
+    // 캔버스 크기를 훨씬 크게 설정하여 넓은 영역을 사용할 수 있게 함
+    const width = Math.max(containerWidth * scaleFactor * 2, 8000);
+    const height = Math.max(containerHeight * scaleFactor * 2, 6000);
+
     setCanvasSize({
-      width: Math.max(containerWidth * scaleFactor, 4000),
-      height: Math.max(containerHeight * scaleFactor, 3000),
+      width: width,
+      height: height,
+      minX: -width / 2,
+      minY: -height / 2,
+      maxX: width / 2,
+      maxY: height / 2,
     });
 
-    // 위치 조정 (캔버스가 항상 중앙에 오도록)
-    const newX =
-      (containerWidth - containerWidth * scaleFactor * zoomLevel) / 2;
-    const newY =
-      (containerHeight - containerHeight * scaleFactor * zoomLevel) / 2;
+    // 초기 마운트 또는 컨테이너 크기 변경 시에만 위치 조정
+    if (!dragState.current.isZooming) {
+      const newX = containerWidth / 2 - (width / 2) * zoomLevel;
+      const newY = containerHeight / 2 - (height / 2) * zoomLevel;
 
-    setCanvasPosition({
-      x: newX,
-      y: newY,
-    });
+      setCanvasPosition({
+        x: newX,
+        y: newY,
+      });
+    }
   }, [containerRef, zoomLevel]);
+
+  // 캔버스 확장 함수
+  const expandCanvasIfNeeded = useCallback(
+    (posX: number, posY: number) => {
+      const padding = 500; // 경계에 도달하기 전에 확장을 시작할 패딩
+
+      let needsUpdate = false;
+      const newSize = { ...canvasSize };
+
+      // 왼쪽 경계 확인
+      if (posX < canvasSize.minX + padding) {
+        newSize.minX = canvasSize.minX - 1000;
+        newSize.width = newSize.maxX - newSize.minX;
+        needsUpdate = true;
+      }
+
+      // 오른쪽 경계 확인
+      if (posX > canvasSize.maxX - padding) {
+        newSize.maxX = canvasSize.maxX + 1000;
+        newSize.width = newSize.maxX - newSize.minX;
+        needsUpdate = true;
+      }
+
+      // 위쪽 경계 확인
+      if (posY < canvasSize.minY + padding) {
+        newSize.minY = canvasSize.minY - 1000;
+        newSize.height = newSize.maxY - newSize.minY;
+        needsUpdate = true;
+      }
+
+      // 아래쪽 경계 확인
+      if (posY > canvasSize.maxY - padding) {
+        newSize.maxY = canvasSize.maxY + 1000;
+        newSize.height = newSize.maxY - newSize.minY;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        setCanvasSize(newSize);
+      }
+
+      return needsUpdate;
+    },
+    [canvasSize],
+  );
 
   // 마우스 이벤트 핸들러
   const handleMouseDown = useCallback(
@@ -166,15 +227,40 @@ export function TableCanvas({
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault();
+
+      dragState.current.isZooming = true;
+
+      // 현재 마우스 위치 (뷰포트 상의)
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      // 현재 줌 레벨에서 마우스 위치의 캔버스 상 좌표 계산
+      const mouseXInCanvas = (mouseX - canvasPosition.x) / zoomLevel;
+      const mouseYInCanvas = (mouseY - canvasPosition.y) / zoomLevel;
+
+      // 줌 계산
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
       const newZoom = Math.max(0.5, Math.min(2, zoomLevel + delta));
+
+      // 새 줌 레벨에서 마우스 포인터가 같은 캔버스 위치를 가리키도록 캔버스 위치 계산
+      const newX = mouseX - mouseXInCanvas * newZoom;
+      const newY = mouseY - mouseYInCanvas * newZoom;
+
+      // 새 줌 레벨과 캔버스 위치 적용
       setZoomLevel(newZoom);
+      setCanvasPosition({ x: newX, y: newY });
+
+      // 약간의 딜레이 후 줌 상태 해제 (다음 리렌더 사이클보다 길게)
+      setTimeout(() => {
+        dragState.current.isZooming = false;
+      }, 100);
     },
-    [zoomLevel, setZoomLevel],
+    [zoomLevel, canvasPosition, setZoomLevel],
   );
 
-  // 줌 레벨이 변경될 때마다 캔버스 크기 업데이트
+  // 줌 레벨이 변경될 때마다 캔버스 크기만 업데이트하고 위치는 건드리지 않음
   useEffect(() => {
+    // 드래그나 줌 중에는 캔버스 크기 업데이트만 수행하고 위치는 변경하지 않음
     updateCanvasSize();
   }, [zoomLevel, updateCanvasSize]);
 
@@ -380,12 +466,10 @@ export function TableCanvas({
           const newY =
             Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
-          const maxX = canvasSize.width - 128;
-          const maxY = canvasSize.height - 128;
+          // 테이블이 새 위치로 이동할 때 필요에 따라 캔버스 확장
+          expandCanvasIfNeeded(newX, newY);
 
-          const boundedX = Math.max(0, Math.min(newX, maxX));
-          const boundedY = Math.max(0, Math.min(newY, maxY));
-
+          // 충돌 검사
           const hasCollision = items.some((otherItem) => {
             if (
               otherItem.id === item.id ||
@@ -394,20 +478,20 @@ export function TableCanvas({
               return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.positionX - boundedX, 2) +
-                Math.pow(otherItem.positionY - boundedY, 2),
+              Math.pow(otherItem.positionX - newX, 2) +
+                Math.pow(otherItem.positionY - newY, 2),
             );
 
             return distance < gridSize;
           });
 
           if (!hasCollision) {
-            updateTablePositionOnServer(item.id, boundedX, boundedY);
+            updateTablePositionOnServer(item.id, newX, newY);
 
             return {
               ...item,
-              positionX: boundedX,
-              positionY: boundedY,
+              positionX: newX,
+              positionY: newY,
             };
           }
         } else if (item.id === active.id) {
@@ -416,30 +500,28 @@ export function TableCanvas({
           const newY =
             Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
-          const maxX = canvasSize.width - 128;
-          const maxY = canvasSize.height - 128;
+          // 테이블이 새 위치로 이동할 때 필요에 따라 캔버스 확장
+          expandCanvasIfNeeded(newX, newY);
 
-          const boundedX = Math.max(0, Math.min(newX, maxX));
-          const boundedY = Math.max(0, Math.min(newY, maxY));
-
+          // 충돌 검사
           const hasCollision = items.some((otherItem) => {
             if (otherItem.id === item.id) return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.positionX - boundedX, 2) +
-                Math.pow(otherItem.positionY - boundedY, 2),
+              Math.pow(otherItem.positionX - newX, 2) +
+                Math.pow(otherItem.positionY - newY, 2),
             );
 
             return distance < gridSize;
           });
 
           if (!hasCollision) {
-            updateTablePositionOnServer(item.id, boundedX, boundedY);
+            updateTablePositionOnServer(item.id, newX, newY);
 
             return {
               ...item,
-              positionX: boundedX,
-              positionY: boundedY,
+              positionX: newX,
+              positionY: newY,
             };
           }
         }
@@ -455,12 +537,12 @@ export function TableCanvas({
       ref={contentRef}
       style={{
         transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${zoomLevel})`,
-        transformOrigin: "center center",
+        transformOrigin: "0 0",
         cursor: isDraggingCanvas ? "grabbing" : "grab",
         width: `${canvasSize.width}px`,
         height: `${canvasSize.height}px`,
         position: "absolute",
-        backgroundColor: "rgba(200, 220, 240, 0.5)", // 배경색 약간 추가
+        backgroundColor: "rgba(200, 220, 240, 0.5)",
       }}
     >
       {isClient && !isLoading ? (
