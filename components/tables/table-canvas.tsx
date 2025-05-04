@@ -29,7 +29,6 @@ interface TableCanvasProps {
   onTableDoubleClick: (id: string) => void;
   getSortedTables: () => TableFromApi[];
   updateTablePositionOnServer: (id: string, x: number, y: number) => void;
-  resetPosition?: boolean;
 }
 
 export function TableCanvas({
@@ -46,7 +45,6 @@ export function TableCanvas({
   onTableDoubleClick,
   getSortedTables,
   updateTablePositionOnServer,
-  resetPosition,
 }: TableCanvasProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -273,28 +271,6 @@ export function TableCanvas({
     // 드래그나 줌 중에는 캔버스 크기 업데이트만 수행하고 위치는 변경하지 않음
     updateCanvasSize();
   }, [zoomLevel, updateCanvasSize]);
-
-  // resetPosition이 true로 설정되면 위치를 강제로 초기화
-  useEffect(() => {
-    if (resetPosition && containerRef.current) {
-      // 줌 상태 해제
-      dragState.current.isZooming = false;
-      dragState.current.isDragging = false;
-
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-
-      // 화면 중앙을 기준으로 캔버스 위치 계산
-      const width = canvasSize.width;
-      const newX = containerWidth / 2 - (width / 2) * zoomLevel;
-      const newY = containerHeight / 2 - (canvasSize.height / 2) * zoomLevel;
-
-      setCanvasPosition({
-        x: newX,
-        y: newY,
-      });
-    }
-  }, [resetPosition, containerRef, zoomLevel, canvasSize]);
 
   // 컨테이너 크기가 변경될 때마다 캔버스 크기 업데이트
   useEffect(() => {

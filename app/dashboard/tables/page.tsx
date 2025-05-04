@@ -25,7 +25,6 @@ export default function TablesPage() {
   const [gridSize, setGridSize] = useState(32);
   const [isGridSizeVisible] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [resetPosition, setResetPosition] = useState(false);
 
   // 테이블 관련 커스텀 훅에서 가져온 함수들
   const {
@@ -214,12 +213,7 @@ export default function TablesPage() {
   };
 
   const handleResetZoom = () => {
-    setZoomLevel(1);
-    setResetPosition(true);
-    // 리셋 플래그를 일정 시간 후 해제
-    setTimeout(() => {
-      setResetPosition(false);
-    }, 100);
+    setZoomLevel(0.8);
   };
 
   // SSR 시 로딩 컴포넌트 표시
@@ -331,7 +325,6 @@ export default function TablesPage() {
           onTableDoubleClick={handleTableDoubleClick}
           getSortedTables={getSortedTables}
           updateTablePositionOnServer={updateTablePositionOnServer}
-          resetPosition={resetPosition}
         />
       </div>
 
