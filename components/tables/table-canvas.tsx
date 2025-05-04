@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { TableCard } from "@/components/table-card";
 import { Loader2 } from "lucide-react";
 import { TableFromApi } from "@/types/tables";
 import {
@@ -14,6 +13,7 @@ import {
   PointerSensor,
   KeyboardSensor,
 } from "@dnd-kit/core";
+import { TableCard } from "@/components/table-card";
 
 interface TableCanvasProps {
   tables: TableFromApi[];
@@ -29,6 +29,7 @@ interface TableCanvasProps {
   onTableDoubleClick: (id: string) => void;
   getSortedTables: () => TableFromApi[];
   updateTablePositionOnServer: (id: string, x: number, y: number) => void;
+  resetPosition?: boolean;
 }
 
 export function TableCanvas({
@@ -45,6 +46,7 @@ export function TableCanvas({
   onTableDoubleClick,
   getSortedTables,
   updateTablePositionOnServer,
+  resetPosition,
 }: TableCanvasProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -68,6 +70,7 @@ export function TableCanvas({
     startY: 0,
     lastX: 0,
     lastY: 0,
+    zoomTimer: null as NodeJS.Timeout | null,
   });
 
   const sensors = useSensors(
@@ -113,8 +116,10 @@ export function TableCanvas({
       maxY: height / 2,
     });
 
-    // 초기 마운트 또는 컨테이너 크기 변경 시에만 위치 조정
-    if (!dragState.current.isZooming) {
+    // 초기 마운트나 화면 크기 변경 시에만 위치를 중앙으로 조정
+    // 줌이나 드래그 중에는 위치를 조정하지 않음
+    if (!dragState.current.isZooming && !dragState.current.isDragging) {
+      // 화면 중앙을 기준으로 캔버스 위치 계산
       const newX = containerWidth / 2 - (width / 2) * zoomLevel;
       const newY = containerHeight / 2 - (height / 2) * zoomLevel;
 
@@ -250,10 +255,15 @@ export function TableCanvas({
       setZoomLevel(newZoom);
       setCanvasPosition({ x: newX, y: newY });
 
-      // 약간의 딜레이 후 줌 상태 해제 (다음 리렌더 사이클보다 길게)
-      setTimeout(() => {
+      // 타이머가 이미 있다면 클리어
+      if (dragState.current.zoomTimer) {
+        clearTimeout(dragState.current.zoomTimer);
+      }
+
+      // 줌 상태 해제 타이머 설정 (시간을 500ms로 늘림)
+      dragState.current.zoomTimer = setTimeout(() => {
         dragState.current.isZooming = false;
-      }, 100);
+      }, 500);
     },
     [zoomLevel, canvasPosition, setZoomLevel],
   );
@@ -263,6 +273,28 @@ export function TableCanvas({
     // 드래그나 줌 중에는 캔버스 크기 업데이트만 수행하고 위치는 변경하지 않음
     updateCanvasSize();
   }, [zoomLevel, updateCanvasSize]);
+
+  // resetPosition이 true로 설정되면 위치를 강제로 초기화
+  useEffect(() => {
+    if (resetPosition && containerRef.current) {
+      // 줌 상태 해제
+      dragState.current.isZooming = false;
+      dragState.current.isDragging = false;
+
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+
+      // 화면 중앙을 기준으로 캔버스 위치 계산
+      const width = canvasSize.width;
+      const newX = containerWidth / 2 - (width / 2) * zoomLevel;
+      const newY = containerHeight / 2 - (canvasSize.height / 2) * zoomLevel;
+
+      setCanvasPosition({
+        x: newX,
+        y: newY,
+      });
+    }
+  }, [resetPosition, containerRef, zoomLevel, canvasSize]);
 
   // 컨테이너 크기가 변경될 때마다 캔버스 크기 업데이트
   useEffect(() => {
