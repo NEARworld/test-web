@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { TableCard } from "@/components/table-card";
 import { Loader2 } from "lucide-react";
 import { TableFromApi } from "@/types/tables";
@@ -51,7 +51,24 @@ export function TableCanvas({
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [canvasSize, setCanvasSize] = useState({
+    width: 8000,
+    height: 6000,
+    minX: -4000,
+    minY: -3000,
+    maxX: 4000,
+    maxY: 3000,
+  });
+
+  // 드래그 상태를 참조로 관리
+  const dragState = useRef({
+    isDragging: false,
+    isZooming: false,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastY: 0,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -62,76 +79,256 @@ export function TableCanvas({
     useSensor(KeyboardSensor),
   );
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === contentRef.current) {
+  // 테이블 요소 감지 함수
+  const isTableElement = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false;
+    return (
+      !!target.closest("[data-drag-handle]") ||
+      !!target.closest(".table-card") ||
+      !!target.closest("[role='button']")
+    );
+  }, []);
+
+  // 캔버스 크기 업데이트 함수
+  const updateCanvasSize = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    // 줌 레벨에 따라 캔버스 크기 조정
+    // 줌이 작아질수록 캔버스는 커짐 (역비례)
+    const scaleFactor = 1.5 / zoomLevel; // 줌 레벨이 작을수록 scaleFactor는 커짐
+
+    // 캔버스 크기를 훨씬 크게 설정하여 넓은 영역을 사용할 수 있게 함
+    const width = Math.max(containerWidth * scaleFactor * 2, 8000);
+    const height = Math.max(containerHeight * scaleFactor * 2, 6000);
+
+    setCanvasSize({
+      width: width,
+      height: height,
+      minX: -width / 2,
+      minY: -height / 2,
+      maxX: width / 2,
+      maxY: height / 2,
+    });
+
+    // 초기 마운트 또는 컨테이너 크기 변경 시에만 위치 조정
+    if (!dragState.current.isZooming) {
+      const newX = containerWidth / 2 - (width / 2) * zoomLevel;
+      const newY = containerHeight / 2 - (height / 2) * zoomLevel;
+
+      setCanvasPosition({
+        x: newX,
+        y: newY,
+      });
+    }
+  }, [containerRef, zoomLevel]);
+
+  // 캔버스 확장 함수
+  const expandCanvasIfNeeded = useCallback(
+    (posX: number, posY: number) => {
+      const padding = 500; // 경계에 도달하기 전에 확장을 시작할 패딩
+
+      let needsUpdate = false;
+      const newSize = { ...canvasSize };
+
+      // 왼쪽 경계 확인
+      if (posX < canvasSize.minX + padding) {
+        newSize.minX = canvasSize.minX - 1000;
+        newSize.width = newSize.maxX - newSize.minX;
+        needsUpdate = true;
+      }
+
+      // 오른쪽 경계 확인
+      if (posX > canvasSize.maxX - padding) {
+        newSize.maxX = canvasSize.maxX + 1000;
+        newSize.width = newSize.maxX - newSize.minX;
+        needsUpdate = true;
+      }
+
+      // 위쪽 경계 확인
+      if (posY < canvasSize.minY + padding) {
+        newSize.minY = canvasSize.minY - 1000;
+        newSize.height = newSize.maxY - newSize.minY;
+        needsUpdate = true;
+      }
+
+      // 아래쪽 경계 확인
+      if (posY > canvasSize.maxY - padding) {
+        newSize.maxY = canvasSize.maxY + 1000;
+        newSize.height = newSize.maxY - newSize.minY;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        setCanvasSize(newSize);
+      }
+
+      return needsUpdate;
+    },
+    [canvasSize],
+  );
+
+  // 마우스 이벤트 핸들러
+  const handleMouseDown = useCallback(
+    (e: MouseEvent) => {
+      // 테이블 요소를 클릭한 경우 드래그를 시작하지 않음
+      if (isTableElement(e.target)) {
+        return;
+      }
+
+      // 드래그 시작
+      dragState.current.isDragging = true;
+      dragState.current.startX = e.clientX - canvasPosition.x;
+      dragState.current.startY = e.clientY - canvasPosition.y;
+      dragState.current.lastX = canvasPosition.x;
+      dragState.current.lastY = canvasPosition.y;
+
       setSelectedTables([]);
       setIsDraggingCanvas(true);
-      setDragStart({
-        x: e.clientX - canvasPosition.x,
-        y: e.clientY - canvasPosition.y,
-      });
-      if (contentRef.current) {
-        contentRef.current.style.cursor = "grabbing";
-      }
-    }
-  };
+      document.body.style.cursor = "grabbing";
 
-  const handleCanvasMouseMove = (e: MouseEvent) => {
-    if (isDraggingCanvas) {
-      setCanvasPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
-    }
-  };
-
-  const handleCanvasMouseUp = () => {
-    setIsDraggingCanvas(false);
-    if (contentRef.current) {
-      contentRef.current.style.cursor = "grab";
-    }
-  };
-
-  const handleWheel = (e: WheelEvent) => {
-    if (e.ctrlKey) {
+      // 이벤트 전파 방지
       e.preventDefault();
+      e.stopPropagation();
+    },
+    [canvasPosition, setSelectedTables, isTableElement],
+  );
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragState.current.isDragging) return;
+
+    const newX = e.clientX - dragState.current.startX;
+    const newY = e.clientY - dragState.current.startY;
+
+    setCanvasPosition({
+      x: newX,
+      y: newY,
+    });
+
+    dragState.current.lastX = newX;
+    dragState.current.lastY = newY;
+
+    e.preventDefault();
+  }, []);
+
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (!dragState.current.isDragging) return;
+
+    dragState.current.isDragging = false;
+    setIsDraggingCanvas(false);
+    document.body.style.cursor = "auto";
+
+    e.preventDefault();
+  }, []);
+
+  // 휠 이벤트 핸들러
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      e.preventDefault();
+
+      dragState.current.isZooming = true;
+
+      // 현재 마우스 위치 (뷰포트 상의)
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      // 현재 줌 레벨에서 마우스 위치의 캔버스 상 좌표 계산
+      const mouseXInCanvas = (mouseX - canvasPosition.x) / zoomLevel;
+      const mouseYInCanvas = (mouseY - canvasPosition.y) / zoomLevel;
+
+      // 줌 계산
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
       const newZoom = Math.max(0.5, Math.min(2, zoomLevel + delta));
+
+      // 새 줌 레벨에서 마우스 포인터가 같은 캔버스 위치를 가리키도록 캔버스 위치 계산
+      const newX = mouseX - mouseXInCanvas * newZoom;
+      const newY = mouseY - mouseYInCanvas * newZoom;
+
+      // 새 줌 레벨과 캔버스 위치 적용
       setZoomLevel(newZoom);
-    }
-  };
+      setCanvasPosition({ x: newX, y: newY });
 
+      // 약간의 딜레이 후 줌 상태 해제 (다음 리렌더 사이클보다 길게)
+      setTimeout(() => {
+        dragState.current.isZooming = false;
+      }, 100);
+    },
+    [zoomLevel, canvasPosition, setZoomLevel],
+  );
+
+  // 줌 레벨이 변경될 때마다 캔버스 크기만 업데이트하고 위치는 건드리지 않음
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      handleCanvasMouseMove(e);
-    };
+    // 드래그나 줌 중에는 캔버스 크기 업데이트만 수행하고 위치는 변경하지 않음
+    updateCanvasSize();
+  }, [zoomLevel, updateCanvasSize]);
 
-    const handleGlobalMouseUp = () => {
-      handleCanvasMouseUp();
-    };
+  // 컨테이너 크기가 변경될 때마다 캔버스 크기 업데이트
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
 
-    const handleWheelEvent = (e: WheelEvent) => {
-      handleWheel(e);
-    };
-
-    window.addEventListener("mousemove", handleGlobalMouseMove);
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-
-    const currentContentRef = contentRef.current;
-    if (currentContentRef) {
-      currentContentRef.addEventListener("wheel", handleWheelEvent, {
-        passive: false,
-      });
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
 
     return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove);
-      window.removeEventListener("mouseup", handleGlobalMouseUp);
-      if (currentContentRef) {
-        currentContentRef.removeEventListener("wheel", handleWheelEvent);
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
       }
+      observer.disconnect();
     };
-  }, [isDraggingCanvas, dragStart, zoomLevel]);
+  }, [containerRef, updateCanvasSize]);
+
+  // 초기 마운트 시 캔버스 크기 설정
+  useEffect(() => {
+    updateCanvasSize();
+  }, [updateCanvasSize]);
+
+  // 이벤트 리스너 등록 및 해제
+  useEffect(() => {
+    // 이벤트 핸들러 등록
+    const parentElement = containerRef.current;
+    if (!parentElement) return;
+
+    // 마우스 이벤트 리스너 등록
+    parentElement.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    // 휠 이벤트 리스너 등록 (document 레벨에서도 등록하여 어디서든 작동하도록)
+    parentElement.addEventListener("wheel", handleWheel, { passive: false });
+    document.addEventListener(
+      "wheel",
+      (e) => {
+        if (parentElement.contains(e.target as Node)) {
+          handleWheel(e);
+        }
+      },
+      { passive: false },
+    );
+
+    // 클린업 함수
+    return () => {
+      parentElement.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      parentElement.removeEventListener("wheel", handleWheel);
+      document.removeEventListener("wheel", (e) => {
+        if (parentElement.contains(e.target as Node)) {
+          handleWheel(e);
+        }
+      });
+    };
+  }, [
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleWheel,
+    containerRef,
+  ]);
 
   const createSnapModifier = (gridSize: number): Modifier => {
     return ({ transform }) => {
@@ -269,16 +466,10 @@ export function TableCanvas({
           const newY =
             Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
-          const maxX = containerRef.current
-            ? containerRef.current.clientWidth - 128
-            : 0;
-          const maxY = containerRef.current
-            ? containerRef.current.clientHeight - 128
-            : 0;
+          // 테이블이 새 위치로 이동할 때 필요에 따라 캔버스 확장
+          expandCanvasIfNeeded(newX, newY);
 
-          const boundedX = Math.max(0, Math.min(newX, maxX));
-          const boundedY = Math.max(0, Math.min(newY, maxY));
-
+          // 충돌 검사
           const hasCollision = items.some((otherItem) => {
             if (
               otherItem.id === item.id ||
@@ -287,20 +478,20 @@ export function TableCanvas({
               return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.positionX - boundedX, 2) +
-                Math.pow(otherItem.positionY - boundedY, 2),
+              Math.pow(otherItem.positionX - newX, 2) +
+                Math.pow(otherItem.positionY - newY, 2),
             );
 
             return distance < gridSize;
           });
 
           if (!hasCollision) {
-            updateTablePositionOnServer(item.id, boundedX, boundedY);
+            updateTablePositionOnServer(item.id, newX, newY);
 
             return {
               ...item,
-              positionX: boundedX,
-              positionY: boundedY,
+              positionX: newX,
+              positionY: newY,
             };
           }
         } else if (item.id === active.id) {
@@ -309,34 +500,28 @@ export function TableCanvas({
           const newY =
             Math.round((item.positionY + delta.y) / gridSize) * gridSize;
 
-          const maxX = containerRef.current
-            ? containerRef.current.clientWidth - 128
-            : 0;
-          const maxY = containerRef.current
-            ? containerRef.current.clientHeight - 128
-            : 0;
+          // 테이블이 새 위치로 이동할 때 필요에 따라 캔버스 확장
+          expandCanvasIfNeeded(newX, newY);
 
-          const boundedX = Math.max(0, Math.min(newX, maxX));
-          const boundedY = Math.max(0, Math.min(newY, maxY));
-
+          // 충돌 검사
           const hasCollision = items.some((otherItem) => {
             if (otherItem.id === item.id) return false;
 
             const distance = Math.sqrt(
-              Math.pow(otherItem.positionX - boundedX, 2) +
-                Math.pow(otherItem.positionY - boundedY, 2),
+              Math.pow(otherItem.positionX - newX, 2) +
+                Math.pow(otherItem.positionY - newY, 2),
             );
 
             return distance < gridSize;
           });
 
           if (!hasCollision) {
-            updateTablePositionOnServer(item.id, boundedX, boundedY);
+            updateTablePositionOnServer(item.id, newX, newY);
 
             return {
               ...item,
-              positionX: boundedX,
-              positionY: boundedY,
+              positionX: newX,
+              positionY: newY,
             };
           }
         }
@@ -352,13 +537,13 @@ export function TableCanvas({
       ref={contentRef}
       style={{
         transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${zoomLevel})`,
-        transformOrigin: "center center",
+        transformOrigin: "0 0",
         cursor: isDraggingCanvas ? "grabbing" : "grab",
-        width: "100%",
-        height: "100%",
+        width: `${canvasSize.width}px`,
+        height: `${canvasSize.height}px`,
         position: "absolute",
+        backgroundColor: "rgba(200, 220, 240, 0.5)",
       }}
-      onMouseDown={handleCanvasMouseDown}
     >
       {isClient && !isLoading ? (
         <DndContext
@@ -394,6 +579,7 @@ export function TableCanvas({
                 onDoubleClick={() => onTableDoubleClick(table.id)}
                 additionalTransform={additionalTransform}
                 reservation={table.reservation}
+                className="table-card"
               />
             );
           })}
