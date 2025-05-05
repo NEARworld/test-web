@@ -11,15 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MenuItem, Reservation } from "./types";
 import { formatDateTime, getStatusBadge } from "./utils";
-
-interface ReservationDetailModalProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  reservation: Reservation | null;
-  calculateTotalPrice: (menu: MenuItem[]) => number;
-}
+import { ReservationDetailModalProps } from "@/components/reservation/types";
 
 export function ReservationDetailModal({
   isOpen,

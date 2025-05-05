@@ -17,12 +17,13 @@ import { Plus } from "lucide-react";
 // 분리된 컴포넌트 및 유틸리티 함수들 임포트
 import { ReservationRow } from "@/components/reservation/reservation-row";
 import { ReservationDetailModal } from "@/components/reservation/reservation-detail-modal";
-import {
-  ReservationFormModal,
-  ReservationFormData,
-} from "@/components/reservation/form-modal";
+import { ReservationFormModal } from "@/components/reservation/form-modal";
 import { StatusAlertDialog } from "@/components/reservation/status-alert-dialog";
-import { Reservation, MenuData } from "@/components/reservation/types";
+import {
+  Reservation,
+  MenuData,
+  ReservationFormData,
+} from "@/components/reservation/types";
 import {
   calculateTotalPrice,
   formatDisplayDate,

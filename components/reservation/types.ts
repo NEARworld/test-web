@@ -25,3 +25,17 @@ export interface Reservation {
     name: string;
   };
 }
+
+export interface ReservationDetailModalProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  reservation: Reservation | null;
+  calculateTotalPrice: (menu: MenuItem[]) => number;
+}
+
+export interface ReservationFormData {
+  groupName: string;
+  time: string;
+  seatNumber: string;
+  menuItems: MenuItem[];
+}

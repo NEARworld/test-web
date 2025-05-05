@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Minus } from "lucide-react";
-import { MenuItem } from "./types";
 import { calculateTotalPrice } from "./utils";
+import { ReservationFormData } from "@/components/reservation/types";
 
 interface ReservationFormModalProps {
   isOpen: boolean;
@@ -33,13 +33,6 @@ interface ReservationFormModalProps {
   isLoading: boolean;
   onSubmit: (formData: ReservationFormData) => Promise<void>;
   formatDisplayDate: (date: string) => string;
-}
-
-export interface ReservationFormData {
-  groupName: string;
-  time: string;
-  seatNumber: string;
-  menuItems: MenuItem[];
 }
 
 export function ReservationFormModal({
