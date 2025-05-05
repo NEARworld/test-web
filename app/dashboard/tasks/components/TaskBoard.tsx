@@ -10,12 +10,12 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
-import TaskForm from "./TaskForm";
-import TaskTable from "./TaskTable";
-import TaskView from "./TaskView";
-import TaskEdit from "./TaskEdit";
-import FilePreview from "./FilePreview";
-import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import TaskForm from "./task-board/TaskForm";
+import TaskTable from "./task-board/TaskTable";
+import TaskView from "./task-board/TaskView";
+import TaskEdit from "./task-board/TaskEdit";
+import FilePreview from "./task-board/FilePreview";
+import DeleteConfirmDialog from "./task-board/DeleteConfirmDialog";
 
 interface TaskBoardProps {
   tasks: ExtendedTask[] | undefined;

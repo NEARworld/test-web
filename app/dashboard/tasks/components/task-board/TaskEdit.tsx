@@ -21,8 +21,8 @@ import {
 import { toast } from "sonner";
 import { User } from "@prisma/client";
 import { UserAvatar } from "@/components/user-avatar";
-import { ExtendedTask } from "../page";
-import { MAX_FILE_SIZE, getFileIcon } from "../utils/TaskUtils";
+import { ExtendedTask } from "../../page";
+import { MAX_FILE_SIZE, getFileIcon } from "../../utils/TaskUtils";
 
 interface TaskEditProps {
   isEditDialogOpen: boolean;
