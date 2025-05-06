@@ -16,9 +16,6 @@ export default auth(async function middleware(req: NextRequest) {
         : "authjs.session-token", // 개발 환경에서 기본 사용되는 쿠키 이름
   });
 
-  console.log("token:", token);
-  console.log("NODE_ENV:", process.env.NODE_ENV);
-
   const isAuthenticated = !!session && !!token?.sub;
   const userPosition = token?.position;
 
