@@ -9,14 +9,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
-import { ExtendedTask } from "../page";
+import { ExtendedTask } from "../../page";
 import {
   formatDate,
   formatDateWithWeekday,
   getFileIcon,
   isImageFile,
   canEditTask,
-} from "../utils/TaskUtils";
+} from "../../utils/TaskUtils";
 
 interface TaskViewProps {
   isTaskViewOpen: boolean;

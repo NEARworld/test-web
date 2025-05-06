@@ -274,17 +274,18 @@ export function TableCanvas({
 
   // 컨테이너 크기가 변경될 때마다 캔버스 크기 업데이트
   useEffect(() => {
+    const currentRef = containerRef.current;
     const observer = new ResizeObserver(() => {
       updateCanvasSize();
     });
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
       observer.disconnect();
     };

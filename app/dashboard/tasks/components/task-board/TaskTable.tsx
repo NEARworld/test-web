@@ -18,7 +18,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { UserAvatar } from "@/components/user-avatar";
-import { ExtendedTask } from "../page";
+import { ExtendedTask } from "../../page";
 import {
   formatDate,
   formatDateWithWeekday,
@@ -26,7 +26,7 @@ import {
   DOTS,
   getPaginationRange,
   getFileIcon,
-} from "../utils/TaskUtils";
+} from "../../utils/TaskUtils";
 
 interface TaskTableProps {
   initialTasks: ExtendedTask[] | undefined;

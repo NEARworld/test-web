@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 import { User } from "@prisma/client";
 import { UserAvatar } from "@/components/user-avatar";
-import { MAX_FILE_SIZE } from "../utils/TaskUtils";
+import { MAX_FILE_SIZE } from "../../utils/TaskUtils";
 
 interface TaskFormProps {
   isDialogOpen: boolean;
