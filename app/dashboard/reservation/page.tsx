@@ -1,38 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import Calendar from "@/components/calendar";
-import { Plus, Minus, Check, X, ChevronDown } from "lucide-react";
-import { ReservationStatus } from "@prisma/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -41,39 +11,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import Calendar from "@/components/calendar";
+import { Plus } from "lucide-react";
+
+// 분리된 컴포넌트 및 유틸리티 함수들 임포트
+import { ReservationRow } from "@/components/reservation/reservation-row";
+import { ReservationDetailModal } from "@/components/reservation/reservation-detail-modal";
+import { ReservationFormModal } from "@/components/reservation/form-modal";
+import { StatusAlertDialog } from "@/components/reservation/status-alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-interface MenuItem {
-  id?: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-interface MenuData {
-  id: string;
-  name: string;
-  price: number;
-  isAvailable: boolean;
-}
-
-interface Reservation {
-  id: string;
-  groupName: string;
-  dateTime: string;
-  seatNumber: string;
-  menuItems: MenuItem[];
-  status: ReservationStatus;
-  createdBy: {
-    name: string;
-  };
-}
+  Reservation,
+  MenuData,
+  ReservationFormData,
+} from "@/components/reservation/types";
+import {
+  calculateTotalPrice,
+  formatDisplayDate,
+} from "@/components/reservation/utils";
+import { Badge } from "@/components/ui/badge";
 
 export default function ReservationPage() {
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -97,13 +52,6 @@ export default function ReservationPage() {
     "confirm" | "cancel" | "complete" | null
   >(null);
   const [monthlyStats, setMonthlyStats] = useState([]);
-
-  const [formData, setFormData] = useState({
-    groupName: "",
-    time: "12:00",
-    seatNumber: "A-1",
-    menuItems: [{ name: "", price: 0, quantity: 1 }],
-  });
 
   // Available seats and times (could be fetched from API in a real application)
   const availableSeats = [
@@ -175,20 +123,6 @@ export default function ReservationPage() {
 
       const data = await response.json();
       setAvailableMenus(data.filter((item: MenuData) => item.isAvailable));
-
-      // Initialize form with first menu item if available
-      if (data.length > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          menuItems: [
-            {
-              name: data[0].name,
-              price: data[0].price,
-              quantity: 1,
-            },
-          ],
-        }));
-      }
     } catch (error) {
       console.error("Error fetching menu items:", error);
     }
@@ -224,21 +158,6 @@ export default function ReservationPage() {
     loadInitialData();
   }, [fetchMonthlyStats, selectedDate, fetchReservations, fetchMenuItems]);
 
-  const calculateTotalPrice = (menu: MenuItem[]) => {
-    return menu.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
-
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-    const weekday = weekdays[date.getDay()];
-    return `${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`;
-  };
-
   const handleDateSelect = (year: number, month: number, day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     setSelectedDate(dateStr);
@@ -247,23 +166,10 @@ export default function ReservationPage() {
   };
 
   const handleAddReservation = () => {
-    // Reset form data
-    setFormData({
-      groupName: "",
-      time: "12:00",
-      seatNumber: "A-1",
-      menuItems: [
-        {
-          name: availableMenus.length > 0 ? availableMenus[0].name : "",
-          price: availableMenus.length > 0 ? availableMenus[0].price : 0,
-          quantity: 1,
-        },
-      ],
-    });
     setIsModalOpen(true);
   };
 
-  const handleSubmitReservation = async () => {
+  const handleSubmitReservation = async (formData: ReservationFormData) => {
     try {
       setIsLoading(true);
 
@@ -319,64 +225,10 @@ export default function ReservationPage() {
     }
   };
 
-  const handleMenuItemChange = (
-    index: number,
-    field: "name" | "price" | "quantity",
-    value: string | number,
-  ) => {
-    const newMenuItems = [...formData.menuItems];
-
-    if (field === "name") {
-      const selectedItem = availableMenus.find((item) => item.name === value);
-      if (selectedItem) {
-        newMenuItems[index] = {
-          ...newMenuItems[index],
-          name: value as string,
-          price: selectedItem.price,
-        };
-      }
-    } else if (field === "price" || field === "quantity") {
-      newMenuItems[index][field] = value as number;
-    }
-
-    setFormData({
-      ...formData,
-      menuItems: newMenuItems,
-    });
-  };
-
-  const addMenuItem = () => {
-    if (availableMenus.length === 0) return;
-
-    setFormData({
-      ...formData,
-      menuItems: [
-        ...formData.menuItems,
-        {
-          name: availableMenus[0].name,
-          price: availableMenus[0].price,
-          quantity: 1,
-        },
-      ],
-    });
-  };
-
-  const removeMenuItem = (index: number) => {
-    if (formData.menuItems.length > 1) {
-      const newMenuItems = [...formData.menuItems];
-      newMenuItems.splice(index, 1);
-      setFormData({
-        ...formData,
-        menuItems: newMenuItems,
-      });
-    }
-  };
-
   const handleStatusChange = useCallback(
     (reservationId: string, action: "confirm" | "cancel" | "complete") => {
       setSelectedReservation(reservationId);
       setStatusActionType(action);
-      setIsAlertOpen(true);
 
       let title, message;
       switch (action) {
@@ -395,6 +247,7 @@ export default function ReservationPage() {
       }
 
       setAlertMessage({ title, message });
+      setIsAlertOpen(true);
     },
     [],
   );
@@ -453,20 +306,6 @@ export default function ReservationPage() {
     showAlert,
   ]);
 
-  // Get a badge variant based on reservation status
-  const getStatusBadge = (status: ReservationStatus) => {
-    switch (status) {
-      case "CONFIRMED":
-        return { variant: "default" as const, text: "확정됨" };
-      case "PENDING":
-        return { variant: "secondary" as const, text: "대기중" };
-      case "CANCELED":
-        return { variant: "destructive" as const, text: "취소됨" };
-      case "COMPLETED":
-        return { variant: "default" as const, text: "완료됨" };
-    }
-  };
-
   // Filter reservations for lunch and dinner
   const lunchReservations = reservations.filter((r) => {
     const hour = new Date(r.dateTime).getHours();
@@ -478,17 +317,14 @@ export default function ReservationPage() {
     return hour >= 17; // 5PM 이후는 저녁으로 간주
   });
 
-  // Format the selected date for display
-  const formatDisplayDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}월 ${day}일`;
-  };
-
   const handleReservationClick = (reservation: Reservation) => {
     setSelectedReservationDetail(reservation);
     setIsDetailModalOpen(true);
+  };
+
+  const handleAlertCancel = () => {
+    setSelectedReservation(null);
+    setStatusActionType(null);
   };
 
   return (
@@ -801,456 +637,36 @@ export default function ReservationPage() {
       </div>
 
       {/* 예약 모달 */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>새 예약 등록</DialogTitle>
-            <DialogDescription>
-              {formatDisplayDate(selectedDate)}에 새로운 예약을 등록합니다.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="groupName">예약자명 / 단체명</Label>
-              <Input
-                id="groupName"
-                value={formData.groupName}
-                onChange={(e) =>
-                  setFormData({ ...formData, groupName: e.target.value })
-                }
-                placeholder="홍길동 / 홍씨 가족"
-                className="focus:border-blue-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="time">예약 시간</Label>
-                <Select
-                  value={formData.time}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, time: value })
-                  }
-                >
-                  <SelectTrigger id="time">
-                    <SelectValue placeholder="시간 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTimes.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="seatNumber">예약석</Label>
-                <Select
-                  value={formData.seatNumber}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, seatNumber: value })
-                  }
-                >
-                  <SelectTrigger id="seatNumber">
-                    <SelectValue placeholder="좌석 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSeats.map((seat) => (
-                      <SelectItem key={seat} value={seat}>
-                        {seat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label>메뉴 선택</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addMenuItem}
-                  disabled={availableMenus.length === 0}
-                >
-                  <Plus className="h-4 w-4" /> 메뉴 추가
-                </Button>
-              </div>
-
-              {formData.menuItems.map((item, index) => (
-                <div key={index} className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor={`menu-${index}`} className="sr-only">
-                      메뉴
-                    </Label>
-                    <Select
-                      value={item.name}
-                      onValueChange={(value) =>
-                        handleMenuItemChange(index, "name", value)
-                      }
-                    >
-                      <SelectTrigger id={`menu-${index}`}>
-                        <SelectValue placeholder="메뉴 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableMenus.map((menuItem) => (
-                          <SelectItem key={menuItem.id} value={menuItem.name}>
-                            {menuItem.name} ({menuItem.price.toLocaleString()}
-                            원)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="w-20">
-                    <Label htmlFor={`quantity-${index}`} className="sr-only">
-                      수량
-                    </Label>
-                    <Input
-                      id={`quantity-${index}`}
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        handleMenuItemChange(
-                          index,
-                          "quantity",
-                          parseInt(e.target.value) || 1,
-                        )
-                      }
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeMenuItem(index)}
-                    disabled={formData.menuItems.length <= 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-right font-semibold">
-              총 가격:{" "}
-              {calculateTotalPrice(
-                formData.menuItems.map((item) => ({ ...item })),
-              ).toLocaleString()}{" "}
-              원
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsModalOpen(false)}
-              disabled={isLoading}
-            >
-              취소
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSubmitReservation}
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isLoading ? "처리 중..." : "예약 등록"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReservationFormModal
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        selectedDate={selectedDate}
+        availableMenus={availableMenus}
+        availableSeats={availableSeats}
+        availableTimes={availableTimes}
+        isLoading={isLoading}
+        onSubmit={handleSubmitReservation}
+        formatDisplayDate={formatDisplayDate}
+      />
 
       {/* 예약 상세 모달 */}
-      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>예약 상세 정보</DialogTitle>
-            <DialogDescription>
-              {selectedReservationDetail &&
-                formatDateTime(selectedReservationDetail.dateTime)}
-            </DialogDescription>
-          </DialogHeader>
+      <ReservationDetailModal
+        isOpen={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        reservation={selectedReservationDetail}
+        calculateTotalPrice={calculateTotalPrice}
+      />
 
-          {selectedReservationDetail && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">
-                    예약자
-                  </Label>
-                  <p className="mt-1 font-medium">
-                    {selectedReservationDetail.groupName}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">
-                    예약석
-                  </Label>
-                  <p className="mt-1 font-medium">
-                    {selectedReservationDetail.seatNumber}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">
-                    상태
-                  </Label>
-                  <div className="mt-1">
-                    <Badge
-                      variant={
-                        getStatusBadge(selectedReservationDetail.status).variant
-                      }
-                      className={
-                        selectedReservationDetail.status === "COMPLETED"
-                          ? "bg-green-500 hover:bg-green-600"
-                          : ""
-                      }
-                    >
-                      {getStatusBadge(selectedReservationDetail.status).text}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">
-                    등록자
-                  </Label>
-                  <p className="mt-1 font-medium">
-                    {selectedReservationDetail.createdBy.name}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                <Label className="text-sm font-medium text-gray-500">
-                  예약 메뉴
-                </Label>
-                <div className="mt-2 space-y-2">
-                  {selectedReservationDetail.menuItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between border-b border-gray-100 pb-2 last:border-0"
-                    >
-                      <span className="font-medium">{item.name}</span>
-                      <span className="text-gray-600">
-                        {item.quantity}개 × {item.price.toLocaleString()}원
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 text-right">
-                  <span className="text-lg font-semibold">
-                    총 가격:{" "}
-                    {calculateTotalPrice(
-                      selectedReservationDetail.menuItems,
-                    ).toLocaleString()}
-                    원
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="flex justify-between">
-            {selectedReservationDetail &&
-              selectedReservationDetail.status === "PENDING" && (
-                <Button
-                  type="button"
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() =>
-                    handleStatusChange(selectedReservationDetail.id, "confirm")
-                  }
-                >
-                  <Check className="mr-2 h-4 w-4" /> 예약 확정
-                </Button>
-              )}
-
-            {selectedReservationDetail &&
-              (selectedReservationDetail.status === "PENDING" ||
-                selectedReservationDetail.status === "CONFIRMED") && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() =>
-                    handleStatusChange(selectedReservationDetail.id, "cancel")
-                  }
-                >
-                  <X className="mr-2 h-4 w-4" /> 예약 취소
-                </Button>
-              )}
-
-            {selectedReservationDetail &&
-              selectedReservationDetail.status === "CONFIRMED" && (
-                <Button
-                  type="button"
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() =>
-                    handleStatusChange(selectedReservationDetail.id, "complete")
-                  }
-                >
-                  <Check className="mr-2 h-4 w-4" /> 완료 처리
-                </Button>
-              )}
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDetailModalOpen(false)}
-            >
-              닫기
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Alert Dialog for confirmations and notifications */}
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {statusActionType ? alertMessage.title : alertMessage.title}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {statusActionType ? alertMessage.message : alertMessage.message}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            {statusActionType ? (
-              <>
-                <AlertDialogCancel
-                  onClick={() => {
-                    setSelectedReservation(null);
-                    setStatusActionType(null);
-                  }}
-                >
-                  취소
-                </AlertDialogCancel>
-                <AlertDialogAction onClick={confirmStatusChange}>
-                  확인
-                </AlertDialogAction>
-              </>
-            ) : (
-              <AlertDialogAction>확인</AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 상태 변경 알림 대화 상자 */}
+      <StatusAlertDialog
+        isOpen={isAlertOpen}
+        onOpenChange={setIsAlertOpen}
+        title={alertMessage.title}
+        message={alertMessage.message}
+        onConfirm={statusActionType ? confirmStatusChange : () => {}}
+        onCancel={handleAlertCancel}
+        isStatusChange={!!statusActionType}
+      />
     </div>
-  );
-}
-
-// ReservationRow 컴포넌트 스타일 개선
-function ReservationRow({
-  reservation,
-  onStatusChange,
-  onRowClick,
-  calculateTotalPrice,
-}: {
-  reservation: Reservation;
-  onStatusChange: (
-    id: string,
-    action: "confirm" | "cancel" | "complete",
-  ) => void;
-  onRowClick: (reservation: Reservation) => void;
-  calculateTotalPrice: (menu: MenuItem[]) => number;
-}) {
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
-  };
-
-  // getStatusBadge 함수 다시 정의
-  const getStatusBadge = (status: ReservationStatus) => {
-    switch (status) {
-      case "CONFIRMED":
-        return { variant: "default" as const, text: "확정됨" };
-      case "PENDING":
-        return { variant: "secondary" as const, text: "대기중" };
-      case "CANCELED":
-        return { variant: "destructive" as const, text: "취소됨" };
-      case "COMPLETED":
-        return { variant: "default" as const, text: "완료됨" };
-    }
-  };
-
-  return (
-    <TableRow
-      className="cursor-pointer transition-colors duration-150 hover:bg-gray-50"
-      onClick={() => onRowClick(reservation)}
-    >
-      <TableCell className="font-medium">
-        {formatDateTime(reservation.dateTime)}
-      </TableCell>
-      <TableCell>{reservation.groupName}</TableCell>
-      <TableCell className="hidden md:table-cell">
-        {reservation.seatNumber}
-      </TableCell>
-      <TableCell>명</TableCell>
-      <TableCell className="hidden md:table-cell">
-        {calculateTotalPrice(reservation.menuItems).toLocaleString()}원
-      </TableCell>
-      <TableCell>
-        <div
-          className="flex items-center space-x-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Badge
-            variant={getStatusBadge(reservation.status).variant}
-            className={
-              reservation.status === "COMPLETED"
-                ? "bg-green-500 hover:bg-green-600"
-                : ""
-            }
-          >
-            {getStatusBadge(reservation.status).text}
-          </Badge>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <ChevronDown className="h-4 w-4" />
-                <span className="sr-only">상태 변경</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {reservation.status === "PENDING" && (
-                <DropdownMenuItem
-                  className="text-green-600 focus:text-green-600"
-                  onClick={() => onStatusChange(reservation.id, "confirm")}
-                >
-                  <Check className="mr-2 h-4 w-4" /> 예약 확정
-                </DropdownMenuItem>
-              )}
-              {(reservation.status === "PENDING" ||
-                reservation.status === "CONFIRMED") && (
-                <DropdownMenuItem
-                  className="text-red-600 focus:text-red-600"
-                  onClick={() => onStatusChange(reservation.id, "cancel")}
-                >
-                  <X className="mr-2 h-4 w-4" /> 예약 취소
-                </DropdownMenuItem>
-              )}
-              {reservation.status === "CONFIRMED" && (
-                <DropdownMenuItem
-                  className="text-green-600 focus:text-green-600"
-                  onClick={() => onStatusChange(reservation.id, "complete")}
-                >
-                  <Check className="mr-2 h-4 w-4" /> 완료 처리
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </TableCell>
-    </TableRow>
   );
 }
