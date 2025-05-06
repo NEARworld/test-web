@@ -3,6 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatDateTime, formatPrice } from "@/lib/date-utils";
 
 interface MenuItem {
   name: string;
@@ -65,17 +66,6 @@ export default function DashboardPage() {
     return menu.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-    const weekday = weekdays[date.getDay()];
-    return `${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`;
-  };
-
   const ReservationCard = ({ reservation }: { reservation: Reservation }) => (
     <Card className="relative">
       <CardHeader>
@@ -92,14 +82,13 @@ export default function DashboardPage() {
           <ul className="list-disc pl-5">
             {reservation.menu.map((item, idx) => (
               <li key={idx}>
-                {item.name} - {item.quantity}개 ({item.price.toLocaleString()}
-                원)
+                {item.name} - {item.quantity}개 ({formatPrice(item.price)})
               </li>
             ))}
           </ul>
         </div>
         <p className="text-right font-semibold">
-          총 가격: {calculateTotalPrice(reservation.menu).toLocaleString()} 원
+          총 가격: {formatPrice(calculateTotalPrice(reservation.menu))}
         </p>
       </CardContent>
     </Card>
