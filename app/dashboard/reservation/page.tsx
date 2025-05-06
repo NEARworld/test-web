@@ -28,6 +28,7 @@ import {
   calculateTotalPrice,
   formatDisplayDate,
 } from "@/components/reservation/utils";
+import { Badge } from "@/components/ui/badge";
 
 export default function ReservationPage() {
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -327,14 +328,29 @@ export default function ReservationPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="container mx-auto">
         <div className="flex flex-col gap-6">
-          {/* 달력 섹션 */}
+          {/* 상단 헤더 섹션 추가 */}
           <section className="w-full">
-            <div className="mx-auto max-w-3xl">
+            <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+              <h1 className="mb-2 text-2xl font-bold text-gray-900">
+                예약 관리 시스템
+              </h1>
+              <p className="text-gray-500">
+                날짜를 선택하여 예약 현황을 확인하고 관리하세요.
+              </p>
+            </div>
+          </section>
+
+          {/* 달력과 요약 통계 섹션 */}
+          <section className="grid w-full grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm md:col-span-2">
               {/* 상단 헤더와 예약 버튼 */}
-              <div className="flex items-center justify-end">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  예약 일정
+                </h2>
                 <Button
                   onClick={handleAddReservation}
                   className="bg-blue-600 hover:bg-blue-700"
@@ -350,12 +366,116 @@ export default function ReservationPage() {
                 initialMonth={new Date().getMonth()}
               />
             </div>
+
+            {/* 현재 선택 날짜 요약 정보 섹션 추가 */}
+            <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+              <h2 className="mb-4 text-xl font-semibold text-gray-800">
+                {formatDisplayDate(selectedDate)} 요약
+              </h2>
+
+              {isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* 예약 통계 카드 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+                      <div className="text-sm font-medium text-blue-800">
+                        점심 예약
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-blue-600">
+                        {lunchReservations.length}건
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
+                      <div className="text-sm font-medium text-orange-800">
+                        저녁 예약
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-orange-600">
+                        {dinnerReservations.length}건
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 예약 상태별 통계 */}
+                  <div className="mt-4">
+                    <h3 className="mb-2 text-sm font-medium text-gray-600">
+                      예약 상태
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">확정됨</span>
+                        <Badge variant="default" className="bg-blue-500">
+                          {
+                            reservations.filter((r) => r.status === "CONFIRMED")
+                              .length
+                          }
+                          건
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">대기중</span>
+                        <Badge variant="secondary">
+                          {
+                            reservations.filter((r) => r.status === "PENDING")
+                              .length
+                          }
+                          건
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">취소됨</span>
+                        <Badge variant="destructive">
+                          {
+                            reservations.filter((r) => r.status === "CANCELED")
+                              .length
+                          }
+                          건
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">완료됨</span>
+                        <Badge variant="default" className="bg-green-500">
+                          {
+                            reservations.filter((r) => r.status === "COMPLETED")
+                              .length
+                          }
+                          건
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 오늘 총 매출 예상 */}
+                  <div className="mt-4">
+                    <h3 className="mb-2 text-sm font-medium text-gray-600">
+                      총 매출 예상
+                    </h3>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {reservations
+                        .filter((r) => r.status !== "CANCELED")
+                        .reduce(
+                          (total, r) =>
+                            total + calculateTotalPrice(r.menuItems),
+                          0,
+                        )
+                        .toLocaleString()}
+                      원
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
 
           {/* 선택한 날짜의 예약 섹션 - 달력 아래 배치 */}
           <section className="w-full">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-gray-800">
                 {formatDisplayDate(selectedDate)}의 예약
                 {isLoading && (
                   <span className="ml-2 text-sm text-gray-500">Loading...</span>
@@ -363,13 +483,15 @@ export default function ReservationPage() {
               </h2>
             </div>
 
-            <div className="rounded-lg border bg-white">
-              <div className="grid grid-cols-1 gap-6 p-4 md:grid-cols-2">
-                {/* 점심 예약 섹션 */}
-                <div>
-                  <h3 className="mb-4 text-lg font-medium text-blue-600">
-                    점심 예약
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* 점심 예약 섹션 */}
+              <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+                <div className="border-b border-blue-100 bg-blue-50 p-3">
+                  <h3 className="text-lg font-medium text-blue-700">
+                    점심 예약 ({lunchReservations.length}건)
                   </h3>
+                </div>
+                <div className="p-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -405,16 +527,18 @@ export default function ReservationPage() {
                       ) : lunchReservations.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="md:hidden">
-                            <div className="flex justify-center py-4 text-gray-500">
-                              점심 예약이 없습니다.
+                            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                              <span className="mb-2 text-4xl">🍽️</span>
+                              <span>점심 예약이 없습니다.</span>
                             </div>
                           </TableCell>
                           <TableCell
                             colSpan={7}
                             className="hidden md:table-cell"
                           >
-                            <div className="flex justify-center py-4 text-gray-500">
-                              점심 예약이 없습니다.
+                            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                              <span className="mb-2 text-4xl">🍽️</span>
+                              <span>점심 예약이 없습니다.</span>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -432,12 +556,16 @@ export default function ReservationPage() {
                     </TableBody>
                   </Table>
                 </div>
+              </div>
 
-                {/* 저녁 예약 섹션 */}
-                <div>
-                  <h3 className="mb-4 text-lg font-medium text-orange-600">
-                    저녁 예약
+              {/* 저녁 예약 섹션 */}
+              <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+                <div className="border-b border-orange-100 bg-orange-50 p-3">
+                  <h3 className="text-lg font-medium text-orange-700">
+                    저녁 예약 ({dinnerReservations.length}건)
                   </h3>
+                </div>
+                <div className="p-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -473,16 +601,18 @@ export default function ReservationPage() {
                       ) : dinnerReservations.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="md:hidden">
-                            <div className="flex justify-center py-4 text-gray-500">
-                              저녁 예약이 없습니다.
+                            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                              <span className="mb-2 text-4xl">🌙</span>
+                              <span>저녁 예약이 없습니다.</span>
                             </div>
                           </TableCell>
                           <TableCell
                             colSpan={7}
                             className="hidden md:table-cell"
                           >
-                            <div className="flex justify-center py-4 text-gray-500">
-                              저녁 예약이 없습니다.
+                            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                              <span className="mb-2 text-4xl">🌙</span>
+                              <span>저녁 예약이 없습니다.</span>
                             </div>
                           </TableCell>
                         </TableRow>

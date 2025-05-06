@@ -212,6 +212,10 @@ export default function TablesPage() {
     setZoomLevel((prevZoom) => Math.max(prevZoom - 0.1, 0.5));
   };
 
+  const handleResetZoom = () => {
+    setZoomLevel(0.8);
+  };
+
   // SSR 시 로딩 컴포넌트 표시
   if (typeof window === "undefined") {
     return (
@@ -272,6 +276,9 @@ export default function TablesPage() {
             </Button>
             <Button size="icon" onClick={handleZoomOut}>
               <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button size="icon" onClick={handleResetZoom} title="줌 초기화">
+              <span className="text-xs font-bold">1:1</span>
             </Button>
           </div>
           {isGridSizeVisible && (
