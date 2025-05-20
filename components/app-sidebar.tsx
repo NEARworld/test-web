@@ -13,19 +13,6 @@ import {
 } from "@/components/ui/sidebar";
 import { NavMain } from "@/components/nav-main";
 
-const data = {
-  navMain: [
-    // {
-    //   title: "홈",
-    //   url: "/",
-    // },
-    // {
-    //   title: "소개",
-    //   url: "/about",
-    // },
-  ],
-};
-
 export default function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
@@ -40,7 +27,7 @@ export default function AppSidebar({
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
