@@ -11,18 +11,11 @@ export function useAuthCheck() {
     async function validateSession() {
       if (session?.user?.id) {
         try {
-          const response = await fetch("/api/auth/validate", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ userId: session.user.id }),
-          });
+          const response = await fetch("/api/user");
+          const userData = await response.json();
 
-          const data = await response.json();
-
-          if (!data.valid) {
-            // DB에 사용자가 없으면 로그아웃
+          // 사용자 정보가 없거나 에러가 있으면 로그아웃
+          if (response.status !== 200 || userData.error) {
             console.log("사용자가 DB에 존재하지 않아 로그아웃됩니다.");
             signOut({ callbackUrl: "/login" });
           }

@@ -8,7 +8,6 @@ export async function GET() {
 
   try {
     if (userData?.id) {
-      // Fetch user data from database using the email from the session
       const user = await prisma.user.findUnique({
         where: {
           id: userData.id,
@@ -18,6 +17,9 @@ export async function GET() {
           email: true,
           name: true,
           image: true,
+          role: true,
+          position: true,
+          department: true,
         },
       });
 
