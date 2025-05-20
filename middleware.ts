@@ -3,58 +3,100 @@ import { getToken } from "next-auth/jwt";
 import authConfig from "./auth.config";
 import { NextRequest, NextResponse } from "next/server";
 
+// Define custom token type
+interface CustomToken {
+  sub?: string;
+  position?: "UNKNOWN" | "ADMIN" | "USER" | string; // Add all possible positions
+}
+
+// Define path constants
+const PATHS = {
+  LOGIN: "/login",
+  HOME: "/",
+  DASHBOARD: "/dashboard",
+  ACCESS_DENIED: "/access-denied",
+};
+
 const { auth } = NextAuth(authConfig);
 
 export default auth(async function middleware(req: NextRequest) {
   const session = await auth();
-  const token = await getToken({
+  const token = (await getToken({
     req,
     secret: process.env.AUTH_SECRET!,
     cookieName:
       process.env.NODE_ENV === "production"
         ? "__Secure-authjs.session-token"
-        : "authjs.session-token", // 개발 환경에서 기본 사용되는 쿠키 이름
-  });
+        : "authjs.session-token",
+  })) as CustomToken;
 
   const isAuthenticated = !!session && !!token?.sub;
   const userPosition = token?.position;
+  const currentPath = req.nextUrl.pathname;
 
-  // 세션이 없는 경우 로그인 페이지로 리다이렉트
+  // Handle unauthenticated users
   if (!isAuthenticated) {
-    const isLoginPage = req.nextUrl.pathname === "/login";
-    if (!isLoginPage) {
-      return NextResponse.redirect(new URL("/login", req.url));
+    return handleUnauthenticatedUser(req, currentPath);
+  }
+
+  // Handle authenticated users
+  if (session?.user.name) {
+    return handleAuthenticatedUser(req, currentPath, userPosition);
+  }
+
+  // If we get here, something unexpected happened
+  return NextResponse.redirect(new URL(PATHS.LOGIN, req.url));
+});
+
+/**
+ * Handle routing for unauthenticated users
+ */
+function handleUnauthenticatedUser(req: NextRequest, currentPath: string) {
+  const isLoginPage = currentPath === PATHS.LOGIN;
+
+  if (!isLoginPage) {
+    return NextResponse.redirect(new URL(PATHS.LOGIN, req.url));
+  }
+
+  return NextResponse.next();
+}
+
+/**
+ * Handle routing for authenticated users based on their position
+ */
+function handleAuthenticatedUser(
+  req: NextRequest,
+  currentPath: string,
+  userPosition?: string,
+) {
+  // Check if user is on login/home pages
+  const isLoginOrHome =
+    currentPath === PATHS.LOGIN || currentPath === PATHS.HOME;
+  const isAccessDenied = currentPath === PATHS.ACCESS_DENIED;
+
+  // Handle users with UNKNOWN position
+  if (userPosition === "UNKNOWN") {
+    if (!isAccessDenied) {
+      return NextResponse.redirect(new URL(PATHS.ACCESS_DENIED, req.url));
     }
     return NextResponse.next();
   }
 
-  // 로그인된 사용자 처리
-  if (session?.user.name) {
-    const isLoginOrHome =
-      req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/";
-    const isAccessDenied = req.nextUrl.pathname === "/access-denied";
-
-    // 직급이 UNKNOWN인 경우 access-denied 페이지로 리다이렉트 (이미 access-denied 페이지가 아닌 경우에만)
-    if (userPosition === "UNKNOWN" && !isAccessDenied) {
-      return NextResponse.redirect(new URL("/access-denied", req.url));
+  // Handle users with valid positions
+  if (userPosition !== "UNKNOWN") {
+    if (isAccessDenied) {
+      return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
     }
 
-    // 직급이 UNKNOWN이 아닌 경우, access-denied 페이지에 접근하면 dashboard로 리다이렉트
-    if (userPosition !== "UNKNOWN" && isAccessDenied) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-
-    // 로그인된 모든 사용자가 로그인 페이지나 홈페이지에 접근하면 대시보드로 리다이렉트
     if (isLoginOrHome) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
     }
   }
 
-  // 그 외의 경우 다음 단계로 진행
   return NextResponse.next();
-});
+}
 
-// 모든 경로에 미들웨어 적용 (public 파일과 API 경로 제외)
+// Apply middleware to all routes except public assets and API
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|public).*)"],
 };
