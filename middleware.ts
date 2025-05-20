@@ -3,13 +3,13 @@ import { getToken } from "next-auth/jwt";
 import authConfig from "./auth.config";
 import { NextRequest, NextResponse } from "next/server";
 
-// Define custom token type
+// 커스텀 토큰 타입 정의
 interface CustomToken {
   sub?: string;
-  position?: "UNKNOWN" | "ADMIN" | "USER" | string; // Add all possible positions
+  position?: "UNKNOWN" | "ADMIN" | "USER" | string; // 가능한 모든 직급 추가
 }
 
-// Define path constants
+// 경로 상수 정의
 const PATHS = {
   LOGIN: "/login",
   HOME: "/",
@@ -34,22 +34,22 @@ export default auth(async function middleware(req: NextRequest) {
   const userPosition = token?.position;
   const currentPath = req.nextUrl.pathname;
 
-  // Handle unauthenticated users
+  // 인증되지 않은 사용자 처리
   if (!isAuthenticated) {
     return handleUnauthenticatedUser(req, currentPath);
   }
 
-  // Handle authenticated users
+  // 인증된 사용자 처리
   if (session?.user.name) {
     return handleAuthenticatedUser(req, currentPath, userPosition);
   }
 
-  // If we get here, something unexpected happened
+  // 이 위치에 도달하면 예기치 않은 상황임
   return NextResponse.redirect(new URL(PATHS.LOGIN, req.url));
 });
 
 /**
- * Handle routing for unauthenticated users
+ * 인증되지 않은 사용자의 라우팅 처리
  */
 function handleUnauthenticatedUser(req: NextRequest, currentPath: string) {
   const isLoginPage = currentPath === PATHS.LOGIN;
@@ -62,19 +62,19 @@ function handleUnauthenticatedUser(req: NextRequest, currentPath: string) {
 }
 
 /**
- * Handle routing for authenticated users based on their position
+ * 인증된 사용자의 직급에 따른 라우팅 처리
  */
 function handleAuthenticatedUser(
   req: NextRequest,
   currentPath: string,
   userPosition?: string,
 ) {
-  // Check if user is on login/home pages
+  // 사용자가 로그인/홈 페이지에 있는지 확인
   const isLoginOrHome =
     currentPath === PATHS.LOGIN || currentPath === PATHS.HOME;
   const isAccessDenied = currentPath === PATHS.ACCESS_DENIED;
 
-  // Handle users with UNKNOWN position
+  // 직급이 UNKNOWN인 사용자 처리
   if (userPosition === "UNKNOWN") {
     if (!isAccessDenied) {
       return NextResponse.redirect(new URL(PATHS.ACCESS_DENIED, req.url));
@@ -82,7 +82,7 @@ function handleAuthenticatedUser(
     return NextResponse.next();
   }
 
-  // Handle users with valid positions
+  // 유효한 직급을 가진 사용자 처리
   if (userPosition !== "UNKNOWN") {
     if (isAccessDenied) {
       return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
@@ -96,7 +96,7 @@ function handleAuthenticatedUser(
   return NextResponse.next();
 }
 
-// Apply middleware to all routes except public assets and API
+// public 자산 및 API를 제외한 모든 경로에 미들웨어 적용
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|public).*)"],
 };
