@@ -1,50 +1,19 @@
 "use client";
 
 import {
-  ChevronRight,
-  Monitor,
-  NotebookText,
-  BarChart3,
-  type LucideIcon,
-  Users,
-} from "lucide-react";
-
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useRouter } from "next/navigation";
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string;
-    url: string;
-    icon?: LucideIcon;
-    isActive?: boolean;
-    items?: {
-      title: string;
-      url: string;
-    }[];
-  }[];
-}) {
+export function NavMain() {
   const router = useRouter();
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>업무 관리</SidebarGroupLabel>
+      {/* <SidebarGroupLabel>청소년자립학교</SidebarGroupLabel> */}
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
@@ -52,7 +21,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/tasks")}
           >
-            <Users />
+            {/* <Users /> */}
             <span>업무 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -62,7 +31,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard")}
           >
-            <Monitor />
+            {/* <Monitor /> */}
             <span>종합</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -72,7 +41,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/reservation")}
           >
-            <NotebookText />
+            {/* <NotebookText /> */}
             <span>예약 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -82,7 +51,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/statistics")}
           >
-            <BarChart3 />
+            {/* <BarChart3 /> */}
             <span>예약 통계</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -92,7 +61,7 @@ export function NavMain({
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/employees")}
           >
-            <BarChart3 />
+            {/* <BarChart3 /> */}
             <span>직원 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -105,48 +74,16 @@ export function NavMain({
             <Box />
             <span>재고 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
         <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"테이블 관리"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/tables")}
           >
-            <LayoutGrid />
             <span>테이블 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem> */}
-        {items.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            defaultOpen={item.isActive}
-            className="group/collapsible"
-          >
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </a>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-        ))}
+        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   );

@@ -1,8 +1,9 @@
-// app/api/reservation/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma, $Enums } from "@prisma/client";
+import { Prisma, $Enums } from "@prisma/client";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { validateUserInDB } from "@/lib/auth-utils";
+import { toISODateString } from "@/lib/date-utils";
 
 interface MenuItem {
   name: string;
@@ -10,33 +11,43 @@ interface MenuItem {
   quantity: number;
 }
 
-const prismaClient = new PrismaClient();
+// 에러 응답 생성 함수
+function createErrorResponse(
+  message: string,
+  status: number,
+  redirectToLogin = false,
+) {
+  return NextResponse.json(
+    { error: message, ...(redirectToLogin ? { redirectToLogin } : {}) },
+    { status },
+  );
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication using App Router auth
+    // App Router auth를 사용하여 인증 확인
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // DB에 유효한 사용자 정보가 있는지 확인
+    const isValidUser = await validateUserInDB(session);
+    if (!session || !isValidUser) {
+      return createErrorResponse("Unauthorized", 401, true);
     }
 
-    // Get query parameters
+    // 쿼리 매개변수 가져오기
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
-    const status = searchParams.get("status") as $Enums.ReservationStatus; // Get status parameter if present
+    const status = searchParams.get("status") as $Enums.ReservationStatus; // 상태 매개변수가 있는 경우
 
     if (!date) {
-      return NextResponse.json(
-        { error: "Date parameter is required" },
-        { status: 400 },
-      );
+      return createErrorResponse("Date parameter is required", 400);
     }
 
-    // Create date range for the requested date (full day)
+    // 요청된 날짜에 대한 날짜 범위 생성 (하루 전체)
     const startDate = new Date(`${date}T00:00:00.000Z`);
     const endDate = new Date(`${date}T23:59:59.999Z`);
 
-    // Build the where clause with date range
+    // 날짜 범위를 사용하여 조건 생성
     const whereClause: Prisma.ReservationWhereInput = {
       dateTime: {
         gte: startDate,
@@ -44,13 +55,13 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Add status filter if provided
+    // 상태 필터가 제공되면 추가
     if (status) {
       whereClause.status = status;
     }
 
-    // Query reservations with the constructed where clause
-    const reservations = await prismaClient.reservation.findMany({
+    // 쿼리 예약 생성 조건
+    const reservations = await prisma.reservation.findMany({
       where: whereClause,
       include: {
         menuItems: true,
@@ -68,18 +79,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(reservations);
   } catch (error) {
     console.error("Error fetching reservations:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch reservations" },
-      { status: 500 },
-    );
+    return createErrorResponse("Failed to fetch reservations", 500);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    // DB에 유효한 사용자 정보가 있는지 확인
+    const isValidUser = await validateUserInDB(session);
+    if (!session?.user?.id || !isValidUser) {
+      return createErrorResponse("Unauthorized", 401, true);
     }
 
     const data = await req.json();
@@ -87,14 +98,11 @@ export async function POST(req: NextRequest) {
 
     // 기본 유효성 검사
     if (!groupName || !dateTime || !seatNumber || !menuItems) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 },
-      );
+      return createErrorResponse("Missing required fields", 400);
     }
 
-    // 날짜 문자열 생성 (YYYY-MM-DD 형식)
-    const date = new Date(dateTime).toISOString().split("T")[0];
+    // 날짜 문자열 생성 (YYYY-MM-DD 형식) - 유틸리티 함수 사용
+    const date = toISODateString(dateTime);
 
     // 트랜잭션으로 예약과 통계를 함께 처리
     const reservation = await prisma.$transaction(async (tx) => {
@@ -147,9 +155,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(reservation, { status: 201 });
   } catch (error) {
     console.error("Reservation creation error:", error);
-    return NextResponse.json(
-      { message: "Failed to create reservation" },
-      { status: 500 },
-    );
+    return createErrorResponse("Failed to create reservation", 500);
   }
 }

@@ -4,11 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 // import { getSession } from 'next-auth/react'; // Example: If using NextAuth for user ID
 import { auth } from "@/auth"; // Example: If using Auth.js v5 / NextAuth.js v5
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }, // Context for dynamic route parameters (App Router)
-) {
-  const taskId = (await params).taskId; // Get taskId from the URL path
+export async function PATCH(request: NextRequest) {
+  const taskId = request.nextUrl.pathname.split("/").pop();
 
   // --- Authentication & Authorization (Placeholder) ---
   // In a real application, you would get the user ID from the session or token
@@ -36,6 +33,12 @@ export async function PATCH(
         { error: "No update data provided" },
         { status: 400 },
       );
+    }
+
+    if ("dueDate" in updateData) {
+      updateData.dueDate = updateData.dueDate
+        ? new Date(updateData.dueDate)
+        : null;
     }
 
     // 2. Fetch the current state of the task *before* the update

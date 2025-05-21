@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
     const taskFile = formData.get("taskFile") as File | null;
 
     // 필수 필드 유효성 검사
-    if (!title || !assignee || !dueDate) {
+    if (!title || !assignee) {
       return NextResponse.json(
-        { success: false, error: "Missing required text fields" },
+        { success: false, error: "필수 필드가 누락되었습니다" },
         { status: 400 },
       );
     }
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         createdBy: {
           connect: { id: currentUser.id },
         },
-        dueDate: new Date(dueDate),
+        dueDate: dueDate ? new Date(dueDate) : null, // 마감일이 없으면 null 저장
         status: "INCOMPLETE",
         // 파일 정보 필드 추가
         fileUrl: fileUrl,
@@ -150,9 +150,16 @@ export async function GET(req: NextRequest) {
 
     const skip = (verifiedPage - 1) * verifiedLimit;
 
-    const totalTasks = await prisma.task.count();
+    const totalTasks = await prisma.task.count({
+      where: {
+        isDeleted: false, // 삭제되지 않은 업무만 포함
+      },
+    });
 
     const tasks = await prisma.task.findMany({
+      where: {
+        isDeleted: false, // 삭제되지 않은 업무만 조회
+      },
       skip,
       take: verifiedLimit,
       include: {

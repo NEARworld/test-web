@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { TableFromApi } from "@/app/dashboard/tables/page";
+import { TableFromApi } from "@/types/tables";
 
 export async function POST(req: Request) {
   try {

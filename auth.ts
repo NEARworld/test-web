@@ -2,7 +2,12 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
-import { JobPosition, PrismaClient, Department } from "@prisma/client";
+import {
+  JobPosition,
+  PrismaClient,
+  Department,
+  UserRole,
+} from "@prisma/client";
 import authConfig from "./auth.config";
 
 // NextAuth 설정 타입 정의
@@ -50,9 +55,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: user.email,
               image: user.image,
             },
-            select: { position: true },
           });
           token.position = dbUser.position;
+          token.role = dbUser.role;
         }
       }
 
@@ -60,7 +65,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { id: token.sub },
         });
-        if (user) token.position = user.position;
+        if (user) {
+          token.position = user.position;
+          token.role = user.role;
+        }
       }
       return token;
     },
@@ -73,6 +81,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.email = token.email as string;
         session.user.image = token.image as string;
         session.user.position = token?.position as JobPosition;
+        session.user.role = token?.role as UserRole;
       }
       return session;
     },
@@ -99,7 +108,7 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      // role: UserRole;
+      role: UserRole;
       position: JobPosition;
       department: Department;
     };
@@ -107,5 +116,6 @@ declare module "next-auth" {
 
   interface JWT {
     id?: string;
+    role?: UserRole;
   }
 }
