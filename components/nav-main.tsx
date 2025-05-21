@@ -27,6 +27,15 @@ export function NavMain() {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
+            tooltip={"자료실"}
+            className="cursor-pointer"
+            onClick={() => router.replace("/dashboard/documents")}
+          >
+            <span>자료실</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
             tooltip={"종합"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard")}
