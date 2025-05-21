@@ -75,7 +75,7 @@ export function NavMain() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    router.replace("/dashboard/documents/bazaar");
+                    router.replace("/dashboard/documents/bajaul");
                   }}
                 >
                   바자울
