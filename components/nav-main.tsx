@@ -92,6 +92,28 @@ export function NavMain() {
                   먹거리돌봄 센터
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
+              <SidebarMenuSubItem>
+                <SidebarMenuSubButton
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.replace("/dashboard/documents/community");
+                  }}
+                >
+                  공동모금회
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+              <SidebarMenuSubItem>
+                <SidebarMenuSubButton
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.replace("/dashboard/documents/other");
+                  }}
+                >
+                  기타
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
             </SidebarMenuSub>
           )}
         </SidebarMenuItem>
