@@ -146,7 +146,6 @@ model Document {
   id                  String                    @id @default(uuid())
   title               String
   description         String?
-  dueDate             DateTime?
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
   // assigneeId          String?
@@ -171,9 +170,6 @@ model DocumentModificationHistory {
   modifiedById        String
   previousTitle       String
   previousDescription String?
-  previousStatus      TaskStatus
-  previousDueDate     DateTime?
-  previousAssigneeId  String?
   previousFileUrl     String?
   previousFileName    String?
   previousFileType    String?
