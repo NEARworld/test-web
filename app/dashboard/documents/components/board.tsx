@@ -1,8 +1,5 @@
-import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-
-// Document import 제거
-// import { Document } from "@prisma/client";
+import { useDocument } from "@/app/hooks/useDocument";
 
 export type ExtendedDocument = {
   assignee: { name: string; image?: string };
@@ -14,30 +11,17 @@ export type ExtendedDocument = {
 
 export default function Board() {
   const pathname = usePathname(); // 현재 경로 가져오기
-
   // 경로에서 boardType 추출 (예: /dashboard/documents/bajaul -> BAJAUL)
   const boardType = pathname?.split("/").pop()?.toUpperCase();
-
-  useEffect(() => {
-    if (!boardType) return;
-    // 자료실(boardType)별 자료 조회 GET 요청
-    const fetchDocuments = async () => {
-      try {
-        const res = await fetch(`/api/documents?boardType=${boardType}`);
-        const data = await res.json();
-        // 한글 주석: 받아온 자료를 콘솔에 출력
-        console.log(`${boardType} 자료실 데이터:`, data);
-      } catch (error) {
-        // 한글 주석: 에러 발생 시 콘솔에 출력
-        console.error("자료실 데이터 조회 에러:", error);
-      }
-    };
-    fetchDocuments();
-  }, [boardType]);
+  const { documents, loading, error } = useDocument(boardType);
 
   return (
     <div>
       <h1>Board</h1>
+      {/* 한글 주석: 로딩, 에러, 데이터 상태에 따라 분기 렌더링 */}
+      {loading && <div>로딩 중...</div>}
+      {error && <div>에러 발생: {error.message}</div>}
+      {documents && <pre>{JSON.stringify(documents, null, 2)}</pre>}
     </div>
   );
 }
