@@ -68,3 +68,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
+
+// PATCH 요청: 기존 Document 수정
+export async function PATCH(request: NextRequest) {
+  // 요청 body에서 데이터 파싱
+  const body = await request.json();
+  const { id, ...updateData } = body;
+
+  // id 필수값 체크
+  if (!id) {
+    return NextResponse.json({ error: "id 필수" }, { status: 400 });
+  }
+
+  // boardType이 있으면 유효성 체크
+  if (
+    updateData.boardType &&
+    !Object.values(BoardType).includes(updateData.boardType)
+  ) {
+    return NextResponse.json(
+      { error: "유효하지 않은 boardType" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    // document 수정
+    const updated = await prisma.document.update({
+      where: { id },
+      data: updateData,
+    });
+    // 수정된 document 반환
+    return NextResponse.json(updated);
+  } catch (error) {
+    // 에러 발생 시 에러 메시지 반환
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
