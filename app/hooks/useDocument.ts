@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import type { ExtendedDocument } from "@/app/dashboard/documents/components/board";
 
