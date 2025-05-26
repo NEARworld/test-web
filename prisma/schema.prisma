@@ -146,27 +146,27 @@ model Document {
   id                  String                    @id @default(uuid())
   title               String
   description         String?
-  status              TaskStatus                @default(INCOMPLETE)
   dueDate             DateTime?
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
-  assigneeId          String?
+  // assigneeId          String?
   fileName            String?
   fileType            String?
   fileUrl             String?
   createdById         String?
   isDeleted           Boolean                   @default(false)
-  assignee            User?                     @relation(fields: [assigneeId], references: [id])
+  // assignee            User?                     @relation(fields: [assigneeId], references: [id])
   createdBy           User?                     @relation("DocumentCreator", fields: [createdById], references: [id])
   modificationHistory DocumentModificationHistory[]
   boardType           BoardType                 // 게시판 종류를 enum으로 관리
 
   @@index([boardType, isDeleted, createdAt(sort: Desc)]) 
+  User User[]
 }
 
 model DocumentModificationHistory {
   id                  String     @id @default(uuid())
-  documentId              String
+  documentId          String
   modifiedAt          DateTime   @default(now())
   modifiedById        String
   previousTitle       String
