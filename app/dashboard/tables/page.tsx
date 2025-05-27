@@ -5,11 +5,11 @@ import { Plus, Loader2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCanvas } from "@/components/tables/table-canvas";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { useTables } from "@/hooks/use-tables";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
 import { TableFromApi, Reservation } from "@/types/tables";
 import { TableDetailDialog } from "@/components/tables/table-detail-dialog";
+import { useTables } from "@/hooks/useTables";
 
 export default function TablesPage() {
   const { data: session } = useSession();
