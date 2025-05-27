@@ -19,6 +19,15 @@ interface BoardViewerProps {
   document: Document | null; // prisma Document 타입 사용
 }
 
+// boardType 한글 매핑
+const boardTypeKo: Record<string, string> = {
+  COMMUNITY: "공동모금회",
+  FOODCARE: "먹거리돌봄",
+  BAJAUL: "바자울",
+  RESTAURANT: "청년식당",
+  CORP: "이사회",
+};
+
 export default function BoardViewer({
   open,
   onOpenChange,
@@ -60,7 +69,8 @@ export default function BoardViewer({
           <div className="flex items-center justify-between">
             <div>
               <Badge variant="outline" className="mb-2">
-                게시물
+                {/* boardType을 한글로 표시, 없으면 '게시물' */}
+                {boardTypeKo[document.boardType] || "게시물"}
               </Badge>
               <DialogTitle className="text-2xl font-bold">
                 {document.title || "제목 없음"}
