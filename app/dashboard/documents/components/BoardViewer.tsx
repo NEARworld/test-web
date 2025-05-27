@@ -13,13 +13,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
 interface BoardViewerProps {
   open: boolean; // 모달 오픈 여부
   onOpenChange: (open: boolean) => void; // 모달 상태 변경 함수
   document: Document | null; // prisma Document 타입 사용
-  onDelete?: (id: string) => void; // 삭제 핸들러 함수 추가
 }
 
 // boardType 한글 매핑
@@ -35,15 +36,18 @@ export default function BoardViewer({
   open,
   onOpenChange,
   document,
-  onDelete,
 }: BoardViewerProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   // 유저 닉네임 상태 추가
   const [creatorName, setCreatorName] = useState<string | null>(null);
   // 로딩 상태 추가
   const [creatorLoading, setCreatorLoading] = useState(false);
+  // 삭제 로딩 상태 추가
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // 현재 로그인한 사용자 정보 가져오기
   const { data: session } = useSession();
+  // 라우터 추가
+  const router = useRouter();
 
   // createdById로 유저 닉네임 조회
   useEffect(() => {
@@ -90,9 +94,31 @@ export default function BoardViewer({
   const isAuthor = session?.user?.id === document?.createdById;
 
   // 삭제 핸들러
-  const handleDelete = () => {
-    if (document?.id && onDelete) {
-      onDelete(document.id);
+  const handleDelete = async () => {
+    if (!document?.id) return;
+
+    // 삭제 확인
+    if (!confirm("정말로 이 게시물을 삭제하시겠습니까?")) return;
+
+    setDeleteLoading(true);
+
+    try {
+      const response = await fetch(`/api/documents/${document.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("삭제 중 오류가 발생했습니다.");
+      }
+
+      toast.success("게시물이 삭제되었습니다.");
+      onOpenChange(false); // 모달 닫기
+      router.refresh(); // 페이지 새로고침
+    } catch (error) {
+      console.error("삭제 오류:", error);
+      toast.error("게시물 삭제에 실패했습니다.");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -250,9 +276,10 @@ export default function BoardViewer({
                     variant="destructive"
                     onClick={handleDelete}
                     className="flex items-center gap-2"
+                    disabled={deleteLoading}
                   >
                     <Trash2 className="h-4 w-4" />
-                    삭제
+                    {deleteLoading ? "삭제 중..." : "삭제"}
                   </Button>
                 )}
                 <Button onClick={() => onOpenChange(false)}>닫기</Button>
