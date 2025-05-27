@@ -224,15 +224,24 @@ export default function BoardViewer({
       });
 
       if (!response.ok) {
-        throw new Error("수정 중 오류가 발생했습니다.");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "수정 중 오류가 발생했습니다.");
       }
 
+      const updatedDocument = await response.json();
       toast.success("게시물이 수정되었습니다.");
       setIsEditing(false);
-      router.refresh(); // 페이지 새로고침
+      // 문서 상태 업데이트
+      if (updatedDocument) {
+        // 부모 컴포넌트에서 document prop을 업데이트할 수 있도록 이벤트를 발생시키거나
+        // 페이지를 새로고침하여 최신 데이터를 가져옵니다.
+        router.refresh();
+      }
     } catch (error) {
       console.error("수정 오류:", error);
-      toast.error("게시물 수정에 실패했습니다.");
+      toast.error(
+        error instanceof Error ? error.message : "게시물 수정에 실패했습니다.",
+      );
     } finally {
       setUpdateLoading(false);
     }
