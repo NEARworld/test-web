@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Download, User, Clock, Eye } from "lucide-react";
 import type { Document } from "@prisma/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
@@ -33,8 +33,22 @@ export default function BoardViewer({
   onOpenChange,
   document,
 }: BoardViewerProps) {
-  // 파일 미리보기 상태
   const [previewOpen, setPreviewOpen] = useState(false);
+  // 유저 닉네임 상태 추가
+  const [creatorName, setCreatorName] = useState<string | null>(null);
+
+  // createdById로 유저 닉네임 조회
+  useEffect(() => {
+    if (!document?.createdById) {
+      setCreatorName(null);
+      return;
+    }
+    // createdById로 유저 정보 조회
+    fetch(`/api/user?id=${document.createdById}`)
+      .then((res) => res.json())
+      .then((data) => setCreatorName(data?.name || null))
+      .catch(() => setCreatorName(null));
+  }, [document?.createdById]);
 
   // document가 없으면 아무것도 렌더링하지 않음
   if (!document) return null;
@@ -84,7 +98,7 @@ export default function BoardViewer({
           <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-1">
               <User className="h-4 w-4" />
-              <span>작성자: {document.createdById || "알 수 없음"}</span>
+              <span>작성자: {creatorName || "알 수 없음"}</span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
