@@ -3,8 +3,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, Download, User, Clock } from "lucide-react";
 import type { Document } from "@prisma/client";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
@@ -22,62 +25,100 @@ export default function BoardViewer({
   // document가 없으면 아무것도 렌더링하지 않음
   if (!document) return null;
 
+  // 날짜 포맷 함수
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
-    // shadcn Dialog 컴포넌트 사용
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{document.title || "제목 없음"}</DialogTitle>
-          <DialogDescription>
-            게시물의 상세 정보를 확인할 수 있습니다.
-          </DialogDescription>
+      <DialogContent className="w-full max-w-3xl">
+        <DialogHeader className="border-b pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Badge variant="outline" className="mb-2">
+                게시물
+              </Badge>
+              <DialogTitle className="text-2xl font-bold">
+                {document.title || "제목 없음"}
+              </DialogTitle>
+            </div>
+          </div>
         </DialogHeader>
-        {/* 게시물 상세 정보 표시 */}
-        <div className="space-y-2 py-2">
-          {/* 설명 */}
-          <div>
-            <span className="font-semibold">설명: </span>
-            {document.description || "-"}
+
+        <div className="grid gap-6 py-4">
+          {/* 메타 정보 섹션 */}
+          <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-1">
+              <User className="h-4 w-4" />
+              <span>작성자: {document.createdById || "알 수 없음"}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              <span>작성일: {formatDate(document.createdAt)}</span>
+            </div>
+            {document.updatedAt &&
+              document.updatedAt !== document.createdAt && (
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span>수정일: {formatDate(document.updatedAt)}</span>
+                </div>
+              )}
           </div>
-          {/* 파일명 */}
-          <div>
-            <span className="font-semibold">파일명: </span>
-            {document.fileName || "-"}
+
+          {/* 설명 섹션 */}
+          <div className="rounded-lg border p-4">
+            <h3 className="mb-2 font-medium">설명</h3>
+            <div className="min-h-[100px] text-base whitespace-pre-line">
+              {document.description || (
+                <span className="text-muted-foreground italic">
+                  설명이 없습니다.
+                </span>
+              )}
+            </div>
           </div>
-          {/* 파일타입 */}
-          <div>
-            <span className="font-semibold">파일타입: </span>
-            {document.fileType || "-"}
-          </div>
-          {/* 파일 URL */}
-          <div>
-            <span className="font-semibold">파일 URL: </span>
-            {document.fileUrl ? (
-              <a
-                href={document.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline"
+
+          {/* 첨부파일 섹션 */}
+          <div className="rounded-lg border p-4">
+            <h3 className="mb-2 font-medium">첨부파일</h3>
+            {document.fileName && document.fileUrl ? (
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                asChild
               >
-                다운로드
-              </a>
+                <a
+                  href={document.fileUrl}
+                  download={document.fileName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="max-w-[300px] truncate">
+                    {document.fileName}
+                  </span>
+                </a>
+              </Button>
             ) : (
-              "-"
+              <span className="text-muted-foreground italic">
+                첨부파일이 없습니다.
+              </span>
             )}
           </div>
-          {/* 생성일 */}
-          <div>
-            <span className="font-semibold">생성일: </span>
-            {document.createdAt
-              ? new Date(document.createdAt).toLocaleString()
-              : "-"}
-          </div>
-          {/* 게시판 타입 */}
-          <div>
-            <span className="font-semibold">게시판 타입: </span>
-            {document.boardType || "-"}
-          </div>
         </div>
+
+        <DialogFooter className="border-t pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            닫기
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
