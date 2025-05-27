@@ -57,6 +57,13 @@ export default function BoardViewer({
   // 라우터 추가
   const router = useRouter();
 
+  // 편집 모드 상태 추가
+  const [isEditing, setIsEditing] = useState(false);
+  // 수정 중인 데이터 상태 추가
+  const [editData, setEditData] = useState<Partial<Document> | null>(null);
+  // 수정 로딩 상태 추가
+  const [updateLoading, setUpdateLoading] = useState(false);
+
   // createdById로 유저 닉네임 조회
   useEffect(() => {
     if (!document?.createdById) {
@@ -71,6 +78,16 @@ export default function BoardViewer({
       .catch(() => setCreatorName(null))
       .finally(() => setCreatorLoading(false));
   }, [document?.createdById]);
+
+  // 문서가 변경되면 편집 모드 초기화 및 editData 설정
+  useEffect(() => {
+    if (document) {
+      setEditData(document);
+      setIsEditing(false);
+    } else {
+      setEditData(null);
+    }
+  }, [document]);
 
   // document가 없으면 아무것도 렌더링하지 않음
   if (!document) return null;
@@ -128,6 +145,17 @@ export default function BoardViewer({
     } finally {
       setDeleteLoading(false);
     }
+  };
+
+  // 수정 모드 전환 핸들러
+  const handleEditMode = () => {
+    setIsEditing(true);
+  };
+
+  // 수정 취소 핸들러
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditData(document); // 원본 데이터로 복원
   };
 
   // 수정 핸들러
@@ -299,7 +327,7 @@ export default function BoardViewer({
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={handleEdit}
+                      onClick={handleEditMode}
                       className="flex items-center gap-2"
                     >
                       <Pencil className="h-4 w-4" />
