@@ -1,5 +1,6 @@
-// 법인 자료실 페이지
-import { useDocument } from "@/app/hooks/useDocument";
+"use client";
+
+import { useDocument } from "@/hooks/useDocument";
 import React from "react";
 
 // 더미 게시글 데이터

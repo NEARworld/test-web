@@ -1,6 +1,7 @@
-import { useDocument } from "@/app/hooks/useDocument";
+"use client";
 
-// 한글 주석: community 페이지
+import { useDocument } from "@/hooks/useDocument";
+
 export default function CommunityPage() {
   const { documents, loading, error } = useDocument("COMMUNITY");
 

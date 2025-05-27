@@ -1,11 +1,11 @@
 "use client";
 
+import { Document } from "@prisma/client";
 import { useEffect, useState } from "react";
-import type { ExtendedDocument } from "@/app/dashboard/documents/components/board";
 
 // 자료실(boardType)별 자료를 가져오는 커스텀 훅
 export function useDocument(boardType: string | undefined) {
-  const [documents, setDocuments] = useState<ExtendedDocument[] | null>(null);
+  const [documents, setDocuments] = useState<Document[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

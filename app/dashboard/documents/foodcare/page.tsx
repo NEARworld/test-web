@@ -1,5 +1,6 @@
-// 먹거리돌봄 센터 자료실 페이지
-import { useDocument } from "@/app/hooks/useDocument";
+"use client";
+
+import { useDocument } from "@/hooks/useDocument";
 
 export default function FoodCareDocumentsPage() {
   const { documents, loading, error } = useDocument("FOODCARE");
