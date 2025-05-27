@@ -1,5 +1,5 @@
 import { usePathname } from "next/navigation";
-import { useDocument } from "@/app/hooks/useDocument";
+import { useDocument } from "@/hooks/useDocument";
 
 export type ExtendedDocument = {
   assignee: { name: string; image?: string };

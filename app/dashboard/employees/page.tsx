@@ -15,7 +15,7 @@ import { Search } from "lucide-react";
 import { User } from "@prisma/client";
 import { jobPositionLabels } from "@/constants/jobPosition";
 import { departmentLabels } from "@/constants/department";
-import { useSearch } from "@/app/hooks/useSearch";
+import { useSearch } from "@/hooks/useSearch";
 
 function formatDate(date: Date | string | null): string {
   if (!date) return "미지정";
