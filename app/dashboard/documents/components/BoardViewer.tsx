@@ -7,17 +7,19 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, User, Clock, Eye } from "lucide-react";
+import { Calendar, Download, User, Clock, Eye, Trash2 } from "lucide-react";
 import type { Document } from "@prisma/client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSession } from "next-auth/react";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
 interface BoardViewerProps {
   open: boolean; // 모달 오픈 여부
   onOpenChange: (open: boolean) => void; // 모달 상태 변경 함수
   document: Document | null; // prisma Document 타입 사용
+  onDelete?: (id: string) => void; // 삭제 핸들러 함수 추가
 }
 
 // boardType 한글 매핑
@@ -33,12 +35,15 @@ export default function BoardViewer({
   open,
   onOpenChange,
   document,
+  onDelete,
 }: BoardViewerProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   // 유저 닉네임 상태 추가
   const [creatorName, setCreatorName] = useState<string | null>(null);
   // 로딩 상태 추가
   const [creatorLoading, setCreatorLoading] = useState(false);
+  // 현재 로그인한 사용자 정보 가져오기
+  const { data: session } = useSession();
 
   // createdById로 유저 닉네임 조회
   useEffect(() => {
@@ -79,6 +84,16 @@ export default function BoardViewer({
   const isPreviewable = (fileName: string) => {
     const ext = getFileExtension(fileName);
     return ["pdf", "jpg", "jpeg", "png", "gif"].includes(ext);
+  };
+
+  // 현재 사용자가 작성자인지 확인
+  const isAuthor = session?.user?.id === document?.createdById;
+
+  // 삭제 핸들러
+  const handleDelete = () => {
+    if (document?.id && onDelete) {
+      onDelete(document.id);
+    }
   };
 
   return (
@@ -228,7 +243,20 @@ export default function BoardViewer({
             </div>
 
             <DialogFooter className="border-t pt-4">
-              <Button onClick={() => onOpenChange(false)}>닫기</Button>
+              <div className="flex w-full items-center justify-between">
+                {/* 작성자인 경우에만 삭제 버튼 표시 */}
+                {isAuthor && (
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    삭제
+                  </Button>
+                )}
+                <Button onClick={() => onOpenChange(false)}>닫기</Button>
+              </div>
             </DialogFooter>
           </>
         )}
