@@ -168,9 +168,7 @@ export default function BoardViewer({
         </div>
 
         <DialogFooter className="border-t pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            닫기
-          </Button>
+          <Button onClick={() => onOpenChange(false)}>닫기</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
