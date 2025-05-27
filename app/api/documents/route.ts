@@ -17,6 +17,15 @@ export async function GET(request: NextRequest) {
     where: isValidBoardType
       ? { boardType: boardTypeParam as BoardType }
       : undefined,
+    include: {
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
   });
   return NextResponse.json(documents);
 }
