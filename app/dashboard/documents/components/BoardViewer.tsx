@@ -51,6 +51,9 @@ const boardTypeKo: Record<string, string> = {
   CORP: "이사회",
 };
 
+// 허용되는 파일 확장자
+const ALLOWED_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "gif"];
+
 export default function BoardViewer({
   open,
   onOpenChange,
@@ -125,7 +128,7 @@ export default function BoardViewer({
   // 미리보기 가능한 파일인지 확인
   const isPreviewable = (fileName: string) => {
     const ext = getFileExtension(fileName);
-    return ["pdf", "jpg", "jpeg", "png", "gif"].includes(ext);
+    return ALLOWED_FILE_EXTENSIONS.includes(ext);
   };
 
   // 현재 사용자가 작성자인지 확인
@@ -365,6 +368,9 @@ export default function BoardViewer({
                   <div className="flex flex-col gap-2">
                     <Input
                       type="file"
+                      accept={ALLOWED_FILE_EXTENSIONS.map(
+                        (ext) => `.${ext}`,
+                      ).join(",")}
                       onChange={handleFileChange}
                       className="max-w-md"
                     />
