@@ -21,7 +21,6 @@ import {
 import type { Document } from "@prisma/client";
 import { useState, useEffect, ChangeEvent } from "react";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -34,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import BoardViewerSkeleton from "@/app/dashboard/documents/components/BoardViewerSkeleton";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
 interface BoardViewerProps {
@@ -252,33 +252,7 @@ export default function BoardViewer({
       <DialogContent className="flex min-h-[300px] w-full max-w-3xl items-center justify-center">
         {/* 작성자 정보 로딩 중이면 전체 모달에 스켈레톤 표시 */}
         {creatorLoading ? (
-          <div className="w-full">
-            {/* 상단 헤더 스켈레톤 */}
-            <div className="mb-6 border-b pb-4">
-              <Skeleton className="mb-2 h-6 w-20" /> {/* Badge */}
-              <Skeleton className="h-8 w-2/3" /> {/* Title */}
-            </div>
-            {/* 메타 정보 스켈레톤 */}
-            <div className="mb-6 flex gap-4">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-5 w-32" />
-            </div>
-            {/* 설명 섹션 스켈레톤 */}
-            <div className="mb-6 rounded-lg border p-4">
-              <Skeleton className="mb-2 h-5 w-16" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-            {/* 첨부파일 섹션 스켈레톤 */}
-            <div className="mb-6 rounded-lg border p-4">
-              <Skeleton className="mb-2 h-5 w-16" />
-              <Skeleton className="h-10 w-1/2" />
-            </div>
-            {/* 하단 버튼 스켈레톤 */}
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-20" />
-            </div>
-          </div>
+          <BoardViewerSkeleton />
         ) : (
           <>
             <DialogHeader className="w-full border-b pb-4">
