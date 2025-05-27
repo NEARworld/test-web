@@ -163,6 +163,7 @@ export default function BoardViewer({
   // 수정 모드 전환 핸들러
   const handleEditMode = () => {
     setIsEditing(true);
+    setPreviewOpen(false);
   };
 
   // 수정 취소 핸들러
@@ -189,6 +190,7 @@ export default function BoardViewer({
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setPreviewOpen(false);
     }
   };
 
