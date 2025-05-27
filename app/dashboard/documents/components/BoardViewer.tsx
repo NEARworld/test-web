@@ -15,14 +15,25 @@ import {
   Eye,
   Trash2,
   Pencil,
+  Save,
+  X,
 } from "lucide-react";
 import type { Document } from "@prisma/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
 interface BoardViewerProps {
@@ -63,6 +74,8 @@ export default function BoardViewer({
   const [editData, setEditData] = useState<Partial<Document> | null>(null);
   // 수정 로딩 상태 추가
   const [updateLoading, setUpdateLoading] = useState(false);
+  // 파일 업로드 상태
+  const [file, setFile] = useState<File | null>(null);
 
   // createdById로 유저 닉네임 조회
   useEffect(() => {
@@ -156,13 +169,68 @@ export default function BoardViewer({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditData(document); // 원본 데이터로 복원
+    setFile(null); // 파일 상태 초기화
   };
 
-  // 수정 핸들러
-  const handleEdit = () => {
-    if (!document?.id) return;
-    router.push(`/dashboard/documents/edit/${document.id}`);
-    onOpenChange(false); // 모달 닫기
+  // 입력 필드 변경 핸들러
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
+    setEditData((prev) => (prev ? { ...prev, [name]: value } : null));
+  };
+
+  // 선택 필드 변경 핸들러
+  const handleSelectChange = (name: string, value: string) => {
+    setEditData((prev) => (prev ? { ...prev, [name]: value } : null));
+  };
+
+  // 파일 변경 핸들러
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  // 수정 저장 핸들러
+  const handleSave = async () => {
+    if (!document?.id || !editData) return;
+
+    setUpdateLoading(true);
+
+    try {
+      // FormData 생성
+      const formData = new FormData();
+
+      // 기본 필드 추가
+      formData.append("title", editData.title || "");
+      formData.append("description", editData.description || "");
+      formData.append("boardType", editData.boardType || "");
+
+      // 새 파일이 있으면 추가
+      if (file) {
+        formData.append("file", file);
+      }
+
+      // API 호출
+      const response = await fetch(`/api/documents/${document.id}`, {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("수정 중 오류가 발생했습니다.");
+      }
+
+      toast.success("게시물이 수정되었습니다.");
+      setIsEditing(false);
+      router.refresh(); // 페이지 새로고침
+    } catch (error) {
+      console.error("수정 오류:", error);
+      toast.error("게시물 수정에 실패했습니다.");
+    } finally {
+      setUpdateLoading(false);
+    }
   };
 
   return (
@@ -199,56 +267,115 @@ export default function BoardViewer({
           </div>
         ) : (
           <>
-            <DialogHeader className="border-b pb-4">
+            <DialogHeader className="w-full border-b pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <Badge variant="outline" className="mb-2">
-                    {/* boardType을 한글로 표시, 없으면 '게시물' */}
-                    {boardTypeKo[document.boardType] || "게시물"}
-                  </Badge>
-                  <DialogTitle className="text-2xl font-bold">
-                    {document.title || "제목 없음"}
-                  </DialogTitle>
-                </div>
+                {isEditing ? (
+                  <div className="w-full">
+                    <div className="mb-4">
+                      <Select
+                        value={editData?.boardType || ""}
+                        onValueChange={(value) =>
+                          handleSelectChange("boardType", value)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="게시판 유형 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(boardTypeKo).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Input
+                      name="title"
+                      value={editData?.title || ""}
+                      onChange={handleInputChange}
+                      placeholder="제목"
+                      className="text-xl font-bold"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Badge variant="outline" className="mb-2">
+                      {/* boardType을 한글로 표시, 없으면 '게시물' */}
+                      {boardTypeKo[document.boardType] || "게시물"}
+                    </Badge>
+                    <DialogTitle className="text-2xl font-bold">
+                      {document.title || "제목 없음"}
+                    </DialogTitle>
+                  </div>
+                )}
               </div>
             </DialogHeader>
 
-            <div className="grid gap-6 py-4">
-              {/* 메타 정보 섹션 */}
-              <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
-                  <span>작성자: {creatorName || "알 수 없음"}</span>
+            <div className="grid w-full gap-6 py-4">
+              {/* 메타 정보 섹션 - 편집 모드에서는 표시하지 않음 */}
+              {!isEditing && (
+                <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    <span>작성자: {creatorName || "알 수 없음"}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>작성일: {formatDate(document.createdAt)}</span>
+                  </div>
+                  {document.updatedAt &&
+                    document.updatedAt !== document.createdAt && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>수정일: {formatDate(document.updatedAt)}</span>
+                      </div>
+                    )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>작성일: {formatDate(document.createdAt)}</span>
-                </div>
-                {document.updatedAt &&
-                  document.updatedAt !== document.createdAt && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>수정일: {formatDate(document.updatedAt)}</span>
-                    </div>
-                  )}
-              </div>
+              )}
 
               {/* 설명 섹션 */}
               <div className="rounded-lg border p-4">
                 <h3 className="mb-2 font-medium">설명</h3>
-                <div className="min-h-[100px] text-base whitespace-pre-line">
-                  {document.description || (
-                    <span className="text-muted-foreground italic">
-                      설명이 없습니다.
-                    </span>
-                  )}
-                </div>
+                {isEditing ? (
+                  <Textarea
+                    name="description"
+                    value={editData?.description || ""}
+                    onChange={handleInputChange}
+                    placeholder="설명을 입력하세요"
+                    className="min-h-[150px]"
+                  />
+                ) : (
+                  <div className="min-h-[100px] text-base whitespace-pre-line">
+                    {document.description || (
+                      <span className="text-muted-foreground italic">
+                        설명이 없습니다.
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 첨부파일 섹션 */}
               <div className="rounded-lg border p-4">
                 <h3 className="mb-2 font-medium">첨부파일</h3>
-                {document.fileName && document.fileUrl ? (
+                {isEditing ? (
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      type="file"
+                      onChange={handleFileChange}
+                      className="max-w-md"
+                    />
+                    {file ? (
+                      <p className="text-sm">선택된 파일: {file.name}</p>
+                    ) : document.fileName ? (
+                      <p className="text-sm">
+                        현재 파일: {document.fileName} (변경하지 않으려면
+                        비워두세요)
+                      </p>
+                    ) : null}
+                  </div>
+                ) : document.fileName && document.fileUrl ? (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                       <Button
@@ -313,8 +440,27 @@ export default function BoardViewer({
 
             <DialogFooter className="border-t pt-4">
               <div className="flex w-full items-center justify-between">
-                {/* 작성자인 경우에만 삭제 및 수정 버튼 표시 */}
-                {isAuthor && (
+                {isEditing ? (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      onClick={handleSave}
+                      className="flex items-center gap-2"
+                      disabled={updateLoading}
+                    >
+                      <Save className="h-4 w-4" />
+                      {updateLoading ? "저장 중..." : "저장"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      className="flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      취소
+                    </Button>
+                  </div>
+                ) : isAuthor ? (
                   <div className="flex gap-2">
                     <Button
                       variant="destructive"
@@ -334,8 +480,12 @@ export default function BoardViewer({
                       수정
                     </Button>
                   </div>
+                ) : (
+                  <div></div> // 작성자가 아닌 경우 빈 div로 레이아웃 유지
                 )}
-                <Button onClick={() => onOpenChange(false)}>닫기</Button>
+                {!isEditing && (
+                  <Button onClick={() => onOpenChange(false)}>닫기</Button>
+                )}
               </div>
             </DialogFooter>
           </>
