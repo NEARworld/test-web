@@ -7,8 +7,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, User, Clock } from "lucide-react";
+import { Calendar, Download, User, Clock, Eye } from "lucide-react";
 import type { Document } from "@prisma/client";
+import { useState } from "react";
+import Image from "next/image";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
 interface BoardViewerProps {
@@ -22,6 +24,9 @@ export default function BoardViewer({
   onOpenChange,
   document,
 }: BoardViewerProps) {
+  // 파일 미리보기 상태
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   // document가 없으면 아무것도 렌더링하지 않음
   if (!document) return null;
 
@@ -35,6 +40,17 @@ export default function BoardViewer({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // 파일 확장자 확인
+  const getFileExtension = (fileName: string) => {
+    return fileName.split(".").pop()?.toLowerCase() || "";
+  };
+
+  // 미리보기 가능한 파일인지 확인
+  const isPreviewable = (fileName: string) => {
+    const ext = getFileExtension(fileName);
+    return ["pdf", "jpg", "jpeg", "png", "gif"].includes(ext);
   };
 
   return (
@@ -89,23 +105,60 @@ export default function BoardViewer({
           <div className="rounded-lg border p-4">
             <h3 className="mb-2 font-medium">첨부파일</h3>
             {document.fileName && document.fileUrl ? (
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                asChild
-              >
-                <a
-                  href={document.fileUrl}
-                  download={document.fileName}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Download className="h-4 w-4" />
-                  <span className="max-w-[300px] truncate">
-                    {document.fileName}
-                  </span>
-                </a>
-              </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    asChild
+                  >
+                    <a
+                      href={document.fileUrl}
+                      download={document.fileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="max-w-[300px] truncate">
+                        {document.fileName}
+                      </span>
+                    </a>
+                  </Button>
+
+                  {isPreviewable(document.fileName) && (
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={() => setPreviewOpen(!previewOpen)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>미리보기</span>
+                    </Button>
+                  )}
+                </div>
+
+                {/* 파일 미리보기 영역 */}
+                {previewOpen && isPreviewable(document.fileName) && (
+                  <div className="mt-2 w-full rounded-md border p-2">
+                    {getFileExtension(document.fileName) === "pdf" ? (
+                      <iframe
+                        src={`${document.fileUrl}#view=FitH`}
+                        className="h-[500px] w-full"
+                        title={document.fileName}
+                      />
+                    ) : (
+                      <Image
+                        src={document.fileUrl}
+                        alt={document.fileName}
+                        width={800}
+                        height={600}
+                        className="mx-auto max-h-[500px] max-w-full object-contain"
+                        unoptimized={!document.fileUrl.startsWith("/")}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <span className="text-muted-foreground italic">
                 첨부파일이 없습니다.
