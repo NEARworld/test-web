@@ -7,7 +7,15 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, User, Clock, Eye, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  Download,
+  User,
+  Clock,
+  Eye,
+  Trash2,
+  Pencil,
+} from "lucide-react";
 import type { Document } from "@prisma/client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -120,6 +128,13 @@ export default function BoardViewer({
     } finally {
       setDeleteLoading(false);
     }
+  };
+
+  // 수정 핸들러
+  const handleEdit = () => {
+    if (!document?.id) return;
+    router.push(`/dashboard/documents/edit/${document.id}`);
+    onOpenChange(false); // 모달 닫기
   };
 
   return (
@@ -270,17 +285,27 @@ export default function BoardViewer({
 
             <DialogFooter className="border-t pt-4">
               <div className="flex w-full items-center justify-between">
-                {/* 작성자인 경우에만 삭제 버튼 표시 */}
+                {/* 작성자인 경우에만 삭제 및 수정 버튼 표시 */}
                 {isAuthor && (
-                  <Button
-                    variant="destructive"
-                    onClick={handleDelete}
-                    className="flex items-center gap-2"
-                    disabled={deleteLoading}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {deleteLoading ? "삭제 중..." : "삭제"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      onClick={handleDelete}
+                      className="flex items-center gap-2"
+                      disabled={deleteLoading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deleteLoading ? "삭제 중..." : "삭제"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleEdit}
+                      className="flex items-center gap-2"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      수정
+                    </Button>
+                  </div>
                 )}
                 <Button onClick={() => onOpenChange(false)}>닫기</Button>
               </div>
