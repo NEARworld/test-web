@@ -33,13 +33,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import BoardViewerSkeleton from "@/app/dashboard/documents/components/BoardViewerSkeleton";
+import { DocumentWithCreatedBy } from "@/types/document";
 
 // BoardViewer 컴포넌트: 게시물 보기 모달
 interface BoardViewerProps {
   open: boolean; // 모달 오픈 여부
   onOpenChange: (open: boolean) => void; // 모달 상태 변경 함수
-  document: Document | null; // prisma Document 타입 사용
+  document: DocumentWithCreatedBy | null; // prisma Document 타입 사용
 }
 
 // boardType 한글 매핑
@@ -60,10 +60,6 @@ export default function BoardViewer({
   document,
 }: BoardViewerProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  // 유저 닉네임 상태 추가
-  const [creatorName, setCreatorName] = useState<string | null>(null);
-  // 로딩 상태 추가
-  const [creatorLoading, setCreatorLoading] = useState(false);
   // 삭제 로딩 상태 추가
   const [deleteLoading, setDeleteLoading] = useState(false);
   // 현재 로그인한 사용자 정보 가져오기
@@ -79,21 +75,6 @@ export default function BoardViewer({
   const [updateLoading, setUpdateLoading] = useState(false);
   // 파일 업로드 상태
   const [file, setFile] = useState<File | null>(null);
-
-  // createdById로 유저 닉네임 조회
-  useEffect(() => {
-    if (!document?.createdById) {
-      setCreatorName(null);
-      setCreatorLoading(false);
-      return;
-    }
-    setCreatorLoading(true);
-    fetch(`/api/user?id=${document.createdById}`)
-      .then((res) => res.json())
-      .then((data) => setCreatorName(data?.name || null))
-      .catch(() => setCreatorName(null))
-      .finally(() => setCreatorLoading(false));
-  }, [document?.createdById]);
 
   // 문서가 변경되면 편집 모드 초기화 및 editData 설정
   useEffect(() => {
@@ -250,237 +231,230 @@ export default function BoardViewer({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex min-h-[300px] w-full max-w-3xl items-center justify-center">
-        {/* 작성자 정보 로딩 중이면 전체 모달에 스켈레톤 표시 */}
-        {creatorLoading ? (
-          <BoardViewerSkeleton />
-        ) : (
-          <>
-            <DialogHeader className="w-full border-b pb-4">
-              <div className="flex items-center justify-between">
-                {isEditing ? (
-                  <div className="w-full">
-                    <div className="mb-4">
-                      <Select
-                        value={editData?.boardType || ""}
-                        onValueChange={(value) =>
-                          handleSelectChange("boardType", value)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="게시판 유형 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(boardTypeKo).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Input
-                      name="title"
-                      value={editData?.title || ""}
-                      onChange={handleInputChange}
-                      placeholder="제목"
-                      className="text-xl font-bold"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <Badge variant="outline" className="mb-2">
-                      {/* boardType을 한글로 표시, 없으면 '게시물' */}
-                      {boardTypeKo[document.boardType] || "게시물"}
-                    </Badge>
-                    <DialogTitle className="text-2xl font-bold">
-                      {document.title || "제목 없음"}
-                    </DialogTitle>
-                  </div>
-                )}
-              </div>
-            </DialogHeader>
-
-            <div className="grid w-full gap-6 py-4">
-              {/* 메타 정보 섹션 - 편집 모드에서는 표시하지 않음 */}
-              {!isEditing && (
-                <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    <span>작성자: {creatorName || "알 수 없음"}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>작성일: {formatDate(document.createdAt)}</span>
-                  </div>
-                  {document.updatedAt &&
-                    document.updatedAt !== document.createdAt && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>수정일: {formatDate(document.updatedAt)}</span>
-                      </div>
-                    )}
+        <DialogHeader className="w-full border-b pb-4">
+          <div className="flex items-center justify-between">
+            {isEditing ? (
+              <div className="w-full">
+                <div className="mb-4">
+                  <Select
+                    value={editData?.boardType || ""}
+                    onValueChange={(value) =>
+                      handleSelectChange("boardType", value)
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="게시판 유형 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(boardTypeKo).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                <Input
+                  name="title"
+                  value={editData?.title || ""}
+                  onChange={handleInputChange}
+                  placeholder="제목"
+                  className="text-xl font-bold"
+                />
+              </div>
+            ) : (
+              <div>
+                <Badge variant="outline" className="mb-2">
+                  {/* boardType을 한글로 표시, 없으면 '게시물' */}
+                  {boardTypeKo[document.boardType] || "게시물"}
+                </Badge>
+                <DialogTitle className="text-2xl font-bold">
+                  {document.title || "제목 없음"}
+                </DialogTitle>
+              </div>
+            )}
+          </div>
+        </DialogHeader>
 
-              {/* 설명 섹션 */}
-              <div className="rounded-lg border p-4">
-                <h3 className="mb-2 font-medium">설명</h3>
-                {isEditing ? (
-                  <Textarea
-                    name="description"
-                    value={editData?.description || ""}
-                    onChange={handleInputChange}
-                    placeholder="설명을 입력하세요"
-                    className="min-h-[150px]"
-                  />
-                ) : (
-                  <div className="min-h-[100px] text-base whitespace-pre-line">
-                    {document.description || (
-                      <span className="text-muted-foreground italic">
-                        설명이 없습니다.
-                      </span>
-                    )}
+        <div className="grid w-full gap-6 py-4">
+          {/* 메타 정보 섹션 - 편집 모드에서는 표시하지 않음 */}
+          {!isEditing && (
+            <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span>작성자: {document.createdBy?.name || "알 수 없음"}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>작성일: {formatDate(document.createdAt)}</span>
+              </div>
+              {document.updatedAt &&
+                document.updatedAt !== document.createdAt && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>수정일: {formatDate(document.updatedAt)}</span>
                   </div>
                 )}
-              </div>
+            </div>
+          )}
 
-              {/* 첨부파일 섹션 */}
-              <div className="rounded-lg border p-4">
-                <h3 className="mb-2 font-medium">첨부파일</h3>
-                {isEditing ? (
-                  <div className="flex flex-col gap-2">
-                    <Input
-                      type="file"
-                      accept={ALLOWED_FILE_EXTENSIONS.map(
-                        (ext) => `.${ext}`,
-                      ).join(",")}
-                      onChange={handleFileChange}
-                      className="max-w-md"
-                    />
-                    {file ? (
-                      <p className="text-sm">선택된 파일: {file.name}</p>
-                    ) : document.fileName ? (
-                      <p className="text-sm">
-                        현재 파일: {document.fileName} (변경하지 않으려면
-                        비워두세요)
-                      </p>
-                    ) : null}
-                  </div>
-                ) : document.fileName && document.fileUrl ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2"
-                        asChild
-                      >
-                        <a
-                          href={document.fileUrl}
-                          download={document.fileName}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span className="max-w-[300px] truncate">
-                            {document.fileName}
-                          </span>
-                        </a>
-                      </Button>
-
-                      {isPreviewable(document.fileName) && (
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2"
-                          onClick={() => setPreviewOpen(!previewOpen)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span>미리보기</span>
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* 파일 미리보기 영역 */}
-                    {previewOpen && isPreviewable(document.fileName) && (
-                      <div className="mt-2 w-full rounded-md border p-2">
-                        {getFileExtension(document.fileName) === "pdf" ? (
-                          <iframe
-                            src={`${document.fileUrl}#view=FitH`}
-                            className="h-[500px] w-full"
-                            title={document.fileName}
-                          />
-                        ) : (
-                          <Image
-                            src={document.fileUrl}
-                            alt={document.fileName}
-                            width={800}
-                            height={600}
-                            className="mx-auto max-h-[500px] max-w-full object-contain"
-                            unoptimized={!document.fileUrl.startsWith("/")}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
+          {/* 설명 섹션 */}
+          <div className="rounded-lg border p-4">
+            <h3 className="mb-2 font-medium">설명</h3>
+            {isEditing ? (
+              <Textarea
+                name="description"
+                value={editData?.description || ""}
+                onChange={handleInputChange}
+                placeholder="설명을 입력하세요"
+                className="min-h-[150px]"
+              />
+            ) : (
+              <div className="min-h-[100px] text-base whitespace-pre-line">
+                {document.description || (
                   <span className="text-muted-foreground italic">
-                    첨부파일이 없습니다.
+                    설명이 없습니다.
                   </span>
                 )}
               </div>
-            </div>
+            )}
+          </div>
 
-            <DialogFooter className="border-t pt-4">
-              <div className="flex w-full items-center justify-between">
-                {isEditing ? (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      onClick={handleSave}
-                      className="flex items-center gap-2"
-                      disabled={updateLoading}
+          {/* 첨부파일 섹션 */}
+          <div className="rounded-lg border p-4">
+            <h3 className="mb-2 font-medium">첨부파일</h3>
+            {isEditing ? (
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="file"
+                  accept={ALLOWED_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(
+                    ",",
+                  )}
+                  onChange={handleFileChange}
+                  className="max-w-md"
+                />
+                {file ? (
+                  <p className="text-sm">선택된 파일: {file.name}</p>
+                ) : document.fileName ? (
+                  <p className="text-sm">
+                    현재 파일: {document.fileName} (변경하지 않으려면
+                    비워두세요)
+                  </p>
+                ) : null}
+              </div>
+            ) : document.fileName && document.fileUrl ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    asChild
+                  >
+                    <a
+                      href={document.fileUrl}
+                      download={document.fileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Save className="h-4 w-4" />
-                      {updateLoading ? "저장 중..." : "저장"}
-                    </Button>
+                      <Download className="h-4 w-4" />
+                      <span className="max-w-[300px] truncate">
+                        {document.fileName}
+                      </span>
+                    </a>
+                  </Button>
+
+                  {isPreviewable(document.fileName) && (
                     <Button
                       variant="outline"
-                      onClick={handleCancelEdit}
                       className="flex items-center gap-2"
+                      onClick={() => setPreviewOpen(!previewOpen)}
                     >
-                      <X className="h-4 w-4" />
-                      취소
+                      <Eye className="h-4 w-4" />
+                      <span>미리보기</span>
                     </Button>
+                  )}
+                </div>
+
+                {/* 파일 미리보기 영역 */}
+                {previewOpen && isPreviewable(document.fileName) && (
+                  <div className="mt-2 w-full rounded-md border p-2">
+                    {getFileExtension(document.fileName) === "pdf" ? (
+                      <iframe
+                        src={`${document.fileUrl}#view=FitH`}
+                        className="h-[500px] w-full"
+                        title={document.fileName}
+                      />
+                    ) : (
+                      <Image
+                        src={document.fileUrl}
+                        alt={document.fileName}
+                        width={800}
+                        height={600}
+                        className="mx-auto max-h-[500px] max-w-full object-contain"
+                        unoptimized={!document.fileUrl.startsWith("/")}
+                      />
+                    )}
                   </div>
-                ) : isAuthor ? (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="destructive"
-                      onClick={handleDelete}
-                      className="flex items-center gap-2"
-                      disabled={deleteLoading}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      {deleteLoading ? "삭제 중..." : "삭제"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleEditMode}
-                      className="flex items-center gap-2"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      수정
-                    </Button>
-                  </div>
-                ) : (
-                  <div></div> // 작성자가 아닌 경우 빈 div로 레이아웃 유지
-                )}
-                {!isEditing && (
-                  <Button onClick={() => onOpenChange(false)}>닫기</Button>
                 )}
               </div>
-            </DialogFooter>
-          </>
-        )}
+            ) : (
+              <span className="text-muted-foreground italic">
+                첨부파일이 없습니다.
+              </span>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="border-t pt-4">
+          <div className="flex w-full items-center justify-between">
+            {isEditing ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  onClick={handleSave}
+                  className="flex items-center gap-2"
+                  disabled={updateLoading}
+                >
+                  <Save className="h-4 w-4" />
+                  {updateLoading ? "저장 중..." : "저장"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  취소
+                </Button>
+              </div>
+            ) : isAuthor ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  className="flex items-center gap-2"
+                  disabled={deleteLoading}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {deleteLoading ? "삭제 중..." : "삭제"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleEditMode}
+                  className="flex items-center gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  수정
+                </Button>
+              </div>
+            ) : (
+              <div></div> // 작성자가 아닌 경우 빈 div로 레이아웃 유지
+            )}
+            {!isEditing && (
+              <Button onClick={() => onOpenChange(false)}>닫기</Button>
+            )}
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
