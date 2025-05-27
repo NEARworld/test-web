@@ -104,3 +104,27 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
+
+// DELETE 요청: 기존 Document 삭제
+export async function DELETE(request: NextRequest) {
+  // 요청 body에서 데이터 파싱
+  const body = await request.json();
+  const { id } = body;
+
+  // id 필수값 체크
+  if (!id) {
+    return NextResponse.json({ error: "id 필수" }, { status: 400 });
+  }
+
+  try {
+    // document 삭제
+    const deleted = await prisma.document.delete({
+      where: { id },
+    });
+    // 삭제된 document 반환
+    return NextResponse.json(deleted);
+  } catch (error) {
+    // 에러 발생 시 에러 메시지 반환
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
