@@ -1,4 +1,6 @@
-import { useDocument } from "@/app/hooks/useDocument";
+"use client";
+
+import { useDocument } from "@/hooks/useDocument";
 
 // 바자울 자료실 페이지
 export default function BajaulDocumentsPage() {

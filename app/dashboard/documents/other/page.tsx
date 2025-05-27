@@ -1,5 +1,6 @@
-// 한글 주석: other 페이지
-import { useDocument } from "@/app/hooks/useDocument";
+"use client";
+
+import { useDocument } from "@/hooks/useDocument";
 
 export default function OtherPage() {
   const { documents, loading, error } = useDocument("OTHER");
