@@ -105,7 +105,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE 요청: 기존 Document 삭제
+// DELETE 요청: 기존 Document 삭제 (isDeleted 필드를 true로 변경)
 export async function DELETE(request: NextRequest) {
   // 요청 body에서 데이터 파싱
   const body = await request.json();
@@ -117,12 +117,13 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    // document 삭제
-    const deleted = await prisma.document.delete({
+    // document의 isDeleted 필드를 true로 변경
+    const updated = await prisma.document.update({
       where: { id },
+      data: { isDeleted: true },
     });
-    // 삭제된 document 반환
-    return NextResponse.json(deleted);
+    // 변경된 document 반환
+    return NextResponse.json(updated);
   } catch (error) {
     // 에러 발생 시 에러 메시지 반환
     return NextResponse.json({ error: String(error) }, { status: 500 });
