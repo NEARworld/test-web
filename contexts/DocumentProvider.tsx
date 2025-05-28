@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { DocumentWithCreatedBy } from "@/types/document";
-
+import { usePathname } from "next/navigation";
 // Context를 통해 제공될 값의 타입 정의
 export interface DocumentContextType {
   documents: DocumentWithCreatedBy[] | null;
@@ -27,19 +27,17 @@ export const DocumentContext = createContext<DocumentContextType | undefined>(
 // Provider 컴포넌트 Props 타입 정의
 interface DocumentProviderProps {
   children: ReactNode;
-  boardType: string | undefined;
 }
 
 // Provider 컴포넌트 생성
-export const DocumentProvider = ({
-  children,
-  boardType,
-}: DocumentProviderProps) => {
+export const DocumentProvider = ({ children }: DocumentProviderProps) => {
   const [documents, setDocuments] = useState<DocumentWithCreatedBy[] | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const pathname = usePathname();
+  const boardType = pathname.split("/").pop();
 
   const fetchDocuments = useCallback(async () => {
     // 자료실 타입이 없으면 데이터를 가져오지 않음
