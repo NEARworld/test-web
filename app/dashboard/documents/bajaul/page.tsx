@@ -6,7 +6,7 @@ import { useDocument } from "@/hooks/useDocument";
 
 // 바자울 자료실 페이지
 export default function BajaulDocumentsPage() {
-  const { documents, loading, error } = useDocument("BAJAUL");
+  const { documents, loading, error, fetchDocuments } = useDocument("BAJAUL");
 
   if (error) {
     return <div>에러 발생: {error.message}</div>;
@@ -18,7 +18,7 @@ export default function BajaulDocumentsPage() {
       {loading ? (
         <DocumentTableSkeleton />
       ) : (
-        <DocumentTable documents={documents} />
+        <DocumentTable documents={documents} fetchDocuments={fetchDocuments} />
       )}
     </div>
   );

@@ -12,7 +12,10 @@ import { formatDate } from "@/app/dashboard/tasks/utils/TaskUtils";
 import { DocumentTableProps, DocumentWithCreatedBy } from "@/types/document";
 import DocumentViewer from "./DocumentViewer";
 
-export default function DocumentTable({ documents }: DocumentTableProps) {
+export default function DocumentTable({
+  documents,
+  fetchDocuments,
+}: DocumentTableProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentWithCreatedBy | null>(null);
@@ -86,6 +89,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
         open={isViewerOpen}
         onOpenChange={setIsViewerOpen}
         document={selectedDocument}
+        fetchDocuments={fetchDocuments}
       />
     </>
   );
