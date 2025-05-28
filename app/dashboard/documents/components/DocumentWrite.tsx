@@ -29,12 +29,10 @@ const DocumentWriteButton: React.FC = () => {
           글쓰기
         </button>
       </DialogTrigger>
-      <DialogContent className="flex h-[90vh] w-[90vw] flex-col md:h-[50vh] md:w-[50vw]">
-        <DialogHeader>
+      <DialogContent className="flex h-[90vh] w-[90vw] flex-col overflow-hidden p-0 md:h-[65vh] md:w-[50vw]">
+        <DialogHeader className="p-6 pb-4">
           <DialogTitle>새 문서 작성</DialogTitle>
-          <DialogDescription>
-            새 문서를 작성하고 저장하세요. {/* 설명 업데이트 */}
-          </DialogDescription>
+          <DialogDescription>새 문서를 작성하고 저장하세요.</DialogDescription>
         </DialogHeader>
         {/* 문서 작성 폼 */}
         <DocumentWriteForm />
@@ -113,82 +111,82 @@ function DocumentWriteForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-grow flex-col gap-4 overflow-hidden py-4"
+      className="flex h-full flex-grow flex-col overflow-hidden"
     >
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="title" className="text-right">
-          제목
-        </Label>
-        <Input
-          id="title"
-          name="title"
-          placeholder="문서 제목을 입력하세요"
-          className="col-span-3"
-        />
-      </div>
-      <div className="grid flex-grow grid-cols-4 items-start gap-4">
-        <Label htmlFor="content" className="mt-2 text-right">
-          내용
-        </Label>
-        <Textarea
-          id="content"
-          name="content"
-          placeholder="문서 내용을 입력하세요"
-          className="col-span-3 h-full resize-none"
-        />
-      </div>
-      {/* 파일 첨부 UI 개선된 부분 */}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="fileInputTriggerButton">파일 첨부</Label>
-        <Button
-          type="button"
-          id="fileInputTriggerButton"
-          onClick={triggerFileInput}
-          variant="outline"
-          className="text-muted-foreground hover:text-accent-foreground w-full justify-start"
-        >
-          파일 선택...
-        </Button>
-        <Input
-          type="file"
-          id="fileInput"
-          name="fileInput"
-          ref={fileInputRef}
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        {/* 선택된 파일 목록 표시 및 삭제 버튼 추가 */}
-        {selectedFiles.length > 0 && (
-          <div className="mt-2 space-y-1">
-            <p className="text-muted-foreground text-sm font-medium">
-              선택된 파일:
-            </p>
-            <ul className="max-h-24 overflow-y-auto rounded-md border p-2 text-sm">
-              {selectedFiles.map((file, index) => (
-                <li
-                  key={`${file.name}-${index}`}
-                  className="hover:bg-muted/50 flex items-center justify-between rounded-sm p-1"
-                >
-                  <span className="truncate pr-2" title={file.name}>
-                    {file.name}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(file.name)}
-                    className="text-muted-foreground hover:text-destructive h-auto p-1"
+      <div className="flex-grow space-y-4 overflow-y-auto px-6 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="title" className="text-right">
+            제목
+          </Label>
+          <Input
+            id="title"
+            name="title"
+            placeholder="문서 제목을 입력하세요"
+            className="col-span-3"
+          />
+        </div>
+        <div className="grid min-h-[150px] flex-grow grid-cols-4 items-start gap-4">
+          <Label htmlFor="content" className="mt-2 text-right">
+            내용
+          </Label>
+          <Textarea
+            id="content"
+            name="content"
+            placeholder="문서 내용을 입력하세요"
+            className="col-span-3 h-full resize-none"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="fileInputTriggerButton">파일 첨부</Label>
+          <Button
+            type="button"
+            id="fileInputTriggerButton"
+            onClick={triggerFileInput}
+            variant="outline"
+            className="text-muted-foreground hover:text-accent-foreground w-full justify-start"
+          >
+            파일 선택...
+          </Button>
+          <Input
+            type="file"
+            id="fileInput"
+            name="fileInput"
+            ref={fileInputRef}
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {selectedFiles.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-muted-foreground text-sm font-medium">
+                선택된 파일:
+              </p>
+              <ul className="space-y-1 rounded-md border p-2 text-sm">
+                {selectedFiles.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="hover:bg-muted/50 flex items-center justify-between rounded-sm p-1"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+                    <span className="truncate pr-2" title={file.name}>
+                      {file.name}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(file.name)}
+                      className="text-muted-foreground hover:text-destructive h-auto p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
-      <DialogFooter>
+      <DialogFooter className="border-t p-6 pt-4">
         <Button
           type="submit"
           className="bg-blue-500 text-white hover:bg-blue-700"
