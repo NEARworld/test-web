@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -43,9 +43,17 @@ const DocumentWriteButton: React.FC = () => {
 };
 
 function DocumentWriteForm() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log("Form submitted");
+    const formData = new FormData(event.currentTarget);
+    console.log("Form data entries:", Object.fromEntries(formData.entries()));
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -59,6 +67,7 @@ function DocumentWriteForm() {
         </Label>
         <Input
           id="title"
+          name="title"
           placeholder="문서 제목을 입력하세요"
           className="col-span-3"
         />
@@ -69,18 +78,30 @@ function DocumentWriteForm() {
         </Label>
         <Textarea
           id="content"
+          name="content"
           placeholder="문서 내용을 입력하세요"
           className="col-span-3 h-full resize-none"
         />
       </div>
-      {/* 파일 첨부 섹션 */}
+      {/* 파일 첨부 UI 개선된 부분 */}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="fileInput">파일 첨부</Label>
+        <Label htmlFor="fileInputTriggerButton">파일 첨부</Label>
+        <Button
+          type="button"
+          id="fileInputTriggerButton"
+          onClick={triggerFileInput}
+          variant="outline"
+          className="text-muted-foreground hover:text-accent-foreground w-full justify-start"
+        >
+          파일 선택...
+        </Button>
         <Input
           type="file"
           id="fileInput"
-          className="file:mr-4 file:rounded-md file:border-0 file:bg-blue-500 file:text-white file:hover:bg-blue-600"
+          name="fileInput"
+          ref={fileInputRef}
           multiple
+          className="hidden"
         />
       </div>
       <DialogFooter>
