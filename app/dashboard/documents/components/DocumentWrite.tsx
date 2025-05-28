@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 // Props가 없으므로 인터페이스를 비워두거나 제거할 수 있습니다.
 // interface DocumentWriteButtonProps {}
@@ -44,7 +45,7 @@ const DocumentWriteButton: React.FC = () => {
 
 function DocumentWriteForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]); // 선택된 파일 목록을 위한 상태
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,12 +62,10 @@ function DocumentWriteForm() {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // 사용자가 추가한 로그는 유지하거나 필요에 따라 수정합니다.
     console.log(
       "handleFileChange triggered. event.target.files:",
       event.target.files,
     );
-
     if (event.target.files && event.target.files.length > 0) {
       const newFilesArray = Array.from(event.target.files);
       setSelectedFiles((prevFiles) => {
@@ -75,7 +74,12 @@ function DocumentWriteForm() {
           "Inside setSelectedFiles updater - newFilesArray:",
           newFilesArray,
         );
-        const updatedFiles = [...prevFiles, ...newFilesArray];
+        // 파일 이름으로 중복 체크하여 이미 있는 파일은 추가하지 않도록 개선
+        const uniqueNewFiles = newFilesArray.filter(
+          (newFile) =>
+            !prevFiles.some((prevFile) => prevFile.name === newFile.name),
+        );
+        const updatedFiles = [...prevFiles, ...uniqueNewFiles];
         console.log(
           "Inside setSelectedFiles updater - resulting updatedFiles:",
           updatedFiles,
@@ -83,12 +87,23 @@ function DocumentWriteForm() {
         return updatedFiles;
       });
     }
-
     // 파일 선택 후 input 값을 초기화하여 동일한 파일을 다시 선택할 수 있도록 합니다.
-    // 이 작업은 event.target.files를 사용한 후에 수행해야 합니다.
     if (event.target) {
       event.target.value = "";
     }
+  };
+
+  const removeFile = (fileNameToRemove: string) => {
+    setSelectedFiles((prevFiles) => {
+      const updatedFiles = prevFiles.filter(
+        (file) => file.name !== fileNameToRemove,
+      );
+      console.log(
+        `Removed file: ${fileNameToRemove}, updated list:`,
+        updatedFiles,
+      );
+      return updatedFiles;
+    });
   };
 
   const triggerFileInput = () => {
@@ -137,13 +152,13 @@ function DocumentWriteForm() {
         <Input
           type="file"
           id="fileInput"
-          name="fileInput" // 여러 파일을 받을 것이므로 'fileInput[]' 또는 서버 로직에 맞게 조정 가능
+          name="fileInput"
           ref={fileInputRef}
           multiple
           className="hidden"
-          onChange={handleFileChange} // 파일 변경 시 핸들러 호출
+          onChange={handleFileChange}
         />
-        {/* 선택된 파일 목록 표시 */}
+        {/* 선택된 파일 목록 표시 및 삭제 버튼 추가 */}
         {selectedFiles.length > 0 && (
           <div className="mt-2 space-y-1">
             <p className="text-muted-foreground text-sm font-medium">
@@ -151,7 +166,23 @@ function DocumentWriteForm() {
             </p>
             <ul className="max-h-24 overflow-y-auto rounded-md border p-2 text-sm">
               {selectedFiles.map((file, index) => (
-                <li key={index}>{file.name}</li>
+                <li
+                  key={`${file.name}-${index}`}
+                  className="hover:bg-muted/50 flex items-center justify-between rounded-sm p-1"
+                >
+                  <span className="truncate pr-2" title={file.name}>
+                    {file.name}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(file.name)}
+                    className="text-muted-foreground hover:text-destructive h-auto p-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </li>
               ))}
             </ul>
           </div>
