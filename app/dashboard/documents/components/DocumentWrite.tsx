@@ -44,12 +44,51 @@ const DocumentWriteButton: React.FC = () => {
 
 function DocumentWriteForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]); // 선택된 파일 목록을 위한 상태
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log("Form submitted");
     const formData = new FormData(event.currentTarget);
-    console.log("Form data entries:", Object.fromEntries(formData.entries()));
+    selectedFiles.forEach((file) => {
+      formData.append("files", file, file.name);
+    });
+    console.log(
+      "Form data entries (with files):",
+      Object.fromEntries(formData.entries()),
+    );
+    // 여기에 실제 서버 전송 로직 추가
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // 사용자가 추가한 로그는 유지하거나 필요에 따라 수정합니다.
+    console.log(
+      "handleFileChange triggered. event.target.files:",
+      event.target.files,
+    );
+
+    if (event.target.files && event.target.files.length > 0) {
+      const newFilesArray = Array.from(event.target.files);
+      setSelectedFiles((prevFiles) => {
+        console.log("Inside setSelectedFiles updater - prevFiles:", prevFiles);
+        console.log(
+          "Inside setSelectedFiles updater - newFilesArray:",
+          newFilesArray,
+        );
+        const updatedFiles = [...prevFiles, ...newFilesArray];
+        console.log(
+          "Inside setSelectedFiles updater - resulting updatedFiles:",
+          updatedFiles,
+        );
+        return updatedFiles;
+      });
+    }
+
+    // 파일 선택 후 input 값을 초기화하여 동일한 파일을 다시 선택할 수 있도록 합니다.
+    // 이 작업은 event.target.files를 사용한 후에 수행해야 합니다.
+    if (event.target) {
+      event.target.value = "";
+    }
   };
 
   const triggerFileInput = () => {
@@ -98,11 +137,25 @@ function DocumentWriteForm() {
         <Input
           type="file"
           id="fileInput"
-          name="fileInput"
+          name="fileInput" // 여러 파일을 받을 것이므로 'fileInput[]' 또는 서버 로직에 맞게 조정 가능
           ref={fileInputRef}
           multiple
           className="hidden"
+          onChange={handleFileChange} // 파일 변경 시 핸들러 호출
         />
+        {/* 선택된 파일 목록 표시 */}
+        {selectedFiles.length > 0 && (
+          <div className="mt-2 space-y-1">
+            <p className="text-muted-foreground text-sm font-medium">
+              선택된 파일:
+            </p>
+            <ul className="max-h-24 overflow-y-auto rounded-md border p-2 text-sm">
+              {selectedFiles.map((file, index) => (
+                <li key={index}>{file.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
       <DialogFooter>
         <Button
