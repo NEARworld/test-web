@@ -156,9 +156,11 @@ export async function PATCH(
 }
 
 // DELETE 요청: Document 삭제
-export async function DELETE({ params }: { params: { id: string } }) {
-  const id = params.id;
-
+export async function DELETE(
+  _: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const id = (await params).id;
   if (!id) {
     return NextResponse.json({ error: "ID가 필요합니다." }, { status: 400 });
   }
