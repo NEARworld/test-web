@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -9,10 +9,18 @@ import {
 } from "@/components/ui/table";
 import { UserAvatar } from "@/components/user-avatar";
 import { formatDate } from "@/app/dashboard/tasks/utils/TaskUtils";
-import { DocumentTableProps } from "@/types/document";
+import { DocumentTableProps, DocumentWithCreatedBy } from "@/types/document";
 
 export default function DocumentTable({ documents }: DocumentTableProps) {
   const hasDocuments = documents && documents.length > 0;
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] =
+    useState<DocumentWithCreatedBy | null>(null);
+
+  const handleDocumentClick = (doc: DocumentWithCreatedBy) => {
+    setSelectedDocument(doc);
+    setIsViewerOpen(true);
+  };
 
   return (
     <div className="mt-4 rounded-md border">
@@ -31,6 +39,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
               <TableRow
                 key={doc.id}
                 className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => handleDocumentClick(doc)}
               >
                 <TableCell className="font-medium">{doc.title}</TableCell>
                 <TableCell>
