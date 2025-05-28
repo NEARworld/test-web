@@ -45,6 +45,12 @@ function DocumentWriteForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
+  const getFileExtension = (fileName: string) => {
+    return fileName
+      .slice(((fileName.lastIndexOf(".") - 1) >>> 0) + 2)
+      .toUpperCase();
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log("Form submitted");
@@ -162,25 +168,35 @@ function DocumentWriteForm() {
                 선택된 파일:
               </p>
               <ul className="space-y-1 rounded-md border p-2 text-sm">
-                {selectedFiles.map((file, index) => (
-                  <li
-                    key={`${file.name}-${index}`}
-                    className="hover:bg-muted/50 flex items-center justify-between rounded-sm p-1"
-                  >
-                    <span className="truncate pr-2" title={file.name}>
-                      {file.name}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(file.name)}
-                      className="text-muted-foreground hover:text-destructive h-auto p-1"
+                {selectedFiles.map((file, index) => {
+                  const extension = getFileExtension(file.name);
+                  return (
+                    <li
+                      key={`${file.name}-${index}`}
+                      className="hover:bg-muted/50 flex items-center justify-between rounded-sm p-1"
                     >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        {extension && (
+                          <span className="inline-block rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-gray-700">
+                            {extension}
+                          </span>
+                        )}
+                        <span className="truncate" title={file.name}>
+                          {file.name}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(file.name)}
+                        className="text-muted-foreground hover:text-destructive h-auto flex-shrink-0 p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
