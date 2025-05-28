@@ -8,10 +8,11 @@ import {
   useMemo,
   useState,
 } from "react";
+import { DocumentWithCreatedBy } from "@/types/document";
 
 // Context를 통해 제공될 값의 타입 정의
 export interface DocumentContextType {
-  documents: Document[] | null;
+  documents: DocumentWithCreatedBy[] | null;
   loading: boolean;
   error: Error | null;
   fetchDocuments: () => Promise<void>; // 데이터를 수동으로 다시 가져올 함수
@@ -34,7 +35,9 @@ export const DocumentProvider = ({
   children,
   boardType,
 }: DocumentProviderProps) => {
-  const [documents, setDocuments] = useState<Document[] | null>(null);
+  const [documents, setDocuments] = useState<DocumentWithCreatedBy[] | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
