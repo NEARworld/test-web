@@ -218,9 +218,6 @@ export default function DocumentViewer({
       // 문서 상태 업데이트
       if (updatedDocument) {
         fetchDocuments(); // 문서 목록 새로고침
-        // 부모 컴포넌트에서 document prop을 업데이트할 수 있도록 이벤트를 발생시키거나
-        // 페이지를 새로고침하여 최신 데이터를 가져옵니다.
-        router.refresh();
       }
     } catch (error) {
       console.error("수정 오류:", error);
