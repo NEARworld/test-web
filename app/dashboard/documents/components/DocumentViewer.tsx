@@ -254,13 +254,15 @@ export default function DocumentViewer({
                     </SelectContent>
                   </Select>
                 </div>
-                <Input
-                  name="title"
-                  value={editData?.title || ""}
-                  onChange={handleInputChange}
-                  placeholder="제목"
-                  className="text-xl font-bold"
-                />
+                <DialogTitle className="text-2xl font-bold">
+                  <Input
+                    name="title"
+                    value={editData?.title || ""}
+                    onChange={handleInputChange}
+                    placeholder="제목"
+                    className="text-xl font-bold"
+                  />
+                </DialogTitle>
               </div>
             ) : (
               <div>
