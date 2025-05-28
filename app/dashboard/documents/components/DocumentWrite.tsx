@@ -120,26 +120,17 @@ function DocumentWriteForm() {
       className="flex h-full flex-grow flex-col overflow-hidden"
     >
       <div className="flex-grow space-y-4 overflow-y-auto px-6 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="title" className="text-right">
-            제목
-          </Label>
-          <Input
-            id="title"
-            name="title"
-            placeholder="문서 제목을 입력하세요"
-            className="col-span-3"
-          />
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="title">제목</Label>
+          <Input id="title" name="title" placeholder="문서 제목을 입력하세요" />
         </div>
-        <div className="grid min-h-[150px] flex-grow grid-cols-4 items-start gap-4">
-          <Label htmlFor="content" className="mt-2 text-right">
-            내용
-          </Label>
+        <div className="flex flex-grow flex-col gap-1.5">
+          <Label htmlFor="content">내용</Label>
           <Textarea
             id="content"
             name="content"
             placeholder="문서 내용을 입력하세요"
-            className="col-span-3 h-full resize-none"
+            className="min-h-[220px]"
           />
         </div>
         <div className="flex flex-col gap-2">
