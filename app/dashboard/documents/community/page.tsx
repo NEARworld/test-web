@@ -8,7 +8,7 @@ export default function CommunityPage() {
 
   return (
     <div>
-      <h1>Community Page</h1>
+      <h1 className="text-3xl font-bold">공동모금회 자료실</h1>
       {loading && <p>로딩 중...</p>}
       {error && <p>에러 발생: {error.message}</p>}
 

@@ -10,8 +10,7 @@ export default function CorpDocumentsPage() {
   const { documents, loading, error } = useDocument("CORP");
   return (
     <div>
-      <h1>법인 자료실</h1>
-      <p>이곳은 법인 자료실입니다.</p>
+      <h1 className="text-3xl font-bold">법인 자료실</h1>
 
       {loading && <p>로딩 중...</p>}
       {error && <p>에러 발생: {error.message}</p>}
