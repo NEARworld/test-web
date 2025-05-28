@@ -230,7 +230,7 @@ export default function DocumentViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex min-h-[300px] w-full max-w-3xl items-center justify-center">
+      <DialogContent className="flex min-h-[300px] w-full max-w-3xl flex-col items-center justify-center">
         <DialogHeader className="w-full border-b pb-4">
           <div className="flex items-center justify-between">
             {isEditing ? (
