@@ -140,6 +140,7 @@ enum BoardType {
   BAJAUL      // 바자울 게시판
   RESTAURANT  // 레스토랑 게시판
   CORP        // 기업 게시판
+  OTHER       // 기타 게시판
 }
 
 model Document {
