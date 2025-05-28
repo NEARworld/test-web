@@ -35,8 +35,8 @@ import {
 } from "@/components/ui/select";
 import { DocumentWithCreatedBy } from "@/types/document";
 
-// BoardViewer 컴포넌트: 게시물 보기 모달
-interface BoardViewerProps {
+// DocumentViewer 컴포넌트: 게시물 보기 모달
+interface DocumentViewerProps {
   open: boolean; // 모달 오픈 여부
   onOpenChange: (open: boolean) => void; // 모달 상태 변경 함수
   document: DocumentWithCreatedBy | null; // prisma Document 타입 사용
@@ -54,11 +54,11 @@ const boardTypeKo: Record<string, string> = {
 // 허용되는 파일 확장자
 const ALLOWED_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "gif"];
 
-export default function BoardViewer({
+export default function DocumentViewer({
   open,
   onOpenChange,
   document,
-}: BoardViewerProps) {
+}: DocumentViewerProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   // 삭제 로딩 상태 추가
   const [deleteLoading, setDeleteLoading] = useState(false);
