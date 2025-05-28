@@ -73,6 +73,16 @@ function DocumentWriteForm() {
           className="col-span-3 h-full resize-none"
         />
       </div>
+      {/* 파일 첨부 섹션 */}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="fileInput">파일 첨부</Label>
+        <Input
+          type="file"
+          id="fileInput"
+          className="file:mr-4 file:rounded-md file:border-0 file:bg-blue-500 file:text-white file:hover:bg-blue-600"
+          multiple
+        />
+      </div>
       <DialogFooter>
         <Button
           type="submit"
