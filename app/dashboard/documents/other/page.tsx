@@ -3,7 +3,6 @@
 import { useDocument } from "@/hooks/useDocument";
 import DocumentTable from "@/app/dashboard/documents/components/DocumentTable";
 import DocumentTableSkeleton from "@/app/dashboard/documents/components/DocumentTableSkeleton";
-import DocumentWriteButton from "@/app/dashboard/documents/components/DocumentWrite";
 export default function OtherPage() {
   const { loading, error } = useDocument();
 
@@ -15,10 +14,6 @@ export default function OtherPage() {
     <div>
       <h1 className="text-3xl font-bold">기타 자료실</h1>
       {loading ? <DocumentTableSkeleton /> : <DocumentTable />}
-      <div className="relative mt-5 flex items-center justify-center">
-        <p>페이지네이션</p>
-        <DocumentWriteButton />
-      </div>
     </div>
   );
 }
