@@ -405,7 +405,7 @@ export default function DocumentViewer({
           </div>
         </div>
 
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="w-full border-t pt-4">
           <div className="flex w-full items-center justify-between">
             {isEditing ? (
               <div className="flex gap-2">
