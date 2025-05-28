@@ -16,11 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
-// Props가 없으므로 인터페이스를 비워두거나 제거할 수 있습니다.
-// interface DocumentWriteButtonProps {}
-
 const DocumentWriteButton: React.FC = () => {
-  // Props를 받지 않으므로 FC만 사용합니다.
   const [isOpen, setIsOpen] = useState(false);
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -34,16 +30,20 @@ const DocumentWriteButton: React.FC = () => {
           <DialogTitle>새 문서 작성</DialogTitle>
           <DialogDescription>새 문서를 작성하고 저장하세요.</DialogDescription>
         </DialogHeader>
-        {/* 문서 작성 폼 */}
-        <DocumentWriteForm />
+        <DocumentWriteForm setIsOpen={setIsOpen} />
       </DialogContent>
     </Dialog>
   );
 };
 
-function DocumentWriteForm() {
+function DocumentWriteForm({
+  setIsOpen,
+}: {
+  setIsOpen: (isOpen: boolean) => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [titleValue, setTitleValue] = useState("");
 
   const getFileExtension = (fileName: string) => {
     return fileName
@@ -51,63 +51,46 @@ function DocumentWriteForm() {
       .toUpperCase();
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log("Form submitted");
+    if (!titleValue.trim()) {
+      alert("제목을 입력해주세요.");
+      return;
+    }
     const formData = new FormData(event.currentTarget);
     selectedFiles.forEach((file) => {
       formData.append("files", file, file.name);
     });
-    console.log(
-      "Form data entries (with files):",
-      Object.fromEntries(formData.entries()),
-    );
-    // 여기에 실제 서버 전송 로직 추가
+
+    const res = await fetch("/api/documents", {
+      method: "POST",
+      body: formData,
+    });
+    if (res.ok) {
+      setIsOpen(false);
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log(
-      "handleFileChange triggered. event.target.files:",
-      event.target.files,
-    );
     if (event.target.files && event.target.files.length > 0) {
       const newFilesArray = Array.from(event.target.files);
       setSelectedFiles((prevFiles) => {
-        console.log("Inside setSelectedFiles updater - prevFiles:", prevFiles);
-        console.log(
-          "Inside setSelectedFiles updater - newFilesArray:",
-          newFilesArray,
-        );
-        // 파일 이름으로 중복 체크하여 이미 있는 파일은 추가하지 않도록 개선
         const uniqueNewFiles = newFilesArray.filter(
           (newFile) =>
             !prevFiles.some((prevFile) => prevFile.name === newFile.name),
         );
-        const updatedFiles = [...prevFiles, ...uniqueNewFiles];
-        console.log(
-          "Inside setSelectedFiles updater - resulting updatedFiles:",
-          updatedFiles,
-        );
-        return updatedFiles;
+        return [...prevFiles, ...uniqueNewFiles];
       });
     }
-    // 파일 선택 후 input 값을 초기화하여 동일한 파일을 다시 선택할 수 있도록 합니다.
     if (event.target) {
       event.target.value = "";
     }
   };
 
   const removeFile = (fileNameToRemove: string) => {
-    setSelectedFiles((prevFiles) => {
-      const updatedFiles = prevFiles.filter(
-        (file) => file.name !== fileNameToRemove,
-      );
-      console.log(
-        `Removed file: ${fileNameToRemove}, updated list:`,
-        updatedFiles,
-      );
-      return updatedFiles;
-    });
+    setSelectedFiles((prevFiles) =>
+      prevFiles.filter((file) => file.name !== fileNameToRemove),
+    );
   };
 
   const triggerFileInput = () => {
@@ -121,18 +104,28 @@ function DocumentWriteForm() {
     >
       <div className="flex-grow space-y-4 overflow-y-auto px-6 py-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="title">제목</Label>
-          <Input id="title" name="title" placeholder="문서 제목을 입력하세요" />
+          <Label htmlFor="title">
+            제목 <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="title"
+            name="title"
+            placeholder="문서 제목을 입력하세요"
+            value={titleValue}
+            onChange={(e) => setTitleValue(e.target.value)}
+          />
         </div>
+
         <div className="flex flex-grow flex-col gap-1.5">
           <Label htmlFor="content">내용</Label>
           <Textarea
             id="content"
             name="content"
             placeholder="문서 내용을 입력하세요"
-            className="min-h-[220px]"
+            className="min-h-[220px] resize-none"
           />
         </div>
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="fileInputTriggerButton">파일 첨부</Label>
           <Button
@@ -193,10 +186,12 @@ function DocumentWriteForm() {
           )}
         </div>
       </div>
+
       <DialogFooter className="border-t p-6 pt-4">
         <Button
           type="submit"
-          className="bg-blue-500 text-white hover:bg-blue-700"
+          className="bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
+          disabled={!titleValue.trim()}
         >
           저장하기
         </Button>
