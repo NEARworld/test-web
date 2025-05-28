@@ -5,7 +5,7 @@ import DocumentTableSkeleton from "@/app/dashboard/documents/components/Document
 import { useDocument } from "@/hooks/useDocument";
 
 export default function CommunityPage() {
-  const { documents, loading, error } = useDocument("COMMUNITY");
+  const { loading, error } = useDocument();
 
   if (error) {
     return <div>에러 발생: {error.message}</div>;
@@ -14,11 +14,7 @@ export default function CommunityPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold">공동모금회 자료실</h1>
-      {loading ? (
-        <DocumentTableSkeleton />
-      ) : (
-        <DocumentTable documents={documents} />
-      )}
+      {loading ? <DocumentTableSkeleton /> : <DocumentTable />}
     </div>
   );
 }

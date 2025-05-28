@@ -4,7 +4,7 @@ import { useDocument } from "@/hooks/useDocument";
 import DocumentTable from "@/app/dashboard/documents/components/DocumentTable";
 import DocumentTableSkeleton from "@/app/dashboard/documents/components/DocumentTableSkeleton";
 export default function FoodCareDocumentsPage() {
-  const { documents, loading, error } = useDocument("FOODCARE");
+  const { loading, error } = useDocument();
 
   if (error) {
     return <div>에러 발생: {error.message}</div>;
@@ -13,11 +13,7 @@ export default function FoodCareDocumentsPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold">먹거리돌봄 센터 자료실</h1>
-      {loading ? (
-        <DocumentTableSkeleton />
-      ) : (
-        <DocumentTable documents={documents} />
-      )}
+      {loading ? <DocumentTableSkeleton /> : <DocumentTable />}
     </div>
   );
 }
