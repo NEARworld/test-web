@@ -27,6 +27,9 @@ model User {
   tasks             Task[]
   createdTasks      Task[]                    @relation("TaskCreator")
   taskModifications TaskModificationHistory[]
+  documents         Document[]
+  documentModifications DocumentModificationHistory[]
+  createdDocuments Document[] @relation("DocumentCreator")
 }
 
 model Account {
@@ -129,6 +132,64 @@ model Table {
   updatedAt    DateTime      @updatedAt
   number       Int           @default(0)
   reservations Reservation[]
+}
+
+enum BoardType {
+  COMMUNITY   // 커뮤니티 게시판
+  FOODCARE    // 푸드케어 게시판
+  BAJAUL      // 바자울 게시판
+  RESTAURANT  // 레스토랑 게시판
+  CORP        // 기업 게시판
+  OTHER       // 기타 게시판
+}
+
+model Document {
+  id                  String                    @id @default(uuid())
+  title               String
+  description         String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  // assigneeId          String?
+  createdById         String?
+  isDeleted           Boolean                   @default(false)
+  // assignee            User?                     @relation(fields: [assigneeId], references: [id])
+  createdBy           User?                     @relation("DocumentCreator", fields: [createdById], references: [id])
+  modificationHistory DocumentModificationHistory[]
+  boardType           BoardType                 // 게시판 종류를 enum으로 관리
+  attachments         Attachment[]            // 다중 파일을 위한 관계 추가
+
+  @@index([boardType, isDeleted, createdAt(sort: Desc)]) 
+  User User[]
+}
+
+model DocumentModificationHistory {
+  id                  String     @id @default(uuid())
+  documentId          String
+  modifiedAt          DateTime   @default(now())
+  modifiedById        String
+  previousTitle       String
+  previousDescription String?
+  previousFileUrl     String?
+  previousFileName    String?
+  previousFileType    String?
+  modifiedBy          User           @relation(fields: [modifiedById], references: [id])
+  document            Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([modifiedById])
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  fileName    String
+  fileType    String
+  fileUrl     String   // 저장된 파일의 URL
+  createdAt   DateTime @default(now())
+
+  documentId  String   // Document 모델과의 관계를 위한 외래 키
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade) // Document 삭제 시 관련 파일도 삭제 (선택 사항)
+
+  @@index([documentId])
 }
 
 model Task {
