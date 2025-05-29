@@ -8,7 +8,7 @@ import DocumentTableSkeleton from "@/app/dashboard/documents/components/Document
 // 더미 게시글 데이터
 
 export default function CorpDocumentsPage() {
-  const { loading, error } = useDocument();
+  const { isLoading, error } = useDocument();
 
   if (error) {
     return <div>에러 발생: {error.message}</div>;
@@ -18,7 +18,7 @@ export default function CorpDocumentsPage() {
     <div>
       <h1 className="text-3xl font-bold">법인 자료실</h1>
 
-      {loading ? <DocumentTableSkeleton /> : <DocumentTable />}
+      {isLoading ? <DocumentTableSkeleton /> : <DocumentTable />}
     </div>
   );
 }
