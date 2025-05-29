@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/table";
 import { UserAvatar } from "@/components/user-avatar";
 import { formatDate } from "@/app/dashboard/tasks/utils/TaskUtils";
-import { DocumentTableProps, DocumentWithCreatedBy } from "@/types/document";
+import { DocumentWithCreatedBy } from "@/types/document";
 import DocumentViewer from "./DocumentViewer";
+import { useDocument } from "@/hooks/useDocument";
 
-export default function DocumentTable({
-  documents,
-  fetchDocuments,
-}: DocumentTableProps) {
+export default function DocumentTable() {
+  const { documents } = useDocument();
+
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentWithCreatedBy | null>(null);
@@ -89,7 +89,6 @@ export default function DocumentTable({
         open={isViewerOpen}
         onOpenChange={setIsViewerOpen}
         document={selectedDocument}
-        fetchDocuments={fetchDocuments}
       />
     </>
   );

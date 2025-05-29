@@ -5,7 +5,7 @@ import { BoardType } from "@prisma/client";
 export async function GET(request: NextRequest) {
   // 쿼리 파라미터에서 boardType 값을 가져옴
   const { searchParams } = new URL(request.url);
-  const boardTypeParam = searchParams.get("boardType");
+  const boardTypeParam = searchParams.get("boardType")?.toUpperCase();
 
   // boardType이 enum 값에 해당하는지 체크
   const isValidBoardType =
