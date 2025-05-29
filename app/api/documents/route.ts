@@ -2,12 +2,6 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { BoardType } from "@prisma/client";
 
-// Supabase 클라이언트 초기화 (환경 변수에서 URL 및 anon key를 가져옵니다)
-// 실제 환경에서는 이 부분을 안전하게 관리해야 합니다.
-// 예: const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
-// 이 예제에서는 간단하게 플레이스홀더로 남겨둡니다. 실제 구현 시에는 Supabase 클라이언트를 적절히 초기화해야 합니다.
-// import { supabase } from '@/lib/supabaseClient'; // 가정: Supabase 클라이언트가 별도 파일에 정의되어 있음
-
 export async function GET(request: NextRequest) {
   // 쿼리 파라미터에서 boardType 값을 가져옴
   const { searchParams } = new URL(request.url);
