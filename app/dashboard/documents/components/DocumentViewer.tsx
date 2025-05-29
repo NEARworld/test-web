@@ -409,13 +409,38 @@ export default function DocumentViewer({
                   ) : document.attachments &&
                     document.attachments.length > 0 ? (
                     <div>
-                      <p className="text-sm font-medium">현재 파일:</p>
-                      <ul className="list-disc pl-5 text-sm">
-                        {document.attachments.map((df) => (
-                          <li key={df.id}>{df.fileName}</li>
+                      <p className="mb-2 text-sm font-medium">현재 파일:</p>
+                      <div className="flex flex-col gap-3">
+                        {(document.attachments as Attachment[]).map((df) => (
+                          <div
+                            key={df.id}
+                            className="flex items-center justify-between rounded-md border p-3"
+                          >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              {getFileExtension(df.fileName) && (
+                                <Badge
+                                  variant="secondary"
+                                  className="whitespace-nowrap"
+                                >
+                                  {getFileExtension(df.fileName)}
+                                </Badge>
+                              )}
+                              <span className="truncate font-medium">
+                                {getOriginalFileName(df.fileName)}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              // onClick={() => handleDeleteExistingFile(df.id)} // 실제 삭제 로직은 추후 구현
+                              className="p-1 text-red-500 hover:text-red-700"
+                              aria-label={`Remove ${getOriginalFileName(df.fileName)}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
                         ))}
-                      </ul>
-                      <p className="text-muted-foreground text-xs">
+                      </div>
+                      <p className="text-muted-foreground mt-2 text-xs">
                         (새 파일을 선택하면 모든 기존 파일이 교체됩니다. 파일을
                         유지하려면 비워두세요)
                       </p>
