@@ -8,17 +8,23 @@ export async function GET(request: NextRequest) {
   // 쿼리 파라미터에서 boardType 값을 가져옴
   const { searchParams } = new URL(request.url);
   const boardTypeParam = searchParams.get("boardType")?.toUpperCase();
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
 
   // boardType이 enum 값에 해당하는지 체크
   const isValidBoardType =
     boardTypeParam &&
     Object.values(BoardType).includes(boardTypeParam as BoardType);
 
+  const whereClause = isValidBoardType
+    ? { boardType: boardTypeParam as BoardType, isDeleted: false }
+    : { isDeleted: false };
+
   // 유효한 enum 값이면 해당 게시판 자료만 조회, 아니면 전체 조회
   const documents = await prisma.document.findMany({
-    where: isValidBoardType
-      ? { boardType: boardTypeParam as BoardType, isDeleted: false }
-      : { isDeleted: false },
+    where: whereClause,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
     include: {
       createdBy: {
         select: {
@@ -38,7 +44,17 @@ export async function GET(request: NextRequest) {
       createdAt: "desc",
     },
   });
-  return NextResponse.json(documents);
+
+  const totalDocuments = await prisma.document.count({
+    where: whereClause,
+  });
+
+  return NextResponse.json({
+    documents,
+    totalDocuments,
+    totalPages: Math.ceil(totalDocuments / pageSize),
+    currentPage: page,
+  });
 }
 
 export async function POST(request: NextRequest) {
