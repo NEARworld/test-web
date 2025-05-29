@@ -43,9 +43,9 @@ export async function GET(
 // PATCH 요청: Document 수정 (FormData 처리)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const id = params.id;
+  const id = (await params).id;
 
   if (!id) {
     return NextResponse.json({ error: "ID가 필요합니다." }, { status: 400 });
