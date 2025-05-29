@@ -7,8 +7,8 @@ import { join } from "path";
 import { v4 as uuidv4 } from "uuid";
 
 // GET 요청: 특정 Document 조회
-export async function GET({ params }: { params: { id: string } }) {
-  const id = params.id;
+export async function GET({ params }: { params: Promise<{ id: string }> }) {
+  const id = (await params).id;
 
   if (!id) {
     return NextResponse.json({ error: "ID가 필요합니다." }, { status: 400 });
