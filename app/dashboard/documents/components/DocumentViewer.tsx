@@ -85,23 +85,42 @@ export default function DocumentViewer({
     }
   }, [document]);
 
+  // 파일명에서 숫자 타임스탬프 접두사를 제거하여 원본 파일 이름을 반환하는 함수
+  const getOriginalFileName = (fileName: string): string => {
+    let originalFileName = fileName;
+    const hyphenIndex = fileName.indexOf("-");
+    // 첫 번째 하이픈의 존재 여부 및 그 앞부분이 숫자로만 구성되었는지 확인
+    if (hyphenIndex > 0 && /^\d+$/.test(fileName.substring(0, hyphenIndex))) {
+      originalFileName = fileName.substring(hyphenIndex + 1);
+    }
+    return originalFileName;
+  };
+
+  // 파일명에서 확장자를 추출하는 함수
+  const getFileExtension = (fileName: string): string => {
+    const lastDotIndex = fileName.lastIndexOf(".");
+    // 점이 없거나, 파일명의 맨 처음에 점이 있거나, 점 바로 뒤에 문자가 없는 경우 확장자가 없는 것으로 간주합니다.
+    if (
+      lastDotIndex === -1 ||
+      lastDotIndex === 0 ||
+      lastDotIndex === fileName.length - 1
+    ) {
+      return "";
+    }
+    return fileName.substring(lastDotIndex + 1).toLowerCase(); // 확장자는 소문자로 표시합니다.
+  };
+
   // 파일 실제 다운로드 처리 함수
   const handleDownload = async (fileUrl: string, fileName: string) => {
     // 파일 URL이나 이름이 없는 경우 처리
     if (!fileUrl || !fileName) {
-      toast.error("파일 정보가 유효하지 않아 다운로드할 수 없습니다."); // 파일 정보가 유효하지 않아 다운로드할 수 없습니다.
+      toast.error("파일 정보가 유효하지 않아 다운로드할 수 없습니다.");
       return;
     }
 
-    let originalFileName = fileName;
-    const hyphenIndex = fileName.indexOf("-");
-
-    if (hyphenIndex > 0 && /^\d+$/.test(fileName.substring(0, hyphenIndex))) {
-      originalFileName = fileName.substring(hyphenIndex + 1);
-    }
+    const originalFileName = getOriginalFileName(fileName);
 
     try {
-      // 다운로드 알림 시에도 수정된 원본 파일 이름을 사용합니다.
       toast.info(`${originalFileName} 다운로드를 시작합니다...`);
       const response = await fetch(fileUrl);
       if (!response.ok) {
@@ -412,9 +431,19 @@ export default function DocumentViewer({
                         className="flex flex-col gap-2 rounded-md border p-3"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="max-w-[300px] truncate font-medium">
-                            {docFile.fileName}
-                          </span>
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            {getFileExtension(docFile.fileName) && (
+                              <Badge
+                                variant="secondary"
+                                className="whitespace-nowrap"
+                              >
+                                {getFileExtension(docFile.fileName)}
+                              </Badge>
+                            )}
+                            <span className="max-w-[260px] truncate font-medium">
+                              {getOriginalFileName(docFile.fileName)}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
