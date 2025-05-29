@@ -13,7 +13,7 @@ export default function DocumentsLayout({
     <section className="mx-4">
       <DocumentProvider>
         {children}
-        <div className="relative mt-2.5 flex items-center justify-between">
+        <div className="relative mt-2.5 flex min-h-9 items-center justify-between">
           <DocumentPagination />
           <DocumentWriteButton />
         </div>
