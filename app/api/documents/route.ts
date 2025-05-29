@@ -2,6 +2,12 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { BoardType } from "@prisma/client";
 
+// Supabase 클라이언트 초기화 (환경 변수에서 URL 및 anon key를 가져옵니다)
+// 실제 환경에서는 이 부분을 안전하게 관리해야 합니다.
+// 예: const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
+// 이 예제에서는 간단하게 플레이스홀더로 남겨둡니다. 실제 구현 시에는 Supabase 클라이언트를 적절히 초기화해야 합니다.
+// import { supabase } from '@/lib/supabaseClient'; // 가정: Supabase 클라이언트가 별도 파일에 정의되어 있음
+
 export async function GET(request: NextRequest) {
   // 쿼리 파라미터에서 boardType 값을 가져옴
   const { searchParams } = new URL(request.url);
@@ -30,51 +36,53 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(documents);
 }
 
-// POST 요청: 새 Document 생성
 export async function POST(request: NextRequest) {
-  //  요청 body에서 데이터 파싱
-  const body = await request.json();
-  const {
-    title,
-    description,
-    fileName,
-    fileType,
-    fileUrl,
-    createdById,
-    boardType,
-  } = body;
-
-  // 필수값 체크
-  if (!title || !boardType) {
-    return NextResponse.json(
-      { error: "title, boardType 필수" },
-      { status: 400 },
-    );
-  }
-  if (!Object.values(BoardType).includes(boardType)) {
-    return NextResponse.json(
-      { error: "유효하지 않은 boardType" },
-      { status: 400 },
-    );
-  }
-
   try {
+    const formData = await request.formData();
+    const title = formData.get("title") as string;
+    const content = formData.get("content") as string | null;
+    const boardType = formData.get("boardType") as BoardType;
+    const createdById = formData.get("createdById") as string | null;
+
+    if (!title || !boardType) {
+      return NextResponse.json(
+        { error: "제목(title)과 게시판 종류(boardType)는 필수입니다." },
+        { status: 400 },
+      );
+    }
+
+    if (!createdById) {
+      return NextResponse.json(
+        { error: "createdById가 제공되지 않았습니다." },
+        { status: 400 },
+      );
+    }
+
+    if (!Object.values(BoardType).includes(boardType)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 boardType입니다." },
+        { status: 400 },
+      );
+    }
+
     const document = await prisma.document.create({
       data: {
         title,
-        description,
-        fileName,
-        fileType,
-        fileUrl,
-        createdById,
+        description: content,
         boardType,
+        ...(createdById && { createdById }),
       },
     });
-    // 생성된 document 반환
+
     return NextResponse.json(document, { status: 201 });
   } catch (error) {
-    //  에러 발생 시 에러 메시지 반환
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "문서 생성 중 서버 내부 오류가 발생했습니다.",
+        details: String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 
