@@ -27,6 +27,12 @@ export async function GET(request: NextRequest) {
           image: true,
         },
       },
+      attachments: true,
+      _count: {
+        select: {
+          attachments: true,
+        },
+      },
     },
   });
   return NextResponse.json(documents);

@@ -61,10 +61,9 @@ export default function DocumentTable() {
                   <TableCell>{formatDate(doc.createdAt)}</TableCell>
                   <TableCell>
                     {doc.attachments && doc.attachments.length > 0 ? (
-                      <span
-                        className="inline-block h-3 w-3 rounded-full bg-green-500"
-                        title="첨부파일 있음"
-                      ></span>
+                      <span className="text-sm text-gray-400">
+                        {doc.attachments.length}개
+                      </span>
                     ) : (
                       <span className="text-sm text-gray-400">없음</span>
                     )}
