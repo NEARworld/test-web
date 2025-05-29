@@ -16,9 +16,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
-
+import { useDocument } from "@/hooks/useDocument";
 const DocumentWriteButton: React.FC = () => {
+  const { isLoading } = useDocument();
   const [isOpen, setIsOpen] = useState(false);
+  if (isLoading) {
+    return <></>;
+  }
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
