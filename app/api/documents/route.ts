@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          const documentFile = await prisma.documentFile.create({
+          const attachment = await prisma.attachment.create({
             data: {
               fileName: uploadResult.fileName,
               fileType: uploadResult.fileType,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          uploadedFileRecords.push(documentFile);
+          uploadedFileRecords.push(attachment);
         } else if (file instanceof File && file.size === 0) {
           console.warn(`Skipping empty file: ${file.name}`);
         }
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { ...document, files: uploadedFileRecords },
+      { ...document, attachments: uploadedFileRecords },
       { status: 201 },
     );
   } catch (error) {

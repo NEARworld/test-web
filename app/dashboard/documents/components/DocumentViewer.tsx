@@ -17,7 +17,7 @@ import {
   Save,
   X,
 } from "lucide-react";
-import type { Document, DocumentFile } from "@prisma/client";
+import type { Document, Attachment } from "@prisma/client";
 import { useState, useEffect, ChangeEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -332,11 +332,11 @@ export default function DocumentViewer({
                       ))}
                     </ul>
                   </div>
-                ) : document.files && document.files.length > 0 ? (
+                ) : document.attachments && document.attachments.length > 0 ? (
                   <div>
                     <p className="text-sm font-medium">현재 파일:</p>
                     <ul className="list-disc pl-5 text-sm">
-                      {document.files.map((df) => (
+                      {document.attachments.map((df) => (
                         <li key={df.id}>{df.fileName}</li>
                       ))}
                     </ul>
@@ -347,10 +347,10 @@ export default function DocumentViewer({
                   </div>
                 ) : null}
               </div>
-            ) : document.files && document.files.length > 0 ? (
+            ) : document.attachments && document.attachments.length > 0 ? (
               <div className="flex flex-col gap-4">
-                {(document.files as DocumentFile[])?.map(
-                  (docFile: DocumentFile) => (
+                {(document.attachments as Attachment[])?.map(
+                  (docFile: Attachment) => (
                     <div
                       key={docFile.id}
                       className="flex flex-col gap-2 rounded-md border p-3"
