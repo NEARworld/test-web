@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 const DocumentWriteButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -44,6 +45,10 @@ function DocumentWriteForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [titleValue, setTitleValue] = useState("");
+  const pathname = usePathname();
+  const boardType = useMemo(() => {
+    return pathname.split("/").pop();
+  }, [pathname]);
 
   const getFileExtension = (fileName: string) => {
     return fileName
@@ -57,7 +62,12 @@ function DocumentWriteForm({
       alert("제목을 입력해주세요.");
       return;
     }
+    if (!boardType) {
+      alert("게시판 종류를 선택해주세요.");
+      return;
+    }
     const formData = new FormData(event.currentTarget);
+    formData.append("boardType", boardType);
     selectedFiles.forEach((file) => {
       formData.append("files", file, file.name);
     });
