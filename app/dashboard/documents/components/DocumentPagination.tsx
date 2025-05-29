@@ -48,6 +48,7 @@ export default function DocumentPagination() {
             <PaginationLink
               onClick={() => handlePageChange(page)}
               isActive={currentPage === page}
+              className="cursor-pointer"
             >
               {page}
             </PaginationLink>
