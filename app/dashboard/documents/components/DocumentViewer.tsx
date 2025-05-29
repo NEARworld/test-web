@@ -85,6 +85,57 @@ export default function DocumentViewer({
     }
   }, [document]);
 
+  // 파일 실제 다운로드 처리 함수
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    // 파일 URL이나 이름이 없는 경우 처리
+    if (!fileUrl || !fileName) {
+      toast.error("파일 정보가 유효하지 않아 다운로드할 수 없습니다."); // 파일 정보가 유효하지 않아 다운로드할 수 없습니다.
+      return;
+    }
+
+    let originalFileName = fileName;
+    const hyphenIndex = fileName.indexOf("-");
+
+    if (hyphenIndex > 0 && /^\d+$/.test(fileName.substring(0, hyphenIndex))) {
+      originalFileName = fileName.substring(hyphenIndex + 1);
+    }
+
+    try {
+      // 다운로드 알림 시에도 수정된 원본 파일 이름을 사용합니다.
+      toast.info(`${originalFileName} 다운로드를 시작합니다...`);
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("File fetch failed:", response.status, errorBody);
+        // 파일을 가져오는데 실패했습니다.
+        throw new Error(
+          `파일을 가져오는데 실패했습니다: ${response.statusText} (상태: ${response.status})`,
+        );
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = window.document.createElement("a"); // window.document 사용
+      link.href = url;
+      // 다운로드 시 원본 파일 이름으로 저장되도록 link의 download 속성을 수정합니다.
+      link.setAttribute("download", originalFileName); // 다운로드 파일명 설정
+      window.document.body.appendChild(link); // window.document 사용 및 링크를 DOM에 추가
+      link.click(); // 프로그래매틱 클릭으로 다운로드 트리거
+
+      // 사용 후 DOM에서 링크 제거 및 Object URL 해제
+      window.document.body.removeChild(link); // window.document 사용
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      // 타입을 unknown으로 변경
+      console.error("Download error:", error);
+      // 파일 다운로드 중 오류가 발생했습니다.
+      if (error instanceof Error) {
+        toast.error(error.message || "파일 다운로드 중 오류가 발생했습니다.");
+      } else {
+        toast.error("파일 다운로드 중 알 수 없는 오류가 발생했습니다.");
+      }
+    }
+  };
+
   // document가 없으면 아무것도 렌더링하지 않음
   if (!document) return null;
 
@@ -369,17 +420,15 @@ export default function DocumentViewer({
                               variant="outline"
                               size="sm"
                               className="flex items-center gap-1.5"
-                              asChild
+                              onClick={() =>
+                                handleDownload(
+                                  docFile.fileUrl,
+                                  docFile.fileName,
+                                )
+                              }
                             >
-                              <a
-                                href={docFile.fileUrl}
-                                download={docFile.fileName}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                                <span>다운로드</span>
-                              </a>
+                              <Download className="h-3.5 w-3.5" />
+                              <span>다운로드</span>
                             </Button>
                           </div>
                         </div>
