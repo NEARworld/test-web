@@ -29,7 +29,7 @@ export default function DocumentTable() {
     <>
       <div className="mt-4 rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50">
             <TableRow>
               <TableHead className="w-[40%]">제목</TableHead>
               <TableHead>작성자</TableHead>
