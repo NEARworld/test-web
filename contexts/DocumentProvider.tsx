@@ -13,10 +13,15 @@ import { usePathname } from "next/navigation";
 // Context를 통해 제공될 값의 타입 정의
 export interface DocumentContextType {
   documents: DocumentWithCreatedBy[] | null;
-  loading: boolean;
+  isLoading: boolean;
   error: Error | null;
-  fetchDocuments: () => Promise<void>; // 데이터를 수동으로 다시 가져올 함수
-  currentBoardType: string | undefined; // 현재 Provider에 설정된 boardType
+  fetchDocuments: () => Promise<void>;
+  currentBoardType: string | undefined;
+  currentPage: number;
+  totalPages: number | null;
+  totalDocuments: number | null;
+  setCurrentPage: (page: number) => void;
+  pageSize: number;
 }
 
 // Context 객체 생성
@@ -34,25 +39,31 @@ export const DocumentProvider = ({ children }: DocumentProviderProps) => {
   const [documents, setDocuments] = useState<DocumentWithCreatedBy[] | null>(
     null,
   );
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const pathname = usePathname();
   const boardType = pathname.split("/").pop();
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
+  const [totalDocuments, setTotalDocuments] = useState<number | null>(null);
+
   const fetchDocuments = useCallback(async () => {
-    // 자료실 타입이 없으면 데이터를 가져오지 않음
     if (!boardType) {
       setDocuments(null);
-      setLoading(false);
+      setIsLoading(false);
+      setTotalPages(null);
+      setTotalDocuments(null);
       return;
     }
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
-      // 자료실 타입에 따른 데이터 가져오기
-      const res = await fetch(`/api/documents?boardType=${boardType}`);
+      const res = await fetch(
+        `/api/documents?boardType=${boardType}&page=${currentPage}&pageSize=${pageSize}`,
+      );
 
-      // 데이터를 가져오지 못했으면 에러 처리
       if (!res.ok) {
         const errorData = await res
           .json()
@@ -62,39 +73,60 @@ export const DocumentProvider = ({ children }: DocumentProviderProps) => {
         );
       }
 
-      // 데이터를 가져오면 상태 업데이트
       const data = await res.json();
-      setDocuments(data);
-      console.log(`${boardType} 자료실 데이터:`, data);
+      setDocuments(data.documents);
+      setTotalPages(data.totalPages);
+      setTotalDocuments(data.totalDocuments);
+      console.log(`${boardType} 자료실 데이터 (페이지 ${currentPage}):`, data);
     } catch (err) {
-      // 에러 발생 시 에러 상태 업데이트
       setError(err as Error);
       console.error("자료실 데이터 조회 에러:", err);
       setDocuments(null);
+      setTotalPages(null);
+      setTotalDocuments(null);
     } finally {
-      // 데이터 조회 완료 시 로딩 상태 업데이트
-      setLoading(false);
+      setIsLoading(false);
     }
+  }, [boardType, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [boardType]);
 
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  // Context 값 생성
-  // useMemo를 사용하여 불필요한 리렌더링 방지
+  const handleSetCurrentPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
   const contextValue = useMemo(
     () => ({
       documents,
-      loading,
+      isLoading,
       error,
       fetchDocuments,
       currentBoardType: boardType,
+      currentPage,
+      totalPages,
+      totalDocuments,
+      setCurrentPage: handleSetCurrentPage,
+      pageSize,
     }),
-    [documents, loading, error, fetchDocuments, boardType],
+    [
+      documents,
+      isLoading,
+      error,
+      fetchDocuments,
+      boardType,
+      currentPage,
+      totalPages,
+      totalDocuments,
+      pageSize,
+    ],
   );
 
-  // Provider 컴포넌트 반환
   return (
     <DocumentContext.Provider value={contextValue}>
       {children}

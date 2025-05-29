@@ -2,6 +2,7 @@
 
 import DocumentWriteButton from "@/app/dashboard/documents/components/DocumentWrite";
 import { DocumentProvider } from "@/contexts/DocumentProvider";
+import DocumentPagination from "@/app/dashboard/documents/components/DocumentPagination";
 
 export default function DocumentsLayout({
   children,
@@ -10,10 +11,13 @@ export default function DocumentsLayout({
 }) {
   return (
     <section className="mx-4">
-      <DocumentProvider>{children}</DocumentProvider>
-      <div className="relative mt-2.5">
-        <DocumentWriteButton />
-      </div>
+      <DocumentProvider>
+        {children}
+        <div className="relative mt-2.5 flex items-center justify-between">
+          <DocumentPagination />
+          <DocumentWriteButton />
+        </div>
+      </DocumentProvider>
     </section>
   );
 }

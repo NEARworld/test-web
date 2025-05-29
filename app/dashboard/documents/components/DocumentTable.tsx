@@ -29,7 +29,7 @@ export default function DocumentTable() {
     <>
       <div className="mt-4 rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50">
             <TableRow>
               <TableHead className="w-[40%]">제목</TableHead>
               <TableHead>작성자</TableHead>
@@ -60,9 +60,9 @@ export default function DocumentTable() {
                   </TableCell>
                   <TableCell>{formatDate(doc.createdAt)}</TableCell>
                   <TableCell>
-                    {doc.fileName ? (
-                      <span className="text-sm text-blue-500">
-                        {doc.fileName}
+                    {doc.attachments && doc.attachments.length > 0 ? (
+                      <span className="text-sm text-gray-400">
+                        {doc.attachments.length}개
                       </span>
                     ) : (
                       <span className="text-sm text-gray-400">없음</span>

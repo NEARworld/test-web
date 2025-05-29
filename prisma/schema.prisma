@@ -156,7 +156,7 @@ model Document {
   createdBy           User?                     @relation("DocumentCreator", fields: [createdById], references: [id])
   modificationHistory DocumentModificationHistory[]
   boardType           BoardType                 // 게시판 종류를 enum으로 관리
-  files               DocumentFile[]            // 다중 파일을 위한 관계 추가
+  attachments         Attachment[]            // 다중 파일을 위한 관계 추가
 
   @@index([boardType, isDeleted, createdAt(sort: Desc)]) 
   User User[]
@@ -179,13 +179,12 @@ model DocumentModificationHistory {
   @@index([modifiedById])
 }
 
-model DocumentFile {
+model Attachment {
   id          String   @id @default(uuid())
   fileName    String
   fileType    String
   fileUrl     String   // 저장된 파일의 URL
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
   documentId  String   // Document 모델과의 관계를 위한 외래 키
   document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade) // Document 삭제 시 관련 파일도 삭제 (선택 사항)
