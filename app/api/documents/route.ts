@@ -105,6 +105,16 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
+    console.error("Error creating document:", error);
+    if (error instanceof Error && error.message.includes("prisma")) {
+      return NextResponse.json(
+        {
+          error: "데이터베이스 처리 중 에러가 발생했습니다.",
+          details: error.message,
+        },
+        { status: 500 },
+      );
+    }
     return NextResponse.json(
       {
         error: "문서 생성 중 서버 내부 오류가 발생했습니다.",
