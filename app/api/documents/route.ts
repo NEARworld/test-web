@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { BoardType } from "@prisma/client";
+import { uploadFileToSupabaseStorage } from "@/lib/document-utils";
 
 export async function GET(request: NextRequest) {
   // 쿼리 파라미터에서 boardType 값을 가져옴
@@ -68,7 +69,41 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(document, { status: 201 });
+    const files = formData.getAll("files") as File[];
+    const uploadedFileRecords = [];
+
+    if (files && files.length > 0) {
+      for (const file of files) {
+        if (file instanceof File && file.size > 0) {
+          const uploadResult = await uploadFileToSupabaseStorage(file);
+
+          if (uploadResult.error) {
+            console.error(
+              `Supabase 파일 업로드 실패: ${file.name}, 오류: ${uploadResult.error}`,
+            );
+            continue;
+          }
+
+          const documentFile = await prisma.documentFile.create({
+            data: {
+              fileName: uploadResult.fileName,
+              fileType: uploadResult.fileType,
+              fileUrl: uploadResult.fileUrl,
+              documentId: document.id,
+            },
+          });
+
+          uploadedFileRecords.push(documentFile);
+        } else if (file instanceof File && file.size === 0) {
+          console.warn(`Skipping empty file: ${file.name}`);
+        }
+      }
+    }
+
+    return NextResponse.json(
+      { ...document, files: uploadedFileRecords },
+      { status: 201 },
+    );
   } catch (error) {
     return NextResponse.json(
       {
