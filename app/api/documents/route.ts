@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { BoardType } from "@prisma/client";
 import { uploadFileToSupabaseStorage } from "@/lib/document-utils";
+import { auth } from "@/auth";
 
 export async function GET(request: NextRequest) {
   // 쿼리 파라미터에서 boardType 값을 가져옴
@@ -33,22 +34,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "인증되지 않은 사용자입니다. 로그인 후 다시 시도해주세요." },
+        { status: 401 },
+      );
+    }
+    const createdById = session.user.id;
+
     const formData = await request.formData();
     const title = formData.get("title") as string;
     const content = formData.get("content") as string | null;
     const boardType = formData.get("boardType") as BoardType;
-    const createdById = formData.get("createdById") as string | null;
 
     if (!title || !boardType) {
       return NextResponse.json(
         { error: "제목(title)과 게시판 종류(boardType)는 필수입니다." },
-        { status: 400 },
-      );
-    }
-
-    if (!createdById) {
-      return NextResponse.json(
-        { error: "createdById가 제공되지 않았습니다." },
         { status: 400 },
       );
     }
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
         title,
         description: content,
         boardType,
-        ...(createdById && { createdById }),
+        createdById,
       },
     });
 
