@@ -217,8 +217,8 @@ export default function DocumentViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex min-h-[300px] w-full max-w-3xl flex-col items-center justify-center">
-        <DialogHeader className="w-full border-b pb-4">
+      <DialogContent className="flex max-h-[90vh] min-h-[300px] w-full max-w-3xl flex-col overflow-hidden p-0">
+        <DialogHeader className="bg-background sticky top-0 z-10 w-full border-b px-6 pt-6 pb-4">
           <div className="flex items-center justify-between">
             {isEditing ? (
               <div className="w-full">
@@ -265,132 +265,138 @@ export default function DocumentViewer({
           </div>
         </DialogHeader>
 
-        <div className="grid w-full gap-6 py-4">
-          {/* 메타 정보 섹션 - 편집 모드에서는 표시하지 않음 */}
-          {!isEditing && (
-            <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                <User className="h-4 w-4" />
-                <span>작성자: {document.createdBy?.name || "알 수 없음"}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>작성일: {formatDate(document.createdAt)}</span>
-              </div>
-              {document.updatedAt &&
-                document.updatedAt !== document.createdAt && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>수정일: {formatDate(document.updatedAt)}</span>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {/* 설명 섹션 */}
-          <div className="rounded-lg border p-4">
-            <h3 className="mb-2 font-medium">설명</h3>
-            {isEditing ? (
-              <Textarea
-                name="description"
-                value={editData?.description || ""}
-                onChange={handleInputChange}
-                placeholder="설명을 입력하세요"
-                className="min-h-[150px]"
-              />
-            ) : (
-              <div className="min-h-[100px] text-base whitespace-pre-line">
-                {document.description || (
-                  <span className="text-muted-foreground italic">
-                    설명이 없습니다.
+        {/* Scrollable content area */}
+        <div className="flex-grow overflow-y-auto px-6">
+          <div className="grid w-full gap-6 py-4">
+            {/* 메타 정보 섹션 - 편집 모드에서는 표시하지 않음 */}
+            {!isEditing && (
+              <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  <span>
+                    작성자: {document.createdBy?.name || "알 수 없음"}
                   </span>
-                )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>작성일: {formatDate(document.createdAt)}</span>
+                </div>
+                {document.updatedAt &&
+                  document.updatedAt !== document.createdAt && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>수정일: {formatDate(document.updatedAt)}</span>
+                    </div>
+                  )}
               </div>
             )}
-          </div>
 
-          {/* 첨부파일 섹션 */}
-          <div className="rounded-lg border p-4">
-            <h3 className="mb-2 font-medium">첨부파일</h3>
-            {isEditing ? (
-              <div className="flex flex-col gap-2">
-                <Input
-                  type="file"
-                  multiple
-                  accept={ALLOWED_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(
-                    ",",
-                  )}
-                  onChange={handleFileChange}
-                  className="max-w-md"
+            {/* 설명 섹션 */}
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-2 font-medium">설명</h3>
+              {isEditing ? (
+                <Textarea
+                  name="description"
+                  value={editData?.description || ""}
+                  onChange={handleInputChange}
+                  placeholder="설명을 입력하세요"
+                  className="min-h-[150px]"
                 />
-                {files.length > 0 ? (
-                  <div>
-                    <p className="text-sm font-medium">선택된 파일:</p>
-                    <ul className="list-disc pl-5 text-sm">
-                      {files.map((f, index) => (
-                        <li key={index}>{f.name}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : document.attachments && document.attachments.length > 0 ? (
-                  <div>
-                    <p className="text-sm font-medium">현재 파일:</p>
-                    <ul className="list-disc pl-5 text-sm">
-                      {document.attachments.map((df) => (
-                        <li key={df.id}>{df.fileName}</li>
-                      ))}
-                    </ul>
-                    <p className="text-muted-foreground text-xs">
-                      (새 파일을 선택하면 모든 기존 파일이 교체됩니다. 파일을
-                      유지하려면 비워두세요)
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            ) : document.attachments && document.attachments.length > 0 ? (
-              <div className="flex flex-col gap-4">
-                {(document.attachments as Attachment[])?.map(
-                  (docFile: Attachment) => (
-                    <div
-                      key={docFile.id}
-                      className="flex flex-col gap-2 rounded-md border p-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="max-w-[300px] truncate font-medium">
-                          {docFile.fileName}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1.5"
-                            asChild
-                          >
-                            <a
-                              href={docFile.fileUrl}
-                              download={docFile.fileName}
-                              target="_blank"
-                              rel="noopener noreferrer"
+              ) : (
+                <div className="min-h-[100px] text-base whitespace-pre-line">
+                  {document.description || (
+                    <span className="text-muted-foreground italic">
+                      설명이 없습니다.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 첨부파일 섹션 */}
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-2 font-medium">첨부파일</h3>
+              {isEditing ? (
+                <div className="flex flex-col gap-2">
+                  <Input
+                    type="file"
+                    multiple
+                    accept={ALLOWED_FILE_EXTENSIONS.map(
+                      (ext) => `.${ext}`,
+                    ).join(",")}
+                    onChange={handleFileChange}
+                    className="max-w-md"
+                  />
+                  {files.length > 0 ? (
+                    <div>
+                      <p className="text-sm font-medium">선택된 파일:</p>
+                      <ul className="list-disc pl-5 text-sm">
+                        {files.map((f, index) => (
+                          <li key={index}>{f.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : document.attachments &&
+                    document.attachments.length > 0 ? (
+                    <div>
+                      <p className="text-sm font-medium">현재 파일:</p>
+                      <ul className="list-disc pl-5 text-sm">
+                        {document.attachments.map((df) => (
+                          <li key={df.id}>{df.fileName}</li>
+                        ))}
+                      </ul>
+                      <p className="text-muted-foreground text-xs">
+                        (새 파일을 선택하면 모든 기존 파일이 교체됩니다. 파일을
+                        유지하려면 비워두세요)
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : document.attachments && document.attachments.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {(document.attachments as Attachment[])?.map(
+                    (docFile: Attachment) => (
+                      <div
+                        key={docFile.id}
+                        className="flex flex-col gap-2 rounded-md border p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="max-w-[300px] truncate font-medium">
+                            {docFile.fileName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1.5"
+                              asChild
                             >
-                              <Download className="h-3.5 w-3.5" />
-                              <span>다운로드</span>
-                            </a>
-                          </Button>
+                              <a
+                                href={docFile.fileUrl}
+                                download={docFile.fileName}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                <span>다운로드</span>
+                              </a>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            ) : (
-              <span className="text-muted-foreground italic">
-                첨부파일이 없습니다.
-              </span>
-            )}
+                    ),
+                  )}
+                </div>
+              ) : (
+                <span className="text-muted-foreground italic">
+                  첨부파일이 없습니다.
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="w-full border-t pt-4">
+        <DialogFooter className="bg-background sticky bottom-0 z-10 w-full border-t px-6 pt-4 pb-6">
           <div className="flex w-full items-center justify-between">
             {isEditing ? (
               <div className="flex gap-2">
