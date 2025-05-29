@@ -45,6 +45,7 @@ function DocumentWriteForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [titleValue, setTitleValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const pathname = usePathname();
   const boardType = useMemo(() => {
     return pathname.split("/").pop();
@@ -66,6 +67,9 @@ function DocumentWriteForm({
       alert("게시판 종류를 선택해주세요.");
       return;
     }
+
+    setIsSubmitting(true);
+
     const formData = new FormData(event.currentTarget);
     formData.append("boardType", boardType);
     selectedFiles.forEach((file) => {
@@ -76,8 +80,14 @@ function DocumentWriteForm({
       method: "POST",
       body: formData,
     });
+
+    setIsSubmitting(false);
+
     if (res.ok) {
       setIsOpen(false);
+      window.location.reload();
+    } else {
+      alert("문서 저장에 실패했습니다.");
     }
   };
 
@@ -201,9 +211,9 @@ function DocumentWriteForm({
         <Button
           type="submit"
           className="bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
-          disabled={!titleValue.trim()}
+          disabled={!titleValue.trim() || isSubmitting}
         >
-          저장하기
+          {isSubmitting ? "저장중..." : "저장하기"}
         </Button>
       </DialogFooter>
     </form>
