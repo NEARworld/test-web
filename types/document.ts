@@ -1,5 +1,5 @@
 import { Document } from "@prisma/client";
-import type { DocumentFile as PrismaDocumentFile } from "@prisma/client";
+import type { Attachment as PrismaAttachment } from "@prisma/client";
 
 export interface DocumentWithCreatedBy extends Document {
   createdBy?: {
@@ -7,7 +7,7 @@ export interface DocumentWithCreatedBy extends Document {
     name: string | null;
     image: string | null;
   } | null;
-  files?: PrismaDocumentFile[];
+  attachments?: PrismaAttachment[];
 }
 
 export interface DocumentTableProps {
