@@ -44,9 +44,13 @@ export async function POST(request: NextRequest) {
     const createdById = session.user.id;
 
     const formData = await request.formData();
+    console.log(formData);
     const title = formData.get("title") as string;
     const content = formData.get("content") as string | null;
-    const boardType = formData.get("boardType") as BoardType;
+    const boardType = formData
+      .get("boardType")
+      ?.toString()
+      .toUpperCase() as BoardType;
 
     if (!title || !boardType) {
       return NextResponse.json(
