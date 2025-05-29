@@ -12,15 +12,13 @@ import {
   Download,
   User,
   Clock,
-  Eye,
   Trash2,
   Pencil,
   Save,
   X,
 } from "lucide-react";
-import type { Document } from "@prisma/client";
+import type { Document, DocumentFile } from "@prisma/client";
 import { useState, useEffect, ChangeEvent } from "react";
-import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -61,7 +59,6 @@ export default function DocumentViewer({
   document,
 }: DocumentViewerProps) {
   const { fetchDocuments } = useDocument();
-  const [previewOpen, setPreviewOpen] = useState(false);
   // 삭제 로딩 상태 추가
   const [deleteLoading, setDeleteLoading] = useState(false);
   // 현재 로그인한 사용자 정보 가져오기
@@ -76,7 +73,7 @@ export default function DocumentViewer({
   // 수정 로딩 상태 추가
   const [updateLoading, setUpdateLoading] = useState(false);
   // 파일 업로드 상태
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   // 문서가 변경되면 편집 모드 초기화 및 editData 설정
   useEffect(() => {
@@ -101,17 +98,6 @@ export default function DocumentViewer({
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  // 파일 확장자 확인
-  const getFileExtension = (fileName: string) => {
-    return fileName.split(".").pop()?.toLowerCase() || "";
-  };
-
-  // 미리보기 가능한 파일인지 확인
-  const isPreviewable = (fileName: string) => {
-    const ext = getFileExtension(fileName);
-    return ALLOWED_FILE_EXTENSIONS.includes(ext);
   };
 
   // 현재 사용자가 작성자인지 확인
@@ -150,14 +136,13 @@ export default function DocumentViewer({
   // 수정 모드 전환 핸들러
   const handleEditMode = () => {
     setIsEditing(true);
-    setPreviewOpen(false);
   };
 
   // 수정 취소 핸들러
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditData(document); // 원본 데이터로 복원
-    setFile(null); // 파일 상태 초기화
+    setFiles([]); // 파일 상태 초기화
   };
 
   // 입력 필드 변경 핸들러
@@ -175,9 +160,8 @@ export default function DocumentViewer({
 
   // 파일 변경 핸들러
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setPreviewOpen(false);
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files)); // 여러 파일 처리
     }
   };
 
@@ -197,8 +181,10 @@ export default function DocumentViewer({
       formData.append("boardType", editData.boardType || "");
 
       // 새 파일이 있으면 추가
-      if (file) {
-        formData.append("file", file);
+      if (files.length > 0) {
+        files.forEach((file) => {
+          formData.append("files", file); // "files" 이름으로 각 파일 추가
+        });
       }
 
       // API 호출
@@ -330,74 +316,70 @@ export default function DocumentViewer({
               <div className="flex flex-col gap-2">
                 <Input
                   type="file"
+                  multiple
                   accept={ALLOWED_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(
                     ",",
                   )}
                   onChange={handleFileChange}
                   className="max-w-md"
                 />
-                {file ? (
-                  <p className="text-sm">선택된 파일: {file.name}</p>
-                ) : document.fileName ? (
-                  <p className="text-sm">
-                    현재 파일: {document.fileName} (변경하지 않으려면
-                    비워두세요)
-                  </p>
+                {files.length > 0 ? (
+                  <div>
+                    <p className="text-sm font-medium">선택된 파일:</p>
+                    <ul className="list-disc pl-5 text-sm">
+                      {files.map((f, index) => (
+                        <li key={index}>{f.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : document.files && document.files.length > 0 ? (
+                  <div>
+                    <p className="text-sm font-medium">현재 파일:</p>
+                    <ul className="list-disc pl-5 text-sm">
+                      {document.files.map((df) => (
+                        <li key={df.id}>{df.fileName}</li>
+                      ))}
+                    </ul>
+                    <p className="text-muted-foreground text-xs">
+                      (새 파일을 선택하면 모든 기존 파일이 교체됩니다. 파일을
+                      유지하려면 비워두세요)
+                    </p>
+                  </div>
                 ) : null}
               </div>
-            ) : document.fileName && document.fileUrl ? (
+            ) : document.files && document.files.length > 0 ? (
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    asChild
-                  >
-                    <a
-                      href={document.fileUrl}
-                      download={document.fileName}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                {(document.files as DocumentFile[])?.map(
+                  (docFile: DocumentFile) => (
+                    <div
+                      key={docFile.id}
+                      className="flex flex-col gap-2 rounded-md border p-3"
                     >
-                      <Download className="h-4 w-4" />
-                      <span className="max-w-[300px] truncate">
-                        {document.fileName}
-                      </span>
-                    </a>
-                  </Button>
-
-                  {isPreviewable(document.fileName) && (
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => setPreviewOpen(!previewOpen)}
-                    >
-                      <Eye className="h-4 w-4" />
-                      <span>미리보기</span>
-                    </Button>
-                  )}
-                </div>
-
-                {/* 파일 미리보기 영역 */}
-                {previewOpen && isPreviewable(document.fileName) && (
-                  <div className="mt-2 w-full rounded-md border p-2">
-                    {getFileExtension(document.fileName) === "pdf" ? (
-                      <iframe
-                        src={`${document.fileUrl}#view=FitH`}
-                        className="h-[500px] w-full"
-                        title={document.fileName}
-                      />
-                    ) : (
-                      <Image
-                        src={document.fileUrl}
-                        alt={document.fileName}
-                        width={800}
-                        height={600}
-                        className="mx-auto max-h-[500px] max-w-full object-contain"
-                        unoptimized={!document.fileUrl.startsWith("/")}
-                      />
-                    )}
-                  </div>
+                      <div className="flex items-center justify-between">
+                        <span className="max-w-[300px] truncate font-medium">
+                          {docFile.fileName}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1.5"
+                            asChild
+                          >
+                            <a
+                              href={docFile.fileUrl}
+                              download={docFile.fileName}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>다운로드</span>
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ),
                 )}
               </div>
             ) : (
