@@ -10,4 +10,5 @@ export interface DocumentWithCreatedBy extends Document {
 
 export interface DocumentTableProps {
   documents: DocumentWithCreatedBy[] | null;
+  fetchDocuments: () => void;
 }

@@ -40,6 +40,7 @@ interface DocumentViewerProps {
   open: boolean; // 모달 오픈 여부
   onOpenChange: (open: boolean) => void; // 모달 상태 변경 함수
   document: DocumentWithCreatedBy | null; // prisma Document 타입 사용
+  fetchDocuments: () => void; // 문서 목록 새로고침 함수
 }
 
 // boardType 한글 매핑
@@ -58,6 +59,7 @@ export default function DocumentViewer({
   open,
   onOpenChange,
   document,
+  fetchDocuments,
 }: DocumentViewerProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   // 삭제 로딩 상태 추가
@@ -135,6 +137,7 @@ export default function DocumentViewer({
 
       toast.success("게시물이 삭제되었습니다.");
       onOpenChange(false); // 모달 닫기
+      fetchDocuments(); // 문서 목록 새로고침
       router.refresh(); // 페이지 새로고침
     } catch (error) {
       console.error("삭제 오류:", error);
@@ -214,9 +217,7 @@ export default function DocumentViewer({
       setIsEditing(false);
       // 문서 상태 업데이트
       if (updatedDocument) {
-        // 부모 컴포넌트에서 document prop을 업데이트할 수 있도록 이벤트를 발생시키거나
-        // 페이지를 새로고침하여 최신 데이터를 가져옵니다.
-        router.refresh();
+        fetchDocuments(); // 문서 목록 새로고침
       }
     } catch (error) {
       console.error("수정 오류:", error);
@@ -230,7 +231,7 @@ export default function DocumentViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex min-h-[300px] w-full max-w-3xl items-center justify-center">
+      <DialogContent className="flex min-h-[300px] w-full max-w-3xl flex-col items-center justify-center">
         <DialogHeader className="w-full border-b pb-4">
           <div className="flex items-center justify-between">
             {isEditing ? (
@@ -254,13 +255,15 @@ export default function DocumentViewer({
                     </SelectContent>
                   </Select>
                 </div>
-                <Input
-                  name="title"
-                  value={editData?.title || ""}
-                  onChange={handleInputChange}
-                  placeholder="제목"
-                  className="text-xl font-bold"
-                />
+                <DialogTitle className="text-2xl font-bold">
+                  <Input
+                    name="title"
+                    value={editData?.title || ""}
+                    onChange={handleInputChange}
+                    placeholder="제목"
+                    className="text-xl font-bold"
+                  />
+                </DialogTitle>
               </div>
             ) : (
               <div>
@@ -405,7 +408,7 @@ export default function DocumentViewer({
           </div>
         </div>
 
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="w-full border-t pt-4">
           <div className="flex w-full items-center justify-between">
             {isEditing ? (
               <div className="flex gap-2">

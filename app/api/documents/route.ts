@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
   // 유효한 enum 값이면 해당 게시판 자료만 조회, 아니면 전체 조회
   const documents = await prisma.document.findMany({
     where: isValidBoardType
-      ? { boardType: boardTypeParam as BoardType }
-      : undefined,
+      ? { boardType: boardTypeParam as BoardType, isDeleted: false }
+      : { isDeleted: false },
     include: {
       createdBy: {
         select: {

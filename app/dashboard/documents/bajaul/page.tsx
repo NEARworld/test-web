@@ -1,20 +1,25 @@
 "use client";
 
 import DocumentTable from "@/app/dashboard/documents/components/DocumentTable";
+import DocumentTableSkeleton from "@/app/dashboard/documents/components/DocumentTableSkeleton";
 import { useDocument } from "@/hooks/useDocument";
 
 // 바자울 자료실 페이지
 export default function BajaulDocumentsPage() {
-  const { documents, loading, error } = useDocument("BAJAUL");
+  const { documents, loading, error, fetchDocuments } = useDocument("BAJAUL");
+
+  if (error) {
+    return <div>에러 발생: {error.message}</div>;
+  }
 
   return (
     <div>
-      <h1>바자울 자료실</h1>
-      <p>이곳은 바자울 자료실입니다.</p>
-      {loading && <p>로딩 중...</p>}
-      {error && <p>에러 발생: {error.message}</p>}
-
-      <DocumentTable documents={documents} />
+      <h1 className="text-3xl font-bold">바자울 자료실</h1>
+      {loading ? (
+        <DocumentTableSkeleton />
+      ) : (
+        <DocumentTable documents={documents} fetchDocuments={fetchDocuments} />
+      )}
     </div>
   );
 }
