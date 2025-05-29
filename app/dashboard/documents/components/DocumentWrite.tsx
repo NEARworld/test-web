@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useDocument } from "@/hooks/useDocument";
+
 const DocumentWriteButton: React.FC = () => {
   const { isLoading } = useDocument();
   const [isOpen, setIsOpen] = useState(false);
@@ -26,9 +27,9 @@ const DocumentWriteButton: React.FC = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <button className="absolute right-0 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700">
+        <Button className="absolute right-0" variant="blue">
           글쓰기
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className="flex h-[90vh] w-[90vw] flex-col overflow-hidden p-0 md:h-[65vh] md:w-[50vw]">
         <DialogHeader className="p-6 pb-4">
