@@ -15,22 +15,22 @@ import { ChevronRight } from "lucide-react";
 
 export function NavMain() {
   const router = useRouter();
-  const [openDocuments, setOpenDocuments] = useState(false);
+  const [openDocuments, setOpenDocuments] = useState(true);
 
   return (
     <SidebarGroup>
       {/* <SidebarGroupLabel>청소년자립학교</SidebarGroupLabel> */}
       <SidebarMenu>
-        <SidebarMenuItem>
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"업무 관리"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/tasks")}
           >
-            {/* <Users /> */}
+            <Users />
             <span>업무 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
         <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"자료실"}
@@ -117,46 +117,46 @@ export function NavMain() {
             </SidebarMenuSub>
           )}
         </SidebarMenuItem>
-        <SidebarMenuItem>
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"종합"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard")}
           >
-            {/* <Monitor /> */}
+            <Monitor />
             <span>종합</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
+        </SidebarMenuItem> */}
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"식당 예약관리"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/reservation")}
           >
-            {/* <NotebookText /> */}
+            <NotebookText />
             <span>예약 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
+        </SidebarMenuItem> */}
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"예약 통계"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/statistics")}
           >
-            {/* <BarChart3 /> */}
+            <BarChart3 />
             <span>예약 통계</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
+        </SidebarMenuItem> */}
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"예약 통계"}
             className="cursor-pointer"
             onClick={() => router.replace("/dashboard/employees")}
           >
-            {/* <BarChart3 /> */}
+            <BarChart3 />
             <span>직원 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
         {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"식당 재고관리"}
@@ -167,7 +167,7 @@ export function NavMain() {
             <span>재고 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem> */}
-        <SidebarMenuItem>
+        {/* <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"테이블 관리"}
             className="cursor-pointer"
@@ -175,7 +175,7 @@ export function NavMain() {
           >
             <span>테이블 관리</span>
           </SidebarMenuButton>
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
       </SidebarMenu>
     </SidebarGroup>
   );
