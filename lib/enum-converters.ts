@@ -19,10 +19,14 @@ export function convertUserStatusToKorean(
   }
 }
 
-export function getUserStatusKorean(status: UserStatus): {
-  text: UserStatusKorean;
+export function getUserStatusKorean(status: UserStatus | undefined): {
+  text: UserStatusKorean | "알 수 없음";
   className: string;
 } {
+  if (!status) {
+    return { text: "알 수 없음", className: "bg-purple-100" };
+  }
+
   const koreanStatus = convertUserStatusToKorean(status);
 
   let className = "";
@@ -38,9 +42,6 @@ export function getUserStatusKorean(status: UserStatus): {
       break;
     case UserStatus.INACTIVE:
       className += " bg-gray-100";
-      break;
-    default:
-      className += " bg-purple-100";
       break;
   }
 
