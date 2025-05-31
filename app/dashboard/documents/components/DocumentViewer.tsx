@@ -499,8 +499,8 @@ export default function DocumentViewer({
                     )}
                   {/* 임시 안내 문구 - 5단계에서 수정 예정 */}
                   <p className="text-muted-foreground mt-2 text-xs">
-                    (삭제할 기존 파일을 선택하고, 필요시 새 파일을 업로드하세요.
-                    파일을 유지하려면 선택하지 마세요.)
+                    삭제를 원하는 기존 파일은 체크박스를 선택하고, 새 파일
+                    추가도 가능합니다. 선택하지 않은 기존 파일은 유지됩니다.
                   </p>
                 </div>
               ) : document.attachments && document.attachments.length > 0 ? (
