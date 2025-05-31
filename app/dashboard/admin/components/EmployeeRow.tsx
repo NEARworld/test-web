@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { User, JobPosition } from "@prisma/client";
+import { User, JobPosition, Department, UserStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -93,23 +93,35 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             <label htmlFor="department" className="w-1/10 pr-4 text-right">
               부서
             </label>
-            {/* 실제 드롭다운/선택 컴포넌트로 교체해야 합니다. */}
-            <input
-              id="department"
-              defaultValue={convertUserDepartmentToKorean(employee.department)}
-              className="w-3/4 rounded-md border border-gray-300 p-2"
-            />
+            <Select defaultValue={employee.department}>
+              <SelectTrigger className="w-3/4 text-base">
+                <SelectValue placeholder="부서 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(Department).map((dept) => (
+                  <SelectItem key={dept} value={dept}>
+                    {convertUserDepartmentToKorean(dept)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="status" className="w-1/10 pr-4 text-right">
               상태
             </label>
-            {/* 실제 드롭다운/선택 컴포넌트로 교체해야 합니다. */}
-            <input
-              id="status"
-              defaultValue={getUserStatusKorean(employee.status).text}
-              className="w-3/4 rounded-md border border-gray-300 p-2"
-            />
+            <Select defaultValue={employee.status}>
+              <SelectTrigger className="w-3/4 text-base">
+                <SelectValue placeholder="상태 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(UserStatus).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {getUserStatusKorean(status).text}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
