@@ -321,6 +321,13 @@ export default function DocumentViewer({
     });
   };
 
+  // 새 파일 목록에서 파일 제거 핸들러
+  const handleRemoveNewFile = (fileNameToRemove: string) => {
+    setFiles((prevFiles) =>
+      prevFiles.filter((file) => file.name !== fileNameToRemove),
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] min-h-[300px] w-full max-w-3xl flex-col overflow-hidden p-0">
@@ -438,11 +445,36 @@ export default function DocumentViewer({
                       <p className="mt-2 text-sm font-medium">
                         선택된 새 파일:
                       </p>
-                      <ul className="list-disc pl-5 text-sm">
+                      <div className="flex flex-col gap-3">
                         {files.map((f, index) => (
-                          <li key={index}>{f.name}</li>
+                          <div
+                            key={index}
+                            className="flex items-center justify-between rounded-md border p-3"
+                          >
+                            <div className="flex flex-grow items-center gap-2 overflow-hidden">
+                              {getFileExtension(f.name) && (
+                                <Badge
+                                  variant="secondary"
+                                  className="whitespace-nowrap"
+                                >
+                                  {getFileExtension(f.name)}
+                                </Badge>
+                              )}
+                              <span className="truncate font-medium">
+                                {f.name}
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveNewFile(f.name)}
+                              className="ml-4 flex-shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
                   {editData?.attachments &&
@@ -481,7 +513,7 @@ export default function DocumentViewer({
                                     !!isChecked,
                                   );
                                 }}
-                                className="ml-4 flex-shrink-0" // 체크박스가 줄어들지 않도록 설정하고 왼쪽 여백 추가
+                                className="ml-4 flex-shrink-0"
                               />
                             </div>
                           ))}
