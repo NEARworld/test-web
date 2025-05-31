@@ -109,7 +109,6 @@ const EmployeeManagementPage: React.FC = () => {
               <TableHead>직책</TableHead>
               <TableHead>부서</TableHead>
               <TableHead>상태</TableHead>
-              <TableHead className="text-right">작업</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -136,14 +135,6 @@ const EmployeeManagementPage: React.FC = () => {
                     >
                       {getUserStatusKorean(employee.status).text}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <a
-                      href="#"
-                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      수정
-                    </a>
                   </TableCell>
                 </TableRow>
               ))
