@@ -16,8 +16,9 @@ import {
   Pencil,
   Save,
   X,
+  Loader2,
 } from "lucide-react";
-import type { Document, Attachment } from "@prisma/client";
+import type { /* Document, */ Attachment } from "@prisma/client";
 import { useState, useEffect, ChangeEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -69,17 +70,22 @@ export default function DocumentViewer({
   // 편집 모드 상태 추가
   const [isEditing, setIsEditing] = useState(false);
   // 수정 중인 데이터 상태 추가
-  const [editData, setEditData] = useState<Partial<Document> | null>(null);
+  const [editData, setEditData] = useState<DocumentWithCreatedBy | null>(null);
   // 수정 로딩 상태 추가
   const [updateLoading, setUpdateLoading] = useState(false);
   // 파일 업로드 상태
   const [files, setFiles] = useState<File[]>([]);
+  // 개별 첨부파일 삭제 로딩 상태
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<
+    string | null
+  >(null);
 
   // 문서가 변경되면 편집 모드 초기화 및 editData 설정
   useEffect(() => {
     if (document) {
-      setEditData(document);
+      setEditData(document); // 이제 DocumentWithCreatedBy 타입이므로 직접 할당
       setIsEditing(false);
+      setFiles([]); // 새 문서 로드 시 선택된 파일 초기화
     } else {
       setEditData(null);
     }
@@ -285,6 +291,66 @@ export default function DocumentViewer({
     }
   };
 
+  // 기존 첨부파일 삭제 핸들러
+  const handleDeleteExistingFile = async (attachmentId: string) => {
+    if (!editData || !editData.attachments) return;
+
+    const attachmentToDelete = editData.attachments.find(
+      (att) => att.id === attachmentId,
+    );
+
+    if (!attachmentToDelete) {
+      toast.error("삭제할 첨부파일 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `'${getOriginalFileName(attachmentToDelete.fileName)}' 파일을 정말로 삭제하시겠습니까?`,
+      )
+    )
+      return;
+
+    setDeletingAttachmentId(attachmentId);
+    try {
+      const response = await fetch(`/api/attachments/${attachmentId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "첨부파일 삭제 중 오류가 발생했습니다.",
+        );
+      }
+
+      toast.success(
+        `'${getOriginalFileName(attachmentToDelete.fileName)}' 파일이 삭제되었습니다.`,
+      );
+
+      // editData 상태에서 해당 첨부파일 제거
+      setEditData((prevData) => {
+        if (!prevData || !prevData.attachments) return prevData;
+        return {
+          ...prevData,
+          attachments: prevData.attachments.filter((att) => {
+            console.log(att.id, attachmentId);
+            return att.id !== attachmentId;
+          }),
+        };
+      });
+    } catch (error) {
+      console.error("첨부파일 삭제 오류:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "첨부파일 삭제에 실패했습니다.",
+      );
+    } finally {
+      setDeletingAttachmentId(null);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] min-h-[300px] w-full max-w-3xl flex-col overflow-hidden p-0">
@@ -411,7 +477,9 @@ export default function DocumentViewer({
                     <div>
                       <p className="mb-2 text-sm font-medium">현재 파일:</p>
                       <div className="flex flex-col gap-3">
-                        {(document.attachments as Attachment[]).map((df) => (
+                        {(
+                          editData?.attachments as Attachment[] | undefined
+                        )?.map((df) => (
                           <div
                             key={df.id}
                             className="flex items-center justify-between rounded-md border p-3"
@@ -431,11 +499,16 @@ export default function DocumentViewer({
                             </div>
                             <button
                               type="button"
-                              // onClick={() => handleDeleteExistingFile(df.id)} // 실제 삭제 로직은 추후 구현
-                              className="p-1 text-red-500 hover:text-red-700"
+                              onClick={() => handleDeleteExistingFile(df.id)}
+                              className="p-1 text-red-500 hover:text-red-700 disabled:opacity-50"
                               aria-label={`Remove ${getOriginalFileName(df.fileName)}`}
+                              disabled={deletingAttachmentId === df.id}
                             >
-                              <X className="h-4 w-4" />
+                              {deletingAttachmentId === df.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <X className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         ))}
