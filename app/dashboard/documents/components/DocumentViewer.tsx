@@ -16,7 +16,6 @@ import {
   Pencil,
   Save,
   X,
-  Loader2,
 } from "lucide-react";
 import type { /* Document, */ Attachment } from "@prisma/client";
 import { useState, useEffect, ChangeEvent } from "react";
@@ -34,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { DocumentWithCreatedBy } from "@/types/document";
 import { useDocument } from "@/hooks/useDocument";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // DocumentViewer 컴포넌트: 게시물 보기 모달
 interface DocumentViewerProps {
@@ -75,10 +75,10 @@ export default function DocumentViewer({
   const [updateLoading, setUpdateLoading] = useState(false);
   // 파일 업로드 상태
   const [files, setFiles] = useState<File[]>([]);
-  // 개별 첨부파일 삭제 로딩 상태
-  const [deletingAttachmentId, setDeletingAttachmentId] = useState<
-    string | null
-  >(null);
+  // 삭제할 기존 첨부 파일 ID 목록 상태
+  const [selectedFilesToDelete, setSelectedFilesToDelete] = useState<string[]>(
+    [],
+  );
 
   // 문서가 변경되면 편집 모드 초기화 및 editData 설정
   useEffect(() => {
@@ -86,6 +86,7 @@ export default function DocumentViewer({
       setEditData(document); // 이제 DocumentWithCreatedBy 타입이므로 직접 할당
       setIsEditing(false);
       setFiles([]); // 새 문서 로드 시 선택된 파일 초기화
+      setSelectedFilesToDelete([]); // 삭제할 파일 목록 초기화
     } else {
       setEditData(null);
     }
@@ -219,6 +220,7 @@ export default function DocumentViewer({
     setIsEditing(false);
     setEditData(document); // 원본 데이터로 복원
     setFiles([]); // 파일 상태 초기화
+    setSelectedFilesToDelete([]); // 선택된 파일 삭제 목록 초기화
   };
 
   // 입력 필드 변경 핸들러
@@ -259,8 +261,16 @@ export default function DocumentViewer({
       // 새 파일이 있으면 추가
       if (files.length > 0) {
         files.forEach((file) => {
-          formData.append("files", file); // "files" 이름으로 각 파일 추가
+          formData.append("newFiles", file); // "newFiles" 이름으로 각 파일 추가 (3단계에서 수정)
         });
+      }
+
+      // 삭제할 파일 ID 목록 추가 (3단계에서 수정)
+      if (selectedFilesToDelete.length > 0) {
+        formData.append(
+          "deleteAttachmentIds",
+          JSON.stringify(selectedFilesToDelete),
+        );
       }
 
       // API 호출
@@ -277,6 +287,8 @@ export default function DocumentViewer({
       const updatedDocument = await response.json();
       toast.success("게시물이 수정되었습니다.");
       setIsEditing(false);
+      setSelectedFilesToDelete([]); // 저장 후 선택된 파일 삭제 목록 초기화
+      setFiles([]); // 저장 후 새 파일 선택 목록 초기화
       // 문서 상태 업데이트
       if (updatedDocument) {
         fetchDocuments(); // 문서 목록 새로고침
@@ -291,64 +303,22 @@ export default function DocumentViewer({
     }
   };
 
-  // 기존 첨부파일 삭제 핸들러
-  const handleDeleteExistingFile = async (attachmentId: string) => {
-    if (!editData || !editData.attachments) return;
-
-    const attachmentToDelete = editData.attachments.find(
-      (att) => att.id === attachmentId,
-    );
-
-    if (!attachmentToDelete) {
-      toast.error("삭제할 첨부파일 정보를 찾을 수 없습니다.");
-      return;
-    }
-
-    if (
-      !confirm(
-        `'${getOriginalFileName(attachmentToDelete.fileName)}' 파일을 정말로 삭제하시겠습니까?`,
-      )
-    )
-      return;
-
-    setDeletingAttachmentId(attachmentId);
-    try {
-      const response = await fetch(`/api/attachments/${attachmentId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "첨부파일 삭제 중 오류가 발생했습니다.",
-        );
+  // 선택된 기존 첨부파일 삭제 토글 핸들러
+  const handleToggleDeleteExistingFile = (
+    fileId: string,
+    isChecked: boolean,
+  ) => {
+    setSelectedFilesToDelete((prevSelected: string[]) => {
+      if (isChecked) {
+        // 체크되면 배열에 추가 (중복 방지)
+        return prevSelected.includes(fileId)
+          ? prevSelected
+          : [...prevSelected, fileId];
+      } else {
+        // 체크 해제되면 배열에서 제거
+        return prevSelected.filter((id: string) => id !== fileId);
       }
-
-      toast.success(
-        `'${getOriginalFileName(attachmentToDelete.fileName)}' 파일이 삭제되었습니다.`,
-      );
-
-      // editData 상태에서 해당 첨부파일 제거
-      setEditData((prevData) => {
-        if (!prevData || !prevData.attachments) return prevData;
-        return {
-          ...prevData,
-          attachments: prevData.attachments.filter((att) => {
-            console.log(att.id, attachmentId);
-            return att.id !== attachmentId;
-          }),
-        };
-      });
-    } catch (error) {
-      console.error("첨부파일 삭제 오류:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "첨부파일 삭제에 실패했습니다.",
-      );
-    } finally {
-      setDeletingAttachmentId(null);
-    }
+    });
   };
 
   return (
@@ -463,62 +433,75 @@ export default function DocumentViewer({
                     onChange={handleFileChange}
                     className="max-w-md"
                   />
-                  {files.length > 0 ? (
+                  {files.length > 0 && ( // 새 파일이 선택된 경우에만 표시
                     <div>
-                      <p className="text-sm font-medium">선택된 파일:</p>
+                      <p className="mt-2 text-sm font-medium">
+                        선택된 새 파일:
+                      </p>
                       <ul className="list-disc pl-5 text-sm">
                         {files.map((f, index) => (
                           <li key={index}>{f.name}</li>
                         ))}
                       </ul>
                     </div>
-                  ) : document.attachments &&
-                    document.attachments.length > 0 ? (
-                    <div>
-                      <p className="mb-2 text-sm font-medium">현재 파일:</p>
-                      <div className="flex flex-col gap-3">
-                        {(
-                          editData?.attachments as Attachment[] | undefined
-                        )?.map((df) => (
-                          <div
-                            key={df.id}
-                            className="flex items-center justify-between rounded-md border p-3"
-                          >
-                            <div className="flex items-center gap-2 overflow-hidden">
-                              {getFileExtension(df.fileName) && (
-                                <Badge
-                                  variant="secondary"
-                                  className="whitespace-nowrap"
-                                >
-                                  {getFileExtension(df.fileName)}
-                                </Badge>
-                              )}
-                              <span className="truncate font-medium">
-                                {getOriginalFileName(df.fileName)}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteExistingFile(df.id)}
-                              className="p-1 text-red-500 hover:text-red-700 disabled:opacity-50"
-                              aria-label={`Remove ${getOriginalFileName(df.fileName)}`}
-                              disabled={deletingAttachmentId === df.id}
+                  )}
+                  {editData?.attachments &&
+                    editData.attachments.length > 0 && ( // 기존 첨부파일이 있는 경우에만 표시
+                      <div>
+                        <p className="mt-2 mb-2 text-sm font-medium">
+                          기존 파일:
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          {(editData.attachments as Attachment[]).map((df) => (
+                            <div
+                              key={df.id}
+                              className="flex items-center justify-between rounded-md border p-3"
                             >
-                              {deletingAttachmentId === df.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <X className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        ))}
+                              <div className="flex flex-grow items-center gap-2 overflow-hidden">
+                                {getFileExtension(df.fileName) && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="whitespace-nowrap"
+                                  >
+                                    {getFileExtension(df.fileName)}
+                                  </Badge>
+                                )}
+                                <span className="truncate font-medium">
+                                  {getOriginalFileName(df.fileName)}
+                                </span>
+                              </div>
+                              <Checkbox
+                                id={`delete-attachment-${df.id}`}
+                                checked={selectedFilesToDelete.includes(df.id)}
+                                onCheckedChange={(
+                                  isChecked: boolean | "indeterminate",
+                                ) => {
+                                  handleToggleDeleteExistingFile(
+                                    df.id,
+                                    !!isChecked,
+                                  );
+                                }}
+                                className="ml-4 flex-shrink-0" // 체크박스가 줄어들지 않도록 설정하고 왼쪽 여백 추가
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                    )}
+                  {/* 새 파일도 없고 기존 파일도 없을 때 안내 문구 */}
+                  {files.length === 0 &&
+                    (!editData?.attachments ||
+                      editData.attachments.length === 0) && (
                       <p className="text-muted-foreground mt-2 text-xs">
-                        (새 파일을 선택하면 모든 기존 파일이 교체됩니다. 파일을
-                        유지하려면 비워두세요)
+                        현재 첨부된 파일이 없습니다. 새 파일을 추가할 수
+                        있습니다.
                       </p>
-                    </div>
-                  ) : null}
+                    )}
+                  {/* 임시 안내 문구 - 5단계에서 수정 예정 */}
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    (삭제할 기존 파일을 선택하고, 필요시 새 파일을 업로드하세요.
+                    파일을 유지하려면 선택하지 마세요.)
+                  </p>
                 </div>
               ) : document.attachments && document.attachments.length > 0 ? (
                 <div className="flex flex-col gap-4">
