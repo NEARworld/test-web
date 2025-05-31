@@ -79,16 +79,16 @@ export function getUserStatusKorean(status: UserStatus | undefined): {
   let className = "";
   switch (status) {
     case UserStatus.ACTIVE:
-      className += " bg-green-100";
+      className += " bg-green-500";
       break;
     case UserStatus.LEAVE:
-      className += " bg-yellow-100";
+      className += " bg-yellow-500";
       break;
     case UserStatus.RESIGNED:
-      className += " bg-red-100";
+      className += " bg-red-500";
       break;
     case UserStatus.INACTIVE:
-      className += " bg-gray-100";
+      className += " bg-gray-500";
       break;
   }
 
