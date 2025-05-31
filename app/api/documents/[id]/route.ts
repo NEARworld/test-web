@@ -2,9 +2,10 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { BoardType } from "@prisma/client";
 import { auth } from "@/auth";
-import { writeFile } from "fs/promises";
-import { join } from "path";
 import { v4 as uuidv4 } from "uuid";
+import { supabase } from "@/lib/supabase";
+
+const SUPABASE_BUCKET_NAME = "documents";
 
 // GET 요청: 특정 Document 조회
 export async function GET(
@@ -59,7 +60,7 @@ export async function PATCH(
   const userId = session.user.id;
 
   try {
-    // 현재 문서 조회
+    // 현재 문서 조회 (권한 확인용)
     const document = await prisma.document.findUnique({
       where: { id },
     });
@@ -70,8 +71,6 @@ export async function PATCH(
         { status: 404 },
       );
     }
-
-    // 작성자 확인
     if (document.createdById !== userId) {
       return NextResponse.json(
         { error: "수정 권한이 없습니다." },
@@ -79,22 +78,24 @@ export async function PATCH(
       );
     }
 
-    // FormData 처리
     const formData = await request.formData();
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const boardType = formData.get("boardType") as string;
-    const file = formData.get("file") as File | null;
+    const newFiles = formData.getAll("newFiles") as File[];
+    const deleteAttachmentIdsString = formData.get("deleteAttachmentIds") as
+      | string
+      | null;
+    const deleteAttachmentIds: string[] = deleteAttachmentIdsString
+      ? JSON.parse(deleteAttachmentIdsString)
+      : [];
 
-    // 필수 필드 확인
     if (!title || !boardType) {
       return NextResponse.json(
         { error: "제목과 게시판 유형은 필수입니다." },
         { status: 400 },
       );
     }
-
-    // boardType 유효성 검사
     if (!Object.values(BoardType).includes(boardType as BoardType)) {
       return NextResponse.json(
         { error: "유효하지 않은 게시판 유형입니다." },
@@ -102,51 +103,115 @@ export async function PATCH(
       );
     }
 
-    // 업데이트 데이터 준비
-    const updateData: {
-      title: string;
-      description: string;
-      boardType: BoardType;
-      fileName?: string;
-      fileType?: string;
-      fileUrl?: string;
-    } = {
-      title,
-      description,
-      boardType: boardType as BoardType,
-    };
+    const updatedDocument = await prisma.$transaction(async (tx) => {
+      // 1. 기존 첨부파일 삭제 (Supabase Storage 및 DB)
+      if (deleteAttachmentIds.length > 0) {
+        for (const attachmentIdToDelete of deleteAttachmentIds) {
+          const attachmentToDelete = await tx.attachment.findUnique({
+            where: { id: attachmentIdToDelete },
+          });
 
-    // 파일 처리
-    if (file) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+          if (attachmentToDelete && attachmentToDelete.fileUrl) {
+            try {
+              // fileUrl에서 Supabase 스토리지 경로 추출 (중요: URL 구조에 따라 변경 필요)
+              // 예: https://<project_ref>.supabase.co/storage/v1/object/public/BUCKET_NAME/path/to/file.ext
+              // 위에서 BUCKET_NAME 이후의 경로를 추출해야 함
+              const urlParts = attachmentToDelete.fileUrl.split(
+                "/" + SUPABASE_BUCKET_NAME + "/",
+              );
+              if (urlParts.length > 1) {
+                const storagePath = urlParts[1];
+                const { error: deleteError } = await supabase.storage
+                  .from(SUPABASE_BUCKET_NAME)
+                  .remove([storagePath]);
+                if (deleteError) {
+                  console.error(
+                    `Supabase file deletion failed for path ${storagePath}:`,
+                    deleteError,
+                  );
+                  // 필요시 여기서 throw error 하여 트랜잭션 롤백
+                }
+              } else {
+                console.warn(
+                  `Could not determine Supabase storage path from URL: ${attachmentToDelete.fileUrl}`,
+                );
+              }
+            } catch (fileError) {
+              console.error(
+                `Error processing file deletion for URL ${attachmentToDelete.fileUrl}:`,
+                fileError,
+              );
+            }
+          }
+          if (attachmentToDelete) {
+            await tx.attachment.delete({
+              where: { id: attachmentIdToDelete },
+            });
+          }
+        }
+      }
 
-      // 파일 확장자 추출
-      const originalName = file.name;
-      const fileExt = originalName.split(".").pop() || "";
+      // 2. 새로운 첨부파일 생성 및 저장 (Supabase Storage 및 DB)
+      if (newFiles.length > 0) {
+        for (const file of newFiles) {
+          const bytes = await file.arrayBuffer();
+          const originalName = file.name;
+          const fileExt = originalName.split(".").pop() || "";
+          const uniqueFileName = `${uuidv4()}.${fileExt}`; // Supabase 내에서의 파일명 (키)
 
-      // 파일 저장 경로 및 이름 설정
-      const fileName = `${uuidv4()}.${fileExt}`;
-      const publicDir = join(process.cwd(), "public");
-      const uploadsDir = join(publicDir, "uploads");
-      const filePath = join(uploadsDir, fileName);
+          // Supabase에 업로드 (버킷 내 경로를 파일명 자체로 사용)
+          const { error: uploadError } = await supabase.storage
+            .from(SUPABASE_BUCKET_NAME)
+            .upload(uniqueFileName, bytes, {
+              contentType: file.type,
+              upsert: false, // 동일 이름 파일 덮어쓰기 방지 (필요시 true)
+            });
 
-      // 파일 저장
-      await writeFile(filePath, buffer);
+          if (uploadError) {
+            console.error("Supabase upload error:", uploadError);
+            throw new Error(
+              `Failed to upload file ${originalName}: ${uploadError.message}`,
+            );
+          }
 
-      // 파일 정보 업데이트 데이터에 추가
-      updateData.fileName = originalName;
-      updateData.fileType = file.type;
-      updateData.fileUrl = `/uploads/${fileName}`;
-    }
+          // 업로드된 파일의 공개 URL 가져오기
+          const { data: publicUrlData } = supabase.storage
+            .from(SUPABASE_BUCKET_NAME)
+            .getPublicUrl(uniqueFileName);
 
-    // 문서 업데이트
-    const updated = await prisma.document.update({
-      where: { id },
-      data: updateData,
+          if (!publicUrlData?.publicUrl) {
+            console.error("Failed to get public URL for:", uniqueFileName);
+            throw new Error(
+              `Failed to get public URL for file ${originalName}`,
+            );
+          }
+
+          await tx.attachment.create({
+            data: {
+              documentId: id,
+              fileName: originalName,
+              fileType: file.type,
+              fileUrl: publicUrlData.publicUrl, // Supabase 공개 URL 저장
+              // storageKey: uniqueFileName, // 삭제를 위해 이 키를 저장하는 것이 더 안정적입니다.
+            },
+          });
+        }
+      }
+
+      // 3. 문서 기본 정보 업데이트
+      const doc = await tx.document.update({
+        where: { id },
+        data: { title, description, boardType: boardType as BoardType },
+      });
+      return doc;
     });
 
-    return NextResponse.json(updated);
+    const result = await prisma.document.findUnique({
+      where: { id: updatedDocument.id },
+      include: { attachments: true, createdBy: true },
+    });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     console.error("문서 수정 오류:", error);
     const errorMessage =
