@@ -6,6 +6,14 @@ import {
 import { User } from "@prisma/client";
 import React from "react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // 예시 직원 데이터
 const employeesData: Partial<User>[] = [
@@ -15,6 +23,15 @@ const employeesData: Partial<User>[] = [
     email: "minji@example.com",
     position: "STAFF",
     department: "BAZAUL",
+    status: "ACTIVE",
+  },
+  {
+    id: "2",
+    name: "이준호",
+    email: "junho@example.com",
+    position: "TEAM_LEADER",
+    department: "YOUTH_RESTAURANT",
+    status: "ACTIVE",
   },
 ];
 
@@ -61,75 +78,45 @@ const EmployeeManagementPage: React.FC = () => {
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-md">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-              >
-                이름
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-              >
-                직책
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-              >
-                부서
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-              >
-                상태
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-              >
-                작업
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
+        <Table>
+          <TableHeader className="bg-gray-100">
+            <TableRow>
+              <TableHead className="w-[180px]">이름</TableHead>
+              <TableHead>직책</TableHead>
+              <TableHead>부서</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead className="text-right">작업</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {employeesData.map((employee) => (
-              <tr
-                key={employee.id}
-                className="transition-colors duration-150 hover:bg-gray-50"
-              >
-                <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
-                  {employee.name}
-                </td>
-                <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-600">
+              <TableRow key={employee.id}>
+                <TableCell className="font-medium">{employee.name}</TableCell>
+                <TableCell>
                   {convertUserJobPositionToKorean(employee.position)}
-                </td>
-                <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-600">
+                </TableCell>
+                <TableCell>
                   {convertUserDepartmentToKorean(employee.department)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                </TableCell>
+                <TableCell>
                   <Badge
                     className={`${getUserStatusKorean(employee.status).className}`}
                   >
                     {getUserStatusKorean(employee.status).text}
                   </Badge>
-                </td>
-                <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                </TableCell>
+                <TableCell className="text-right">
                   <a
                     href="#"
                     className="text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     수정
                   </a>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
