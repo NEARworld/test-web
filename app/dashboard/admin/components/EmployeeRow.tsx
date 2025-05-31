@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { User } from "@prisma/client";
+import { User, JobPosition } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -13,6 +13,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   convertUserDepartmentToKorean,
   convertUserJobPositionToKorean,
@@ -69,12 +76,18 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             <label htmlFor="position" className="w-1/10 pr-4 text-right">
               직책
             </label>
-            {/* 실제 드롭다운/선택 컴포넌트로 교체해야 합니다. */}
-            <input
-              id="position"
-              defaultValue={convertUserJobPositionToKorean(employee.position)}
-              className="w-3/4 rounded-md border border-gray-300 p-2"
-            />
+            <Select defaultValue={employee.position}>
+              <SelectTrigger className="w-3/4 text-base">
+                <SelectValue placeholder="직책 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(JobPosition).map((pos) => (
+                  <SelectItem key={pos} value={pos}>
+                    {convertUserJobPositionToKorean(pos)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="department" className="w-1/10 pr-4 text-right">
