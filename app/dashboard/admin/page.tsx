@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  convertUserDepartmentToKorean,
-  convertUserJobPositionToKorean,
-  getUserStatusKorean,
-} from "@/lib/enum-converters";
 import { User } from "@prisma/client";
 import React, { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -16,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import EmployeeRow from "./components/EmployeeRow";
 
 const EmployeeManagementPage: React.FC = () => {
   const [employees, setEmployees] = useState<User[]>([]);
@@ -120,23 +115,7 @@ const EmployeeManagementPage: React.FC = () => {
               </TableRow>
             ) : (
               employees.map((employee: User) => (
-                <TableRow key={employee.id} className="hover:cursor-pointer">
-                  <TableCell className="font-medium">{employee.name}</TableCell>
-                  <TableCell>{employee.email}</TableCell>
-                  <TableCell>
-                    {convertUserJobPositionToKorean(employee.position)}
-                  </TableCell>
-                  <TableCell>
-                    {convertUserDepartmentToKorean(employee.department)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={`${getUserStatusKorean(employee.status).className}`}
-                    >
-                      {getUserStatusKorean(employee.status).text}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
+                <EmployeeRow key={employee.id} employee={employee} />
               ))
             )}
           </TableBody>
