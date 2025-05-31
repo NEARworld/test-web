@@ -30,6 +30,13 @@ export default auth(async function middleware(req: NextRequest) {
         : "authjs.session-token",
   })) as CustomToken;
 
+  if (
+    req.url.endsWith("admin") &&
+    (token?.position !== "CEO" || session?.user.role !== "ADMIN")
+  ) {
+    return NextResponse.redirect(new URL(PATHS.ACCESS_DENIED, req.url));
+  }
+
   const isAuthenticated = !!session && !!token?.sub;
   const userPosition = token?.position;
   const currentPath = req.nextUrl.pathname;
