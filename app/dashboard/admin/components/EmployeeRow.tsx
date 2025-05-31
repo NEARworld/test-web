@@ -125,7 +125,15 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
           </div>
         </div>
         <DialogFooter className="justify-between sm:justify-between">
-          <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+          <button
+            onClick={() => {
+              if (window.confirm("정말로 수정하시겠습니까?")) {
+                // TODO: 실제 수정 로직을 여기에 추가하세요.
+                console.log("수정 로직 실행");
+              }
+            }}
+            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
             수정
           </button>
           <DialogClose asChild>
