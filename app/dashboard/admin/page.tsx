@@ -1,10 +1,12 @@
+"use client";
+
 import {
   convertUserDepartmentToKorean,
   convertUserJobPositionToKorean,
   getUserStatusKorean,
 } from "@/lib/enum-converters";
 import { User } from "@prisma/client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -15,27 +17,48 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// 예시 직원 데이터
-const employeesData: Partial<User>[] = [
-  {
-    id: "1",
-    name: "김민지",
-    email: "minji@example.com",
-    position: "STAFF",
-    department: "BAZAUL",
-    status: "ACTIVE",
-  },
-  {
-    id: "2",
-    name: "이준호",
-    email: "junho@example.com",
-    position: "TEAM_LEADER",
-    department: "YOUTH_RESTAURANT",
-    status: "ACTIVE",
-  },
-];
-
 const EmployeeManagementPage: React.FC = () => {
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await fetch("/api/users");
+        if (!response.ok) {
+          throw new Error("직원 정보를 가져오는데 실패했습니다.");
+        }
+        const data = await response.json();
+        setEmployees(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>데이터 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-red-500">에러: {error}</p>
+      </div>
+    );
+  }
+
+  console.log(employees);
+
   return (
     <div className="min-h-screen px-8">
       <header className="mb-8">
@@ -82,6 +105,7 @@ const EmployeeManagementPage: React.FC = () => {
           <TableHeader className="bg-gray-100">
             <TableRow>
               <TableHead className="w-[180px]">이름</TableHead>
+              <TableHead>이메일</TableHead>
               <TableHead>직책</TableHead>
               <TableHead>부서</TableHead>
               <TableHead>상태</TableHead>
@@ -89,32 +113,41 @@ const EmployeeManagementPage: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employeesData.map((employee) => (
-              <TableRow key={employee.id}>
-                <TableCell className="font-medium">{employee.name}</TableCell>
-                <TableCell>
-                  {convertUserJobPositionToKorean(employee.position)}
-                </TableCell>
-                <TableCell>
-                  {convertUserDepartmentToKorean(employee.department)}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    className={`${getUserStatusKorean(employee.status).className}`}
-                  >
-                    {getUserStatusKorean(employee.status).text}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <a
-                    href="#"
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    수정
-                  </a>
+            {employees.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  등록된 직원이 없습니다.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              employees.map((employee: User) => (
+                <TableRow key={employee.id}>
+                  <TableCell className="font-medium">{employee.name}</TableCell>
+                  <TableCell>{employee.email}</TableCell>
+                  <TableCell>
+                    {convertUserJobPositionToKorean(employee.position)}
+                  </TableCell>
+                  <TableCell>
+                    {convertUserDepartmentToKorean(employee.department)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={`${getUserStatusKorean(employee.status).className}`}
+                    >
+                      {getUserStatusKorean(employee.status).text}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <a
+                      href="#"
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      수정
+                    </a>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
