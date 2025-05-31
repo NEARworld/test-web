@@ -48,14 +48,56 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{employee.name}</DialogTitle>
+          <DialogTitle>직원 정보 수정</DialogTitle>
+          <p className="text-sm text-gray-500">
+            선택한 직원의 세부 정보를 업데이트합니다.
+          </p>
         </DialogHeader>
-        <div>
-          <p>이메일: {employee.email}</p>
-          <p>직책: {convertUserJobPositionToKorean(employee.position)}</p>
-          <p>부서: {convertUserDepartmentToKorean(employee.department)}</p>
-          <p>상태: {getUserStatusKorean(employee.status).text}</p>
-          {/* 여기에 추가적인 직원 정보를 표시할 수 있습니다. */}
+        <div className="flex flex-col space-y-4 py-4">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="name" className="w-1/10 pr-4 text-right">
+              이름
+            </label>
+            <input
+              id="name"
+              defaultValue={employee.name ?? ""}
+              className="w-3/4 rounded-md border border-gray-300 p-2"
+              readOnly
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="position" className="w-1/10 pr-4 text-right">
+              직책
+            </label>
+            {/* 실제 드롭다운/선택 컴포넌트로 교체해야 합니다. */}
+            <input
+              id="position"
+              defaultValue={convertUserJobPositionToKorean(employee.position)}
+              className="w-3/4 rounded-md border border-gray-300 p-2"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="department" className="w-1/10 pr-4 text-right">
+              부서
+            </label>
+            {/* 실제 드롭다운/선택 컴포넌트로 교체해야 합니다. */}
+            <input
+              id="department"
+              defaultValue={convertUserDepartmentToKorean(employee.department)}
+              className="w-3/4 rounded-md border border-gray-300 p-2"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="status" className="w-1/10 pr-4 text-right">
+              상태
+            </label>
+            {/* 실제 드롭다운/선택 컴포넌트로 교체해야 합니다. */}
+            <input
+              id="status"
+              defaultValue={getUserStatusKorean(employee.status).text}
+              className="w-3/4 rounded-md border border-gray-300 p-2"
+            />
+          </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>
