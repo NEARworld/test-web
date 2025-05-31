@@ -120,7 +120,7 @@ const EmployeeManagementPage: React.FC = () => {
               </TableRow>
             ) : (
               employees.map((employee: User) => (
-                <TableRow key={employee.id}>
+                <TableRow key={employee.id} className="hover:cursor-pointer">
                   <TableCell className="font-medium">{employee.name}</TableCell>
                   <TableCell>{employee.email}</TableCell>
                   <TableCell>
