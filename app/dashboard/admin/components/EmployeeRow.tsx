@@ -124,7 +124,10 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             </Select>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="justify-between sm:justify-between">
+          <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+            수정
+          </button>
           <DialogClose asChild>
             <button className="rounded bg-gray-200 px-4 py-2 text-black hover:bg-gray-300">
               닫기
