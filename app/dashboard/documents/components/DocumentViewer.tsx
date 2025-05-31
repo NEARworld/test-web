@@ -468,9 +468,9 @@ export default function DocumentViewer({
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveNewFile(f.name)}
-                              className="ml-4 flex-shrink-0"
+                              className="hover:bg-destructive/10 ml-4 flex-shrink-0"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="text-destructive h-4 w-4" />
                             </Button>
                           </div>
                         ))}
@@ -487,7 +487,13 @@ export default function DocumentViewer({
                           {(editData.attachments as Attachment[]).map((df) => (
                             <div
                               key={df.id}
-                              className="flex items-center justify-between rounded-md border p-3"
+                              className="hover:bg-muted/50 flex cursor-pointer items-center justify-between rounded-md border p-3"
+                              onClick={() =>
+                                handleToggleDeleteExistingFile(
+                                  df.id,
+                                  !selectedFilesToDelete.includes(df.id),
+                                )
+                              }
                             >
                               <div className="flex flex-grow items-center gap-2 overflow-hidden">
                                 {getFileExtension(df.fileName) && (
@@ -505,15 +511,7 @@ export default function DocumentViewer({
                               <Checkbox
                                 id={`delete-attachment-${df.id}`}
                                 checked={selectedFilesToDelete.includes(df.id)}
-                                onCheckedChange={(
-                                  isChecked: boolean | "indeterminate",
-                                ) => {
-                                  handleToggleDeleteExistingFile(
-                                    df.id,
-                                    !!isChecked,
-                                  );
-                                }}
-                                className="ml-4 flex-shrink-0"
+                                className="pointer-events-none ml-4 flex-shrink-0"
                               />
                             </div>
                           ))}
