@@ -438,7 +438,7 @@ export default function DocumentViewer({
                       (ext) => `.${ext}`,
                     ).join(",")}
                     onChange={handleFileChange}
-                    className="max-w-md"
+                    className="max-w-md hover:cursor-pointer"
                   />
                   {files.length > 0 && ( // 새 파일이 선택된 경우에만 표시
                     <div>
