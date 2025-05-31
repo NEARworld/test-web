@@ -15,7 +15,6 @@ enum UserStatus {
   RESIGNED
 }
 
-// 사용자 변경 유형을 나타내는 Enum (새로 추가)
 enum UserChangeType {
   POSITION_CHANGE
   DEPARTMENT_CHANGE
@@ -296,6 +295,7 @@ enum Department {
   YOUTH_RESTAURANT
   BAZAUL
   FOOD_CARE_CENTER
+  CORPORATION
 }
 
 enum TableStatus {
