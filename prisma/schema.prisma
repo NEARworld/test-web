@@ -8,6 +8,13 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LEAVE
+  RESIGNED
+}
+
 model User {
   id                String                    @id @default(uuid())
   email             String?                   @unique
@@ -20,6 +27,7 @@ model User {
   position          JobPosition               @default(UNKNOWN)
   department        Department                @default(UNKNOWN)
   role              UserRole                  @default(USER)
+  status            UserStatus                @default(ACTIVE)
   phone             String?
   accounts          Account[]
   reservations      Reservation[]
