@@ -17,7 +17,7 @@ export type UserDepartmentKorean =
   | "미정";
 
 export function convertUserDepartmentToKorean(
-  department: Department,
+  department: Department | undefined,
 ): UserDepartmentKorean {
   switch (department) {
     case Department.BAZAUL:
@@ -32,7 +32,7 @@ export function convertUserDepartmentToKorean(
 }
 
 export function convertUserJobPositionToKorean(
-  position: JobPosition,
+  position: JobPosition | undefined,
 ): UserJobPositionKorean {
   switch (position) {
     case JobPosition.STAFF:
