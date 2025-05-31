@@ -18,3 +18,31 @@ export function convertUserStatusToKorean(
       return "알 수 없음" as never;
   }
 }
+
+export function getUserStatusKorean(status: UserStatus): {
+  text: UserStatusKorean;
+  className: string;
+} {
+  const koreanStatus = convertUserStatusToKorean(status);
+
+  let className = "";
+  switch (status) {
+    case UserStatus.ACTIVE:
+      className += " bg-green-100";
+      break;
+    case UserStatus.LEAVE:
+      className += " bg-yellow-100";
+      break;
+    case UserStatus.RESIGNED:
+      className += " bg-red-100";
+      break;
+    case UserStatus.INACTIVE:
+      className += " bg-gray-100";
+      break;
+    default:
+      className += " bg-purple-100";
+      break;
+  }
+
+  return { text: koreanStatus, className };
+}
