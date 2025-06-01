@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  console.log(id);
+  const session = await auth();
+  if (session?.user.role !== "ADMIN" || session?.user.position !== "CEO") {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 401 });
+  }
+
   const { hireDate, resignationDate, position, department, status } =
     await request.json();
 
