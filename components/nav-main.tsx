@@ -12,10 +12,18 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export function NavMain() {
   const router = useRouter();
   const [openDocuments, setOpenDocuments] = useState(true);
+  const { data: session } = useSession();
+
+  const userRole = session?.user?.role as string | undefined;
+  const userPosition = session?.user?.position as string | undefined;
+
+  const canViewAdminPage = userRole === "ADMIN" || userPosition === "CEO";
 
   return (
     <SidebarGroup>
@@ -31,6 +39,19 @@ export function NavMain() {
             <span>업무 관리</span>
           </SidebarMenuButton>
         </SidebarMenuItem> */}
+        {canViewAdminPage && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip={"관리자 페이지"}
+              className="flex cursor-pointer items-center justify-between"
+              asChild
+            >
+              <Link href="/dashboard/admin">
+                <span>관리자 페이지</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
         <SidebarMenuItem>
           <SidebarMenuButton
             tooltip={"자료실"}

@@ -21,6 +21,7 @@ export function useAuthCheck() {
           }
         } catch (error) {
           console.error("세션 검증 중 오류:", error);
+          signOut({ callbackUrl: "/login" });
         } finally {
           setIsChecking(false);
         }
