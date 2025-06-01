@@ -2,7 +2,7 @@
 
 import "react-day-picker/dist/style.css";
 
-import React, { useLayoutEffect, useState } from "react";
+import React, { useState } from "react";
 import { User, JobPosition, Department, UserStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -35,6 +35,7 @@ import {
 import { DayPicker } from "react-day-picker";
 import { ko } from "date-fns/locale";
 import { formatDate } from "@/app/dashboard/tasks/utils/TaskUtils";
+import { getKSTfromUTC } from "@/lib/date-utils";
 
 interface EmployeeRowProps {
   employee: User;
@@ -42,10 +43,12 @@ interface EmployeeRowProps {
 
 const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
   const [hireDate, setHireDate] = useState<Date | undefined>(
-    employee.hireDate ? new Date(employee.hireDate) : undefined,
+    employee.hireDate ? getKSTfromUTC(employee.hireDate) : undefined,
   );
   const [resignationDate, setResignationDate] = useState<Date | undefined>(
-    employee.resignationDate ? new Date(employee.resignationDate) : undefined,
+    employee.resignationDate
+      ? getKSTfromUTC(employee.resignationDate)
+      : undefined,
   );
   const [openHireCalendar, setOpenHireCalendar] = useState(false);
   const [openResignationCalendar, setOpenResignationCalendar] = useState(false);
@@ -59,17 +62,6 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
     employee.status,
   );
   const [isUpdating, setIsUpdating] = useState(false);
-
-  useLayoutEffect(() => {
-    // DB에서 UTC로 저장되어 하루 일찍 저장되어 있음
-    // 그러므로 원래 KST로 변환 new Date 사용
-
-    setHireDate(employee.hireDate ? new Date(employee.hireDate) : undefined);
-    setResignationDate(
-      employee.resignationDate ? new Date(employee.resignationDate) : undefined,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleUpdate = async () => {
     if (!window.confirm("정말로 수정하시겠습니까?")) {
