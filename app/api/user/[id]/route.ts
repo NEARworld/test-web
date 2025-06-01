@@ -8,7 +8,10 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const session = await auth();
-  if (session?.user.role !== "ADMIN" || session?.user.position !== "CEO") {
+  const isAdmin = session?.user.role === "ADMIN";
+  const isCEO = session?.user.position === "CEO";
+
+  if (!(isAdmin || isCEO)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 401 });
   }
 
