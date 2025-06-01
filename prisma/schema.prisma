@@ -33,10 +33,12 @@ model User {
   name              String?
   emailVerified     DateTime?
   hireDate          DateTime?                 @db.Date
+  resignationDate   DateTime?                 @db.Date
   position          JobPosition               @default(UNKNOWN)
   department        Department                @default(UNKNOWN)
   role              UserRole                  @default(USER)
   status            UserStatus                @default(ACTIVE)
+  annualSalary      Int?
   phone             String?
   accounts          Account[]
   reservations      Reservation[]
