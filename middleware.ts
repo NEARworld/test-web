@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 interface CustomToken {
   sub?: string;
   position?: "UNKNOWN" | "ADMIN" | "USER" | string; // 가능한 모든 직급 추가
+  role?: "ADMIN" | "USER" | string;
 }
 
 // 경로 상수 정의
@@ -15,6 +16,7 @@ const PATHS = {
   HOME: "/",
   DASHBOARD: "/dashboard",
   ACCESS_DENIED: "/access-denied",
+  ADMIN_DASHBOARD: "/dashboard/admin",
 };
 
 const { auth } = NextAuth(authConfig);
@@ -32,6 +34,7 @@ export default auth(async function middleware(req: NextRequest) {
 
   const isAuthenticated = !!session && !!token?.sub;
   const userPosition = token?.position;
+  const userRole = token?.role;
   const currentPath = req.nextUrl.pathname;
 
   // 인증되지 않은 사용자 처리
@@ -41,7 +44,7 @@ export default auth(async function middleware(req: NextRequest) {
 
   // 인증된 사용자 처리
   if (session?.user.name) {
-    return handleAuthenticatedUser(req, currentPath, userPosition);
+    return handleAuthenticatedUser(req, currentPath, userPosition, userRole);
   }
 
   // 이 위치에 도달하면 예기치 않은 상황임
@@ -68,11 +71,13 @@ function handleAuthenticatedUser(
   req: NextRequest,
   currentPath: string,
   userPosition?: string,
+  userRole?: string,
 ) {
   // 사용자가 로그인/홈 페이지에 있는지 확인
   const isLoginOrHome =
     currentPath === PATHS.LOGIN || currentPath === PATHS.HOME;
   const isAccessDenied = currentPath === PATHS.ACCESS_DENIED;
+  const isAdminDashboardPage = currentPath === PATHS.ADMIN_DASHBOARD;
 
   // 직급이 UNKNOWN인 사용자 처리
   if (userPosition === "UNKNOWN") {
@@ -82,15 +87,23 @@ function handleAuthenticatedUser(
     return NextResponse.next();
   }
 
-  // 유효한 직급을 가진 사용자 처리
-  if (userPosition !== "UNKNOWN") {
-    if (isAccessDenied) {
+  // /dashboard/admin 경로 접근 제어
+  if (isAdminDashboardPage) {
+    const canAccessAdminDashboard =
+      userRole === "ADMIN" || userPosition === "CEO";
+    if (!canAccessAdminDashboard) {
       return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
     }
+    return NextResponse.next();
+  }
 
-    if (isLoginOrHome) {
-      return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
-    }
+  // "UNKNOWN"이 아닌 사용자의 기타 페이지 접근 처리
+  if (isAccessDenied) {
+    return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
+  }
+
+  if (isLoginOrHome) {
+    return NextResponse.redirect(new URL(PATHS.DASHBOARD, req.url));
   }
 
   return NextResponse.next();

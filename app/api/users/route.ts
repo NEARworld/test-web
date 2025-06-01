@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function GET() {
-  const users = await prisma?.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      image: true,
-    },
-  });
-
-  return NextResponse.json(users);
+  try {
+    const users = await prisma.user.findMany();
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error("사용자 정보를 가져오는 중 에러 발생:", error);
+    return NextResponse.json(
+      { error: "서버에서 사용자 정보를 가져오는데 실패했습니다." },
+      { status: 500 },
+    );
+  }
 }
