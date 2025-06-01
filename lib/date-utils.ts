@@ -37,6 +37,17 @@ export function formatDateTime(
 }
 
 /**
+ * 날짜 문자열을 Date 객체로 변환
+ * @param date 날짜 문자열
+ * @returns Date 객체
+ */
+export function getKSTfromUTC(utcDate: Date): Date {
+  const date = new Date(utcDate);
+  // KST 기준으로 하루 더한 날짜 계산
+  return new Date(date.setDate(date.getDate() + 1));
+}
+
+/**
  * ISO 형식 날짜 문자열로 변환 (YYYY-MM-DD)
  * @param date Date 객체 또는 날짜 문자열
  * @returns YYYY-MM-DD 형식의 날짜 문자열
