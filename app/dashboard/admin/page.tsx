@@ -52,8 +52,6 @@ const EmployeeManagementPage: React.FC = () => {
     );
   }
 
-  console.log(employees);
-
   return (
     <div className="min-h-screen px-8">
       <header className="mb-8">
