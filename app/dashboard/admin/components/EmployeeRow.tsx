@@ -111,6 +111,9 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
                   captionLayout="dropdown"
                   className="pointer-events-auto p-4"
                   locale={ko}
+                  disabled={
+                    resignationDate ? { after: resignationDate } : undefined
+                  }
                 />
               </PopoverContent>
             </Popover>
@@ -139,6 +142,7 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
                   captionLayout="dropdown"
                   className="pointer-events-auto p-4"
                   locale={ko}
+                  disabled={hireDate ? { before: hireDate } : undefined}
                 />
               </PopoverContent>
             </Popover>
