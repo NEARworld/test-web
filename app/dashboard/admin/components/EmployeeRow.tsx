@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import "react-day-picker/dist/style.css";
+
+import React, { useState } from "react";
 import { User, JobPosition, Department, UserStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -25,13 +27,25 @@ import {
   convertUserJobPositionToKorean,
   getUserStatusKorean,
 } from "@/lib/enum-converters";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { DayPicker } from "react-day-picker";
+import { ko } from "date-fns/locale";
+import { formatDate } from "@/app/dashboard/tasks/utils/TaskUtils";
 
 interface EmployeeRowProps {
   employee: User;
 }
 
 const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
-  // 각 행이 자신의 Dialog 상태를 관리하므로 별도의 selectedEmployee 상태가 EmployeeManagementPage에 필요 없습니다.
+  const [hireDate, setHireDate] = useState<Date | undefined>(
+    employee.hireDate ? new Date(employee.hireDate) : undefined,
+  );
+  const [openCalendar, setOpenCalendar] = useState(false);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -71,6 +85,31 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
               className="w-3/4 rounded-md border border-gray-300 p-2"
               readOnly
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="hireDate" className="w-2/10 pr-4 text-left">
+              입사일
+            </label>
+            <Popover open={openCalendar} onOpenChange={setOpenCalendar}>
+              <PopoverTrigger asChild>
+                <button className="w-3/4 rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm hover:bg-gray-50">
+                  {hireDate ? formatDate(hireDate) : "날짜 선택"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <DayPicker
+                  mode="single"
+                  selected={hireDate}
+                  onSelect={(date) => {
+                    setHireDate(date);
+                    setOpenCalendar(false);
+                  }}
+                  captionLayout="dropdown"
+                  className="pointer-events-auto p-4"
+                  locale={ko}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="position" className="w-1/10 pr-4 text-right">
