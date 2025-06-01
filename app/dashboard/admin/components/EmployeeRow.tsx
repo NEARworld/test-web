@@ -44,7 +44,11 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
   const [hireDate, setHireDate] = useState<Date | undefined>(
     employee.hireDate ? new Date(employee.hireDate) : undefined,
   );
-  const [openCalendar, setOpenCalendar] = useState(false);
+  const [resignationDate, setResignationDate] = useState<Date | undefined>(
+    employee.resignationDate ? new Date(employee.resignationDate) : undefined,
+  );
+  const [openHireCalendar, setOpenHireCalendar] = useState(false);
+  const [openResignationCalendar, setOpenResignationCalendar] = useState(false);
 
   return (
     <Dialog>
@@ -90,7 +94,7 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             <label htmlFor="hireDate" className="w-2/10 pr-4 text-left">
               입사일
             </label>
-            <Popover open={openCalendar} onOpenChange={setOpenCalendar}>
+            <Popover open={openHireCalendar} onOpenChange={setOpenHireCalendar}>
               <PopoverTrigger asChild>
                 <button className="w-3/4 rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm hover:bg-gray-50">
                   {hireDate ? formatDate(hireDate) : "날짜 선택"}
@@ -102,7 +106,35 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
                   selected={hireDate}
                   onSelect={(date) => {
                     setHireDate(date);
-                    setOpenCalendar(false);
+                    setOpenHireCalendar(false);
+                  }}
+                  captionLayout="dropdown"
+                  className="pointer-events-auto p-4"
+                  locale={ko}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="resignationDate" className="w-2/10 pr-4 text-left">
+              퇴사일
+            </label>
+            <Popover
+              open={openResignationCalendar}
+              onOpenChange={setOpenResignationCalendar}
+            >
+              <PopoverTrigger asChild>
+                <button className="w-3/4 rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm hover:bg-gray-50">
+                  {resignationDate ? formatDate(resignationDate) : "날짜 선택"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <DayPicker
+                  mode="single"
+                  selected={resignationDate}
+                  onSelect={(date) => {
+                    setResignationDate(date);
+                    setOpenResignationCalendar(false);
                   }}
                   captionLayout="dropdown"
                   className="pointer-events-auto p-4"
