@@ -2,7 +2,7 @@
 
 import "react-day-picker/dist/style.css";
 
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import { User, JobPosition, Department, UserStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -49,6 +49,65 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
   );
   const [openHireCalendar, setOpenHireCalendar] = useState(false);
   const [openResignationCalendar, setOpenResignationCalendar] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState<JobPosition>(
+    employee.position,
+  );
+  const [currentDepartment, setCurrentDepartment] = useState<Department>(
+    employee.department,
+  );
+  const [currentStatus, setCurrentStatus] = useState<UserStatus>(
+    employee.status,
+  );
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useLayoutEffect(() => {
+    // DB에서 UTC로 저장되어 하루 일찍 저장되어 있음
+    // 그러므로 원래 KST로 변환 new Date 사용
+
+    setHireDate(employee.hireDate ? new Date(employee.hireDate) : undefined);
+    setResignationDate(
+      employee.resignationDate ? new Date(employee.resignationDate) : undefined,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUpdate = async () => {
+    if (!window.confirm("정말로 수정하시겠습니까?")) {
+      return;
+    }
+    setIsUpdating(true);
+
+    const updatedData = {
+      hireDate: hireDate,
+      resignationDate: resignationDate,
+      position: currentPosition,
+      department: currentDepartment,
+      status: currentStatus,
+    };
+
+    try {
+      const response = await fetch(`/api/user/${employee.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "직원 정보 수정에 실패했습니다.");
+      }
+
+      alert("직원 정보가 성공적으로 수정되었습니다.");
+    } catch (error) {
+      console.error("Failed to update employee:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "알 수 없는 오류가 발생했습니다.";
+      alert(`직원 정보 수정 중 오류가 발생했습니다: ${errorMessage}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -151,7 +210,13 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             <label htmlFor="position" className="w-1/10 pr-4 text-right">
               직책
             </label>
-            <Select defaultValue={employee.position}>
+            <Select
+              value={currentPosition}
+              onValueChange={(value) =>
+                setCurrentPosition(value as JobPosition)
+              }
+              disabled={isUpdating}
+            >
               <SelectTrigger className="w-3/4 text-base">
                 <SelectValue placeholder="직책 선택" />
               </SelectTrigger>
@@ -168,7 +233,13 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             <label htmlFor="department" className="w-1/10 pr-4 text-right">
               부서
             </label>
-            <Select defaultValue={employee.department}>
+            <Select
+              value={currentDepartment}
+              onValueChange={(value) =>
+                setCurrentDepartment(value as Department)
+              }
+              disabled={isUpdating}
+            >
               <SelectTrigger className="w-3/4 text-base">
                 <SelectValue placeholder="부서 선택" />
               </SelectTrigger>
@@ -185,7 +256,11 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
             <label htmlFor="status" className="w-1/10 pr-4 text-right">
               상태
             </label>
-            <Select defaultValue={employee.status}>
+            <Select
+              value={currentStatus}
+              onValueChange={(value) => setCurrentStatus(value as UserStatus)}
+              disabled={isUpdating}
+            >
               <SelectTrigger className="w-3/4 text-base">
                 <SelectValue placeholder="상태 선택" />
               </SelectTrigger>
@@ -201,18 +276,17 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee }) => {
         </div>
         <DialogFooter className="justify-between sm:justify-between">
           <button
-            onClick={() => {
-              if (window.confirm("정말로 수정하시겠습니까?")) {
-                // TODO: 실제 수정 로직을 여기에 추가하세요.
-                console.log("수정 로직 실행");
-              }
-            }}
-            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            onClick={handleUpdate}
+            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+            disabled={isUpdating}
           >
-            수정
+            {isUpdating ? "수정 중..." : "수정"}
           </button>
           <DialogClose asChild>
-            <button className="rounded bg-gray-200 px-4 py-2 text-black hover:bg-gray-300">
+            <button
+              className="rounded bg-gray-200 px-4 py-2 text-black hover:bg-gray-300"
+              disabled={isUpdating}
+            >
               닫기
             </button>
           </DialogClose>
