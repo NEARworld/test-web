@@ -1,5 +1,4 @@
-// app/approvals/page.tsx
-"use client"; // shadcn/ui 컴포넌트는 클라이언트 컴포넌트여야 합니다.
+"use client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,8 +53,6 @@ const ApprovalsPage: React.FC = () => {
       return item.status === "Approved" || item.status === "Rejected";
     return item.status === activeTab;
   });
-
-  console.log(approvalItems);
 
   return (
     <div className="font-inter min-h-screen md:px-4">
