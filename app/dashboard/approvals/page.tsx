@@ -99,11 +99,11 @@ const ApprovalsPage: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px]">Request</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Requested by</TableHead>
-                <TableHead>Requested on</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="w-[300px]">결재 요청</TableHead>
+                <TableHead>결재 상태</TableHead>
+                <TableHead>요청자</TableHead>
+                <TableHead>요청일</TableHead>
+                <TableHead className="text-right">제어</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

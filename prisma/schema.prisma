@@ -279,6 +279,7 @@ enum UserRole {
 enum JobPosition {
   STAFF
   TEAM_LEADER
+  HEAD
   GENERAL_SECRETARY
   CHAIRPERSON
   CEO
@@ -298,6 +299,7 @@ enum Department {
   BAZAUL
   FOOD_CARE_CENTER
   CORPORATION
+  GENERAL_MANAGEMENT
 }
 
 enum TableStatus {

@@ -6,6 +6,7 @@ export type UserJobPositionKorean =
   | "직원"
   | "팀장"
   | "사무국장"
+  | "센터장"
   | "대표"
   | "이사장"
   | "미정";
@@ -14,6 +15,8 @@ export type UserDepartmentKorean =
   | "바자울"
   | "청년식당"
   | "먹거리 돌봄 센터"
+  | "법인"
+  | "총괄"
   | "미정";
 
 export function convertUserDepartmentToKorean(
@@ -26,6 +29,10 @@ export function convertUserDepartmentToKorean(
       return "청년식당";
     case Department.FOOD_CARE_CENTER:
       return "먹거리 돌봄 센터";
+    case Department.CORPORATION:
+      return "법인";
+    case Department.GENERAL_MANAGEMENT:
+      return "총괄";
     default:
       return "미정";
   }
@@ -39,6 +46,8 @@ export function convertUserJobPositionToKorean(
       return "직원";
     case JobPosition.TEAM_LEADER:
       return "팀장";
+    case JobPosition.HEAD:
+      return "센터장";
     case JobPosition.GENERAL_SECRETARY:
       return "사무국장";
     case JobPosition.CHAIRPERSON:
