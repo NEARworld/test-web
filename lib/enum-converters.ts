@@ -19,6 +19,15 @@ export type UserDepartmentKorean =
   | "총괄"
   | "미정";
 
+// boardType 한글 매핑
+export const boardTypeKo: Record<string, string> = {
+  COMMUNITY: "공동모금회",
+  FOODCARE: "먹거리돌봄",
+  BAJAUL: "바자울",
+  RESTAURANT: "청년식당",
+  CORP: "법인",
+};
+
 export function convertUserDepartmentToKorean(
   department: Department | undefined,
 ): UserDepartmentKorean {

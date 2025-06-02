@@ -34,6 +34,7 @@ import {
 import { DocumentWithCreatedBy } from "@/types/document";
 import { useDocument } from "@/hooks/useDocument";
 import { Checkbox } from "@/components/ui/checkbox";
+import { boardTypeKo } from "@/lib/enum-converters";
 
 // DocumentViewer 컴포넌트: 게시물 보기 모달
 interface DocumentViewerProps {
@@ -42,17 +43,8 @@ interface DocumentViewerProps {
   document: DocumentWithCreatedBy | null; // prisma Document 타입 사용
 }
 
-// boardType 한글 매핑
-const boardTypeKo: Record<string, string> = {
-  COMMUNITY: "공동모금회",
-  FOODCARE: "먹거리돌봄",
-  BAJAUL: "바자울",
-  RESTAURANT: "청년식당",
-  CORP: "이사회",
-};
-
 // 허용되는 파일 확장자
-const ALLOWED_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "gif"];
+const ALLOWED_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "gif", "zip"];
 
 export default function DocumentViewer({
   open,
