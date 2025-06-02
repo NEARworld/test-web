@@ -50,9 +50,9 @@ export function convertUserJobPositionToKorean(
       return "센터장";
     case JobPosition.GENERAL_SECRETARY:
       return "사무국장";
-    case JobPosition.CHAIRPERSON:
-      return "대표";
     case JobPosition.CEO:
+      return "대표";
+    case JobPosition.CHAIRPERSON:
       return "이사장";
     default:
       return "미정";
