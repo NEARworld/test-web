@@ -58,14 +58,14 @@ const EmployeeManagementPage: React.FC = () => {
         <h1 className="mb-2 text-4xl font-bold text-gray-800">직원 관리</h1>
       </header>
 
-      <div className="mb-6 flex space-x-3">
+      {/* <div className="mb-6 flex space-x-3">
         <button className="rounded-md bg-blue-500 px-4 py-2 font-semibold text-white shadow-sm hover:bg-blue-600">
           새 직원 추가
         </button>
         <button className="rounded-md border border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 shadow-sm hover:bg-gray-100">
           보고서 생성
         </button>
-      </div>
+      </div> */}
 
       <div className="mb-8 rounded-lg bg-white p-6 shadow">
         <div className="relative">

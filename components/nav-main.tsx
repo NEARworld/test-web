@@ -138,65 +138,17 @@ export function NavMain() {
             </SidebarMenuSub>
           )}
         </SidebarMenuItem>
-        {/* <SidebarMenuItem>
+        <SidebarMenuItem>
           <SidebarMenuButton
-            tooltip={"종합"}
-            className="cursor-pointer"
-            onClick={() => router.replace("/dashboard")}
+            tooltip={"전자 결재"}
+            className="flex cursor-pointer items-center justify-between"
+            asChild
           >
-            <Monitor />
-            <span>종합</span>
+            <Link href="/dashboard/approvals">
+              <span>전자 결재</span>
+            </Link>
           </SidebarMenuButton>
-        </SidebarMenuItem> */}
-        {/* <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip={"식당 예약관리"}
-            className="cursor-pointer"
-            onClick={() => router.replace("/dashboard/reservation")}
-          >
-            <NotebookText />
-            <span>예약 관리</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem> */}
-        {/* <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip={"예약 통계"}
-            className="cursor-pointer"
-            onClick={() => router.replace("/dashboard/statistics")}
-          >
-            <BarChart3 />
-            <span>예약 통계</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem> */}
-        {/* <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip={"예약 통계"}
-            className="cursor-pointer"
-            onClick={() => router.replace("/dashboard/employees")}
-          >
-            <BarChart3 />
-            <span>직원 관리</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem> */}
-        {/* <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip={"식당 재고관리"}
-            className="cursor-pointer"
-            onClick={() => router.replace("/dashboard/inventory")}
-          >
-            <Box />
-            <span>재고 관리</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem> */}
-        {/* <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip={"테이블 관리"}
-            className="cursor-pointer"
-            onClick={() => router.replace("/dashboard/tables")}
-          >
-            <span>테이블 관리</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem> */}
+        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   );
