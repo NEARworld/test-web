@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "JobPosition" ADD VALUE 'EXECUTIVE_DIRECTOR';

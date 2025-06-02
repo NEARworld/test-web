@@ -8,6 +8,7 @@ export type UserJobPositionKorean =
   | "사무국장"
   | "센터장"
   | "대표"
+  | "상임이사"
   | "이사장"
   | "미정";
 
@@ -61,12 +62,15 @@ export function convertUserJobPositionToKorean(
       return "사무국장";
     case JobPosition.CEO:
       return "대표";
+    case JobPosition.EXECUTIVE_DIRECTOR:
+      return "상임이사";
     case JobPosition.CHAIRPERSON:
       return "이사장";
     default:
       return "미정";
   }
 }
+
 export function convertUserStatusToKorean(
   status: UserStatus,
 ): UserStatusKorean {
