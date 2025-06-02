@@ -54,6 +54,21 @@ const ApprovalsPage: React.FC = () => {
     return item.status === activeTab;
   });
 
+  const getBadgeVariant = (
+    status: ApprovalItem["status"],
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "Pending":
+        return "secondary"; // 노란색 계열을 원하면 custom variant 필요
+      case "Approved":
+        return "default"; // 초록색 계열을 원하면 custom variant 필요 (기본은 primary 색상)
+      case "Rejected":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
   return (
     <div className="font-inter min-h-screen md:px-4">
       <div className="max-w-7xl px-4">
@@ -99,7 +114,9 @@ const ApprovalsPage: React.FC = () => {
                       {item.request}
                     </TableCell>
                     <TableCell>
-                      <Badge>{item.status}</Badge>
+                      <Badge variant={getBadgeVariant(item.status)}>
+                        {item.status}
+                      </Badge>
                     </TableCell>
                     <TableCell>{item.requestedBy}</TableCell>
                     <TableCell>{item.requestedOn}</TableCell>
