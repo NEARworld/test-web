@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
     const createdById = session.user.id;
 
     const formData = await request.formData();
-    console.log(formData);
     const title = formData.get("title") as string;
     const content = formData.get("content") as string | null;
     const boardType = formData
@@ -106,20 +105,21 @@ export async function POST(request: NextRequest) {
     if (files && files.length > 0) {
       for (const file of files) {
         if (file instanceof File && file.size > 0) {
-          const uploadResult = await uploadFileToSupabaseStorage(file);
+          const { originalFileName, fileType, fileUrl, error } =
+            await uploadFileToSupabaseStorage(file);
 
-          if (uploadResult.error) {
+          if (error) {
             console.error(
-              `Supabase 파일 업로드 실패: ${file.name}, 오류: ${uploadResult.error}`,
+              `Supabase 파일 업로드 실패: ${originalFileName}, 오류: ${error}`,
             );
             continue;
           }
 
           const attachment = await prisma.attachment.create({
             data: {
-              fileName: uploadResult.fileName,
-              fileType: uploadResult.fileType,
-              fileUrl: uploadResult.fileUrl,
+              fileName: originalFileName,
+              fileType,
+              fileUrl,
               documentId: document.id,
             },
           });
