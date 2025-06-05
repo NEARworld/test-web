@@ -2,8 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { BoardType } from "@prisma/client";
 import { auth } from "@/auth";
-import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/lib/supabase";
+import { uploadFileToSupabaseStorage } from "@/lib/document-utils";
 
 const SUPABASE_BUCKET_NAME = "documents";
 
@@ -154,44 +154,15 @@ export async function PATCH(
       // 2. 새로운 첨부파일 생성 및 저장 (Supabase Storage 및 DB)
       if (newFiles.length > 0) {
         for (const file of newFiles) {
-          const bytes = await file.arrayBuffer();
-          const originalName = file.name;
-          const fileExt = originalName.split(".").pop() || "";
-          const uniqueFileName = `${uuidv4()}.${fileExt}`; // Supabase 내에서의 파일명 (키)
-
-          // Supabase에 업로드 (버킷 내 경로를 파일명 자체로 사용)
-          const { error: uploadError } = await supabase.storage
-            .from(SUPABASE_BUCKET_NAME)
-            .upload(uniqueFileName, bytes, {
-              contentType: file.type,
-              upsert: false, // 동일 이름 파일 덮어쓰기 방지 (필요시 true)
-            });
-
-          if (uploadError) {
-            console.error("Supabase upload error:", uploadError);
-            throw new Error(
-              `Failed to upload file ${originalName}: ${uploadError.message}`,
-            );
-          }
-
-          // 업로드된 파일의 공개 URL 가져오기
-          const { data: publicUrlData } = supabase.storage
-            .from(SUPABASE_BUCKET_NAME)
-            .getPublicUrl(uniqueFileName);
-
-          if (!publicUrlData?.publicUrl) {
-            console.error("Failed to get public URL for:", uniqueFileName);
-            throw new Error(
-              `Failed to get public URL for file ${originalName}`,
-            );
-          }
+          const { originalFileName, fileType, fileUrl } =
+            await uploadFileToSupabaseStorage(file);
 
           await tx.attachment.create({
             data: {
               documentId: id,
-              fileName: originalName,
-              fileType: file.type,
-              fileUrl: publicUrlData.publicUrl, // Supabase 공개 URL 저장
+              fileName: originalFileName,
+              fileType,
+              fileUrl, // Supabase 공개 URL 저장
               // storageKey: uniqueFileName, // 삭제를 위해 이 키를 저장하는 것이 더 안정적입니다.
             },
           });
