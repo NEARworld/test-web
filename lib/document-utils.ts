@@ -1,21 +1,26 @@
 import { supabase } from "@/lib/supabase";
-
+import { v4 as uuidv4 } from "uuid";
 export async function uploadFileToSupabaseStorage(file: File): Promise<{
-  fileName: string;
+  originalFileName: string;
   fileType: string;
   fileUrl: string;
   error?: string;
 }> {
-  const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-  const filePath = `documents/${fileName}`;
+  const bytes = await file.arrayBuffer();
+  const originalFileName = file.name;
+  const fileExt = originalFileName.split(".").pop() || "";
+  const uniqueFileName = `${uuidv4()}.${fileExt}`; // Supabase 내에서의 파일명 (키)
 
   const { data, error } = await supabase.storage
     .from("documents")
-    .upload(filePath, file);
+    .upload(uniqueFileName, bytes, {
+      contentType: file.type,
+      upsert: false, // 동일 이름 파일 덮어쓰기 방지 (필요시 true)
+    });
 
   if (!data && error) {
     return {
-      fileName: file.name,
+      originalFileName,
       fileType: file.type,
       fileUrl: "",
       error: error.message,
@@ -24,11 +29,11 @@ export async function uploadFileToSupabaseStorage(file: File): Promise<{
 
   const { data: publicUrlData } = supabase.storage
     .from("documents")
-    .getPublicUrl(filePath);
+    .getPublicUrl(uniqueFileName);
 
   if (!publicUrlData) {
     return {
-      fileName: fileName,
+      originalFileName,
       fileType: file.type,
       fileUrl: "",
       error: "파일 업로드는 성공했으나 공개 URL을 가져오는 데 실패했습니다.",
@@ -36,7 +41,7 @@ export async function uploadFileToSupabaseStorage(file: File): Promise<{
   }
 
   return {
-    fileName: fileName,
+    originalFileName,
     fileType: file.type,
     fileUrl: publicUrlData.publicUrl,
   };
