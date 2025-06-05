@@ -138,17 +138,19 @@ export function NavMain() {
             </SidebarMenuSub>
           )}
         </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip={"전자 결재"}
-            className="flex cursor-pointer items-center justify-between"
-            asChild
-          >
-            <Link href="/dashboard/approvals">
-              <span>전자 결재</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        {session?.user.role === "ADMIN" && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip={"전자 결재"}
+              className="flex cursor-pointer items-center justify-between"
+              asChild
+            >
+              <Link href="/dashboard/approvals">
+                <span>전자 결재</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
       </SidebarMenu>
     </SidebarGroup>
   );
