@@ -35,6 +35,7 @@ import { DocumentWithCreatedBy } from "@/types/document";
 import { useDocument } from "@/hooks/useDocument";
 import { Checkbox } from "@/components/ui/checkbox";
 import { boardTypeKo } from "@/lib/enum-converters";
+import { getUserPermissions } from "@/lib/document-utils";
 
 // DocumentViewer 컴포넌트: 게시물 보기 모달
 interface DocumentViewerProps {
@@ -200,8 +201,17 @@ export default function DocumentViewer({
     });
   };
 
-  // 현재 사용자가 작성자인지 확인
-  const isAuthor = session?.user?.id === document?.createdById;
+  // 수정 버튼 렌더링 여부를 위한 게시물 수정 권한 확인
+  const {
+    isAuthor,
+    isGeneralSecretary,
+    isCEO,
+    isHead,
+    isStaff,
+    isManager,
+    isAdmin,
+    isChairperson,
+  } = getUserPermissions(session, document.createdById);
 
   // 삭제 핸들러
   const handleDelete = async () => {
@@ -630,7 +640,14 @@ export default function DocumentViewer({
                   취소
                 </Button>
               </div>
-            ) : isAuthor ? (
+            ) : isAuthor ||
+              isGeneralSecretary ||
+              isCEO ||
+              isHead ||
+              isStaff ||
+              isManager ||
+              isAdmin ||
+              isChairperson ? (
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
