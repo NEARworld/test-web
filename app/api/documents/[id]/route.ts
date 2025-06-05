@@ -57,7 +57,6 @@ export async function PATCH(
   if (!session?.user?.id) {
     return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   }
-  const userId = session.user.id;
 
   try {
     // 현재 문서 조회 (권한 확인용)
@@ -71,12 +70,18 @@ export async function PATCH(
         { status: 404 },
       );
     }
-    if (document.createdById !== userId) {
-      return NextResponse.json(
-        { error: "수정 권한이 없습니다." },
-        { status: 403 },
-      );
-    }
+    // 수정 권한은 작성자, 일반 비서, 사장, 헤드 모두 가능
+    // const { isAuthor, isGeneralSecretary, isCEO, isHead } = getUserPermissions(
+    //   session,
+    //   document.createdById,
+    // );
+
+    // if (!isAuthor && !isGeneralSecretary && !isCEO && !isHead) {
+    //   return NextResponse.json(
+    //     { error: "수정 권한이 없습니다." },
+    //     { status: 403 },
+    //   );
+    // }
 
     const formData = await request.formData();
     const title = formData.get("title") as string;

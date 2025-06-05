@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { Session } from "next-auth";
 import { v4 as uuidv4 } from "uuid";
 export async function uploadFileToSupabaseStorage(file: File): Promise<{
   originalFileName: string;
@@ -44,5 +45,24 @@ export async function uploadFileToSupabaseStorage(file: File): Promise<{
     originalFileName,
     fileType: file.type,
     fileUrl: publicUrlData.publicUrl,
+  };
+}
+
+export function getUserPermissions(
+  session: Session | null,
+  createdById: string | null,
+) {
+  const userId = session?.user?.id;
+  const userPosition = session?.user?.position;
+
+  return {
+    isAuthor: userId === createdById,
+    isGeneralSecretary: userPosition === "GENERAL_SECRETARY",
+    isCEO: userPosition === "CEO",
+    isHead: userPosition === "HEAD",
+    isStaff: userPosition === "STAFF",
+    isManager: userPosition === "TEAM_LEADER",
+    isAdmin: userPosition === "EXECUTIVE_DIRECTOR",
+    isChairperson: userPosition === "CHAIRPERSON",
   };
 }
