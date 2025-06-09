@@ -112,7 +112,7 @@ const ApprovalsPage: React.FC = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
-                      No items found for &quot;{activeTab}&quot;.
+                      데이터가 존재하지 않습니다.
                     </TableCell>
                   </TableRow>
                 )}
