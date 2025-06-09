@@ -98,7 +98,7 @@ const ApprovalsPage: React.FC = () => {
                       className="cursor-pointer"
                     >
                       <TableCell className="font-medium">
-                        {item.description}
+                        {item.title}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getBadgeVariant(item.status)}>
