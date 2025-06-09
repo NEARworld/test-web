@@ -42,3 +42,18 @@ export const statusToKoreanMap: Record<ApprovalItem["status"], string> = {
 export function getKoreanStatus(status: ApprovalItem["status"]): string {
   return statusToKoreanMap[status];
 }
+
+export const getBadgeVariant = (
+  status: ApprovalItem["status"],
+): "default" | "secondary" | "destructive" | "outline" => {
+  switch (status) {
+    case "Pending":
+      return "secondary"; // 노란색 계열을 원하면 custom variant 필요
+    case "Approved":
+      return "default"; // 초록색 계열을 원하면 custom variant 필요 (기본은 primary 색상)
+    case "Rejected":
+      return "destructive";
+    default:
+      return "outline";
+  }
+};
