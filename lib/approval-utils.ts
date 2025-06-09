@@ -8,6 +8,7 @@ export interface ApprovalRequest {
   requester: string;
   approver: string;
   submissionDate: string;
+  title: string;
   description: string;
   attachments: ApprovalAttachment[];
   status: "Pending" | "Approved" | "Rejected";
@@ -20,6 +21,7 @@ export const mockApprovalRequest: ApprovalRequest[] = [
     requester: "김철수",
     approver: "이영희",
     submissionDate: "2024년 7월 26일",
+    title: "마케팅 캠페인 예산안",
     description:
       "차기 마케팅 캠페인 진행을 위해 첨부된 문서를 검토 후 승인 부탁드립니다. 본 문서에는 프로젝트의 최종 예산안과 전체 일정이 포함되어 있습니다. 원활한 프로젝트 진행을 위해 신속한 승인을 부탁드립니다.",
     attachments: [
@@ -33,6 +35,7 @@ export const mockApprovalRequest: ApprovalRequest[] = [
     requester: "이영희",
     approver: "김철수",
     submissionDate: "2024년 7월 26일",
+    title: "프로젝트 타임라인",
     description:
       "차기 마케팅 캠페인 진행을 위해 첨부된 문서를 검토 후 승인 부탁드립니다. 본 문서에는 프로젝트의 최종 예산안과 전체 일정이 포함되어 있습니다. 원활한 프로젝트 진행을 위해 신속한 승인을 부탁드립니다.",
     attachments: [

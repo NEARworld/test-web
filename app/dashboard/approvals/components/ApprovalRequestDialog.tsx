@@ -54,6 +54,7 @@ export function ApprovalRequestDialog({
             <div className="border-t">
               {/* 레이블 한글화 */}
               <DetailItem label="기안자" value={requestData.requester} />
+              <DetailItem label="결재자" value={requestData.approver} />
               <DetailItem label="기안일" value={requestData.submissionDate} />
               <DetailItem label="요청 내용" value={requestData.description} />
             </div>
