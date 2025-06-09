@@ -11,16 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ApprovalItem, getKoreanStatus } from "@/lib/approval-utils";
 import React from "react";
-
-interface ApprovalItem {
-  id: string;
-  request: string;
-  status: "Pending" | "Approved" | "Rejected";
-  requestedBy: string;
-  requestedOn: string;
-  action: "Approve" | "View";
-}
 
 const approvalItems: ApprovalItem[] = [
   {
@@ -115,7 +107,7 @@ const ApprovalsPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant={getBadgeVariant(item.status)}>
-                        {item.status}
+                        {getKoreanStatus(item.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>{item.requestedBy}</TableCell>
