@@ -45,7 +45,6 @@ export default function ApprovalFormModal({
             <Input
               type="text"
               id="approvalName"
-              placeholder="예: 휴가 신청서, 품의서 등"
               // value={value}
               // onChange={(e) => onChange(e.target.value)}
             />
@@ -54,7 +53,6 @@ export default function ApprovalFormModal({
             <Label htmlFor="approvalName">결재 상세</Label>
             <Textarea
               id="approvalName"
-              placeholder="예: 휴가 신청서, 품의서 등"
               className="min-h-60"
               // value={value}
               // onChange={(e) => onChange(e.target.value)}
@@ -65,7 +63,6 @@ export default function ApprovalFormModal({
             <Input
               type="file"
               id="approvalName"
-              placeholder="예: 휴가 신청서, 품의서 등"
               // value={value}
               // onChange={(e) => onChange(e.target.value)}
             />
