@@ -1,8 +1,8 @@
 "use client";
 
+import ApprovalFormModal from "@/app/dashboard/approvals/components/ApprovalFormModal";
 import { ApprovalRequestDialog } from "@/app/dashboard/approvals/components/ApprovalRequestDialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -28,6 +28,7 @@ const ApprovalsPage: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
     useState<ApprovalRequest | null>(null);
+  const [isOpenApprovalModal, setIsOpenApprovalModal] = useState(false);
 
   const handleRowClick = (item: ApprovalRequest) => {
     // 'View' 액션인 경우에만 다이얼로그를 엽니다. (예시 로직)
@@ -74,9 +75,10 @@ const ApprovalsPage: React.FC = () => {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <Button className="cursor-pointer" variant="blue">
-              결재 생성
-            </Button>
+            <ApprovalFormModal
+              open={isOpenApprovalModal}
+              setOpen={setIsOpenApprovalModal}
+            />
           </div>
 
           <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
