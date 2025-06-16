@@ -52,13 +52,14 @@ model User {
   userHistory UserHistory[]
   userHistoryAuditor UserHistory[] @relation("UserHistoryAuditor")
   // --- 전자 결재 시스템 관련 관계 추가 ---
-  // 내가 요청한 결재 목록
-  approvalsRequested      ApprovalRequest[] @relation("RequestedApprovals")
   // 나에게 할당된 결재 단계 목록
   approvalStepsAssigned   ApprovalStep[]    @relation("AssignedApprovalSteps")
   // 내가 실제로 처리한 결재 단계 목록
   approvalStepsProcessed  ApprovalStep[]    @relation("ProcessedApprovalSteps")
-  
+  // 결재 관련 관계
+  createdApprovals  ApprovalRequest[] @relation("CreatedApprovals")
+  approvedApprovals ApprovalRequest[] @relation("ApprovedApprovals")
+  approvalComments  ApprovalComment[]
 }
 
 // 사용자 변경 이력 모델 (범용적)
@@ -327,44 +328,70 @@ enum TaskStatus {
 // 전자 결재 시스템 (Electronic Approval System)
 // ===============================================
 
-// 결재 요청의 전체 상태
-enum ApprovalRequestStatus {
-  PENDING     // 대기중 (결재 프로세스 시작 전 또는 진행 중)
-  APPROVED    // 최종 승인
-  REJECTED    // 최종 반려
-  CANCELED    // 요청자 취소
+// 결재 상태 enum
+enum ApprovalStatus {
+  PENDING    // 대기중
+  APPROVED   // 승인
+  REJECTED   // 반려
+  CANCELED   // 취소
 }
 
+// 결재 요청 모델
 model ApprovalRequest {
-  id          String   @id @default(uuid())
-  title       String   // 결재 문서의 제목 (예: "휴가 신청서", "2024년 2분기 마케팅 예산안")
-  
-  content     Json     // 결재 문서의 상세 내용 (예: {"type": "leave", "startDate": "...", "reason": "..."})
+  id          String            @id @default(uuid())
+  title       String            // 결재 제목
+  content     String            // 결재 내용
+  status      ApprovalStatus    @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdBy   User              @relation("CreatedApprovals", fields: [createdById], references: [id])
+  createdById String
+  approvedBy  User?             @relation("ApprovedApprovals", fields: [approvedById], references: [id])
+  approvedById String?
+  approvedAt  DateTime?
+  attachments ApprovalAttachment[]
+  comments    ApprovalComment[]
+  steps       ApprovalStep[]    // 결재 단계 목록
 
-  status      ApprovalRequestStatus @default(PENDING)
+  @@index([createdById])
+  @@index([approvedById])
+  @@index([status])
+}
 
-  // 요청자 정보
-  requesterId String
-  requester   User     @relation("RequestedApprovals", fields: [requesterId], references: [id])
+// 결재 첨부파일 모델
+model ApprovalAttachment {
+  id        String          @id @default(uuid())
+  name      String          // 원본 파일명
+  path      String          // 저장 경로
+  size      Int             // 파일 크기
+  type      String          // 파일 타입
+  createdAt DateTime        @default(now())
+  approval  ApprovalRequest @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  approvalId String
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  completedAt DateTime?
+  @@index([approvalId])
+}
 
-  steps       ApprovalStep[]
+// 결재 코멘트 모델
+model ApprovalComment {
+  id        String          @id @default(uuid())
+  content   String          // 코멘트 내용
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  createdBy User            @relation(fields: [createdById], references: [id])
+  createdById String
+  approval  ApprovalRequest @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  approvalId String
 
-  // --- 특정 업무 데이터와의 직접 연결 ---
-  // 이 필드는 '승진', '부서 이동' 등 승인이 필요한 인사 발령에만 사용됩니다.
-  // 이 경우, content 필드는 보조적인 설명용으로 사용될 수 있습니다.
-
+  @@index([approvalId])
+  @@index([createdById])
 }
 
 // 결재선의 각 단계를 나타내는 모델
 model ApprovalStep {
   id        String   @id @default(uuid())
   stepOrder Int      // 결재 순서 (예: 1, 2, 3...)
-  status    ApprovalRequestStatus @default(PENDING)
-  comment   String?  // 결재 의견 (승인/반려 사유)
+  status    ApprovalStatus @default(PENDING)
 
   // 결재 요청과의 관계
   approvalRequestId String
