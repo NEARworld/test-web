@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
 import { getFileExtension } from "@/lib/document-utils";
+import { toast } from "sonner";
 
 interface ApprovalFormModalProps {
   open: boolean;
@@ -27,12 +28,61 @@ export default function ApprovalFormModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 선택된 파일 목록 상태
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  // 폼 상태
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 폼 제출 핸들러
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: 폼 데이터 처리 로직 구현
-    console.log("폼 제출됨");
+
+    if (!title.trim()) {
+      toast.error("제목을 입력해주세요");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // FormData 생성
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("content", content);
+
+      // 파일 추가
+      selectedFiles.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      // API 호출
+      const response = await fetch("/api/approvals", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("결재 생성에 실패했습니다");
+      }
+
+      // 성공 처리
+      toast.success("결재가 생성되었습니다");
+
+      // 모달 닫기
+      setOpen(false);
+
+      // 폼 초기화
+      setTitle("");
+      setContent("");
+      setSelectedFiles([]);
+    } catch (error) {
+      console.error("결재 생성 중 오류 발생:", error);
+      toast.error("결재 생성에 실패했습니다", {
+        description: "잠시 후 다시 시도해주세요",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 파일 선택 버튼 클릭 핸들러
@@ -70,8 +120,9 @@ export default function ApprovalFormModal({
             <Input
               type="text"
               id="approvalName"
-              // value={value}
-              // onChange={(e) => onChange(e.target.value)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="결재 제목을 입력하세요"
             />
           </div>
           <div className="mt-3 grid w-full items-center gap-1.5">
@@ -79,8 +130,9 @@ export default function ApprovalFormModal({
             <Textarea
               id="approvalName"
               className="min-h-60"
-              // value={value}
-              // onChange={(e) => onChange(e.target.value)}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="결재 내용을 입력하세요"
             />
           </div>
           <div className="mt-3 grid w-full items-center gap-1.5">
@@ -139,8 +191,8 @@ export default function ApprovalFormModal({
                 닫기
               </Button>
             </DialogClose>
-            <Button type="submit" variant="blue">
-              생성
+            <Button type="submit" variant="blue" disabled={isSubmitting}>
+              {isSubmitting ? "생성 중..." : "생성"}
             </Button>
           </DialogFooter>
         </form>
