@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
+import { getFileExtension } from "@/lib/document-utils";
 
 interface ApprovalFormModalProps {
   open: boolean;
@@ -109,7 +110,14 @@ export default function ApprovalFormModal({
                       key={index}
                       className="flex items-center justify-between rounded-md border p-2"
                     >
-                      <span className="text-sm">{file.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                          {getFileExtension(file.name)}
+                        </span>
+                        <span className="max-w-52 truncate text-sm">
+                          {file.name}
+                        </span>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
