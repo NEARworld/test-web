@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 interface ApprovalFormModalProps {
   open: boolean;
@@ -24,6 +24,8 @@ export default function ApprovalFormModal({
 }: ApprovalFormModalProps) {
   // 파일 입력 참조
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 선택된 파일 목록 상태
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   // 폼 제출 핸들러
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,6 +37,19 @@ export default function ApprovalFormModal({
   // 파일 선택 버튼 클릭 핸들러
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();
+  };
+
+  // 파일 선택 변경 핸들러
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setSelectedFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  // 파일 제거 핸들러
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -84,9 +99,30 @@ export default function ApprovalFormModal({
                 id="approvalName"
                 className="hidden"
                 multiple
-                // value={value}
-                // onChange={(e) => onChange(e.target.value)}
+                onChange={handleFileChange}
               />
+              {/* 선택된 파일 목록 */}
+              {selectedFiles.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded-md border p-2"
+                    >
+                      <span className="text-sm">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveFile(index)}
+                        className="h-8 w-8 p-0"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter className="mt-2">
