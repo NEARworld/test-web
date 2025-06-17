@@ -13,17 +13,22 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  ExtendedApprovalRequest,
   getKoreanStatus,
   getBadgeVariant,
-  ApprovalRequest,
-  mockApprovalRequest,
 } from "@/lib/approval-utils";
-import React, { useState } from "react";
+import { formatDateTime } from "@/lib/date-utils";
+import { ApprovalRequest, ApprovalStatus } from "@prisma/client";
+import React, { useEffect, useState } from "react";
 
 const ApprovalsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = React.useState<
-    "All" | "Pending" | "Completed"
-  >("All");
+  const [activeTab, setActiveTab] = React.useState<ApprovalStatus | "All">(
+    "All",
+  );
+  const [approvalRequests, setApprovalRequests] = useState<
+    ExtendedApprovalRequest[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
@@ -38,13 +43,28 @@ const ApprovalsPage: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const filteredItems = mockApprovalRequest.filter((item) => {
+  const filteredItems = approvalRequests?.filter((item) => {
     if (activeTab === "All") return true;
     // 'Completed' 탭은 'Approved' 또는 'Rejected' 상태를 포함하도록 수정
-    if (activeTab === "Completed")
-      return item.status === "Approved" || item.status === "Rejected";
+    if (activeTab === "APPROVED") return item.status === "APPROVED";
+    if (activeTab === "PENDING") return item.status === "PENDING";
     return item.status === activeTab;
   });
+
+  useEffect(() => {
+    const fetchApprovals = async () => {
+      const response = await fetch("/api/approvals");
+      const data = await response.json();
+      setApprovalRequests(data.data);
+      console.log(data.data);
+      setIsLoading(false);
+    };
+    fetchApprovals();
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>
@@ -60,17 +80,17 @@ const ApprovalsPage: React.FC = () => {
             <Tabs
               defaultValue="All"
               onValueChange={(value) =>
-                setActiveTab(value as "All" | "Pending" | "Completed")
+                setActiveTab(value as "All" | "PENDING" | "APPROVED")
               }
             >
               <TabsList className="mb-6 grid w-full grid-cols-3 md:w-[400px]">
                 <TabsTrigger value="All" className="cursor-pointer">
                   모든 결재
                 </TabsTrigger>
-                <TabsTrigger value="Pending" className="cursor-pointer">
+                <TabsTrigger value="PENDING" className="cursor-pointer">
                   결재 대기
                 </TabsTrigger>
-                <TabsTrigger value="Completed" className="cursor-pointer">
+                <TabsTrigger value="APPROVED" className="cursor-pointer">
                   결재 완료
                 </TabsTrigger>
               </TabsList>
@@ -107,8 +127,12 @@ const ApprovalsPage: React.FC = () => {
                           {getKoreanStatus(item.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{item.requester}</TableCell>
-                      <TableCell>{item.submissionDate}</TableCell>
+                      <TableCell>{item.createdBy.name}</TableCell>
+                      <TableCell>
+                        {formatDateTime(item.createdAt, {
+                          includeWeekday: false,
+                        })}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
