@@ -6,6 +6,10 @@ export interface ExtendedApprovalRequest extends ApprovalRequest {
     name: string;
     email: string;
   };
+  attachments: {
+    id: string;
+    fileName: string;
+  }[];
 }
 
 export const statusToKoreanMap: Record<ApprovalStatus, string> = {
