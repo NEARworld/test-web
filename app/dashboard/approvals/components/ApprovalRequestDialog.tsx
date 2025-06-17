@@ -44,7 +44,7 @@ export function ApprovalRequestDialog({
         <DialogHeader className="p-6 pb-2">
           {/* 제목 변경 */}
           <DialogTitle className="text-2xl font-bold">
-            결재 요청 상세
+            {requestData.title}
           </DialogTitle>
         </DialogHeader>
 
@@ -62,6 +62,12 @@ export function ApprovalRequestDialog({
                 })}
               />
               <DetailItem label="요청 내용" value={requestData.content} />
+              <DetailItem
+                label="결재자"
+                value={
+                  requestData.steps[requestData.steps.length - 1].approver.name!
+                }
+              />
             </div>
           </div>
 
@@ -75,7 +81,7 @@ export function ApprovalRequestDialog({
                   variant="secondary"
                   className="cursor-pointer px-3 py-1.5 text-sm font-normal"
                 >
-                  {file.fileName}
+                  {file.name}
                 </Badge>
               ))}
             </div>
