@@ -18,7 +18,7 @@ import {
   getBadgeVariant,
 } from "@/lib/approval-utils";
 import { formatDateTime } from "@/lib/date-utils";
-import { ApprovalRequest, ApprovalStatus } from "@prisma/client";
+import { ApprovalStatus } from "@prisma/client";
 import React, { useEffect, useState } from "react";
 
 const ApprovalsPage: React.FC = () => {
@@ -32,10 +32,10 @@ const ApprovalsPage: React.FC = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
-    useState<ApprovalRequest | null>(null);
+    useState<ExtendedApprovalRequest | null>(null);
   const [isOpenApprovalModal, setIsOpenApprovalModal] = useState(false);
 
-  const handleRowClick = (item: ApprovalRequest) => {
+  const handleRowClick = (item: ExtendedApprovalRequest) => {
     // 'View' 액션인 경우에만 다이얼로그를 엽니다. (예시 로직)
     // 실제로는 item.id를 기반으로 API를 호출하여 상세 데이터를 가져옵니다.
     // 여기서는 목데이터를 사용합니다.

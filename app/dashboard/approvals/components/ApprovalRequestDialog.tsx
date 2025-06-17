@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { type ApprovalRequest } from "@/lib/approval-utils";
+import { type ExtendedApprovalRequest } from "@/lib/approval-utils";
+import { formatDateTime } from "@/lib/date-utils";
 
 // 상세 정보 항목을 위한 작은 컴포넌트
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
@@ -25,7 +26,7 @@ const DetailItem = ({ label, value }: { label: string; value: string }) => (
 interface ApprovalRequestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  requestData: ApprovalRequest | null;
+  requestData: ExtendedApprovalRequest | null;
 }
 
 export function ApprovalRequestDialog({
@@ -53,10 +54,14 @@ export function ApprovalRequestDialog({
             <h3 className="mb-3 text-lg font-semibold">요청 정보</h3>
             <div className="border-t">
               {/* 레이블 한글화 */}
-              <DetailItem label="기안자" value={requestData.requester} />
-              <DetailItem label="결재자" value={requestData.approver} />
-              <DetailItem label="기안일" value={requestData.submissionDate} />
-              <DetailItem label="요청 내용" value={requestData.description} />
+              <DetailItem label="기안자" value={requestData.createdBy.name} />
+              <DetailItem
+                label="기안일"
+                value={formatDateTime(requestData.createdAt, {
+                  includeTime: false,
+                })}
+              />
+              <DetailItem label="요청 내용" value={requestData.content} />
             </div>
           </div>
 
