@@ -75,14 +75,23 @@ export function ApprovalRequestDialog({
           <div>
             <h3 className="mb-3 text-lg font-semibold">첨부 파일</h3>
             <div className="flex flex-wrap gap-2">
+              {/* 첨부파일 뱃지를 클릭하면 다운로드가 되도록 a 태그로 감쌈 */}
               {requestData.attachments.map((file) => (
-                <Badge
+                <a
                   key={file.id}
-                  variant="secondary"
-                  className="cursor-pointer px-3 py-1.5 text-sm font-normal"
+                  href={`/api/attachments/${file.id}`}
+                  download={file.name}
+                  // 새 탭에서 열리지 않도록 target, rel 생략
+                  className="no-underline"
                 >
-                  {file.name}
-                </Badge>
+                  {/* Badge 컴포넌트로 파일명 표시 */}
+                  <Badge
+                    variant="secondary"
+                    className="cursor-pointer px-3 py-1.5 text-sm font-normal"
+                  >
+                    {file.name}
+                  </Badge>
+                </a>
               ))}
             </div>
           </div>
