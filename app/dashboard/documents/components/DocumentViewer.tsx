@@ -35,7 +35,7 @@ import { DocumentWithCreatedBy } from "@/types/document";
 import { useDocument } from "@/hooks/useDocument";
 import { Checkbox } from "@/components/ui/checkbox";
 import { boardTypeKo } from "@/lib/enum-converters";
-import { getUserPermissions } from "@/lib/document-utils";
+import { getFileExtension, getUserPermissions } from "@/lib/document-utils";
 
 // DocumentViewer 컴포넌트: 게시물 보기 모달
 interface DocumentViewerProps {
@@ -125,20 +125,6 @@ export default function DocumentViewer({
       originalFileName = fileName.substring(hyphenIndex + 1);
     }
     return originalFileName;
-  };
-
-  // 파일명에서 확장자를 추출하는 함수
-  const getFileExtension = (fileName: string): string => {
-    const lastDotIndex = fileName.lastIndexOf(".");
-    // 점이 없거나, 파일명의 맨 처음에 점이 있거나, 점 바로 뒤에 문자가 없는 경우 확장자가 없는 것으로 간주합니다.
-    if (
-      lastDotIndex === -1 ||
-      lastDotIndex === 0 ||
-      lastDotIndex === fileName.length - 1
-    ) {
-      return "";
-    }
-    return fileName.substring(lastDotIndex + 1).toLowerCase(); // 확장자는 소문자로 표시합니다.
   };
 
   // 파일 실제 다운로드 처리 함수
