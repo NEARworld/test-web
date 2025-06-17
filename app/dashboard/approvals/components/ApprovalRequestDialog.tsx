@@ -102,7 +102,9 @@ export function ApprovalRequestDialog({
           <Button type="button" variant="secondary">
             반려
           </Button>
-          <Button type="button">승인</Button>
+          <Button type="button" variant="blue" className="cursor-pointer">
+            승인
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
