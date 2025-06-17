@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useDocument } from "@/hooks/useDocument";
+import { getFileExtension } from "@/lib/document-utils";
 
 const DocumentWriteButton: React.FC = () => {
   const { isLoading } = useDocument();
@@ -55,12 +56,6 @@ function DocumentWriteForm({
   const boardType = useMemo(() => {
     return pathname.split("/").pop();
   }, [pathname]);
-
-  const getFileExtension = (fileName: string) => {
-    return fileName
-      .slice(((fileName.lastIndexOf(".") - 1) >>> 0) + 2)
-      .toUpperCase();
-  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

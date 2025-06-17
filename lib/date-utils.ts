@@ -13,13 +13,14 @@ export function formatDateTime(
   } = { includeWeekday: true, includeTime: true, monthFormat: "numeric" },
 ): string {
   const date = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+  const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
 
   // 기본 날짜 포맷 (월, 일)
-  let formatted = `${month}월 ${day}일`;
+  let formatted = `${year}년 ${month}월 ${day}일`;
 
   // 요일 추가 옵션
   if (options.includeWeekday) {

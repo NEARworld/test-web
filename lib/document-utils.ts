@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { Session } from "next-auth";
 import { v4 as uuidv4 } from "uuid";
+
 export async function uploadFileToSupabaseStorage(file: File): Promise<{
   originalFileName: string;
   fileType: string;
@@ -66,3 +67,9 @@ export function getUserPermissions(
     isChairperson: userPosition === "CHAIRPERSON",
   };
 }
+
+export const getFileExtension = (filename: string): string => {
+  return filename
+    .slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2)
+    .toUpperCase();
+};
