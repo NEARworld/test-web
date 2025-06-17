@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         const fileId = uuidv4();
         const fileExtension = file.name.split(".").pop();
         const fileName = `${fileId}.${fileExtension}`;
-        const filePath = `approvals/${approvalId}/${fileName}`;
+        const filePath = `approvals/${fileName}`;
 
         // Supabase Storage에 파일 업로드
         const { error: uploadError } = await supabase.storage
@@ -152,6 +152,12 @@ export async function GET(request: NextRequest) {
               id: true,
               name: true,
               email: true,
+            },
+          },
+          steps: {
+            select: {
+              approver: true,
+              stepOrder: true,
             },
           },
         },
