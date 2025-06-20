@@ -5,6 +5,10 @@ import { JobPosition } from "@prisma/client";
 
 const approvers = ["CEO", "CHAIRPERSON"];
 
+// CEO가 모든 결재 단계에 대한 권한을 갖는지 여부 (임시 기능)
+const CEO_HAS_ALL_APPROVAL_POWERS =
+  process.env.CEO_HAS_ALL_APPROVAL_POWERS === "true";
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -20,16 +24,6 @@ export async function PATCH(
 
   const { status, processedById, processorPosition } = await request.json();
 
-  // approvers 배열에서 해당 포지션의 인덱스 찾기
-  const currentApprovalStepOrder = approvers.indexOf(processorPosition) + 1;
-
-  if (currentApprovalStepOrder === 0) {
-    return NextResponse.json(
-      { error: "Invalid processor position" },
-      { status: 400 },
-    );
-  }
-
   // 결재 승인 처리
   if (status === "APPROVED") {
     try {
@@ -42,10 +36,62 @@ export async function PATCH(
           include: {
             approver: true,
           },
+          orderBy: {
+            stepOrder: "asc",
+          },
         });
 
         if (approvalSteps.length === 0) {
           throw new Error("결재 단계를 찾을 수 없습니다.");
+        }
+
+        // CEO가 모든 결재 권한을 갖는 경우 (임시 기능)
+        if (CEO_HAS_ALL_APPROVAL_POWERS && processorPosition === "CEO") {
+          // 모든 PENDING 상태의 결재 단계를 승인으로 변경
+          const updatedSteps = [];
+
+          for (const step of approvalSteps) {
+            if (step.status === "PENDING") {
+              const updatedStep = await tx.approvalStep.update({
+                where: { id: step.id },
+                data: {
+                  status: "APPROVED",
+                  processedById,
+                  processedAt: new Date(),
+                },
+              });
+              updatedSteps.push(updatedStep);
+            }
+          }
+
+          // 전자 결재 요청 상태를 승인으로 변경
+          const approvalRequest = await tx.approvalRequest.update({
+            where: { id },
+            data: {
+              status: "APPROVED",
+              approvedById: processedById,
+              approvedAt: new Date(),
+            },
+          });
+
+          return { approvalRequest, approvalSteps: updatedSteps };
+        }
+
+        // 기존 로직 (CEO가 모든 권한을 갖지 않는 경우 또는 CEO가 아닌 경우)
+        const currentApprovalStepOrder =
+          approvers.indexOf(processorPosition) + 1;
+
+        if (currentApprovalStepOrder === 0) {
+          throw new Error("Invalid processor position");
+        }
+
+        // 현재 처리할 결재 단계 찾기 (PENDING 상태인 단계)
+        const currentStep = approvalSteps.find(
+          (step) => step.status === "PENDING",
+        );
+
+        if (!currentStep) {
+          throw new Error("처리할 결재 단계를 찾을 수 없습니다.");
         }
 
         // 마지막 결재 단계 조회
@@ -75,8 +121,8 @@ export async function PATCH(
 
           return { approvalRequest, approvalStep: updatedStep };
         } else {
-          // 다음 결재 단계 생성 - 수정된 로직
-          const nextApproverIndex = currentApprovalStepOrder; // 현재 단계 다음 단계
+          // 다음 결재 단계 생성
+          const nextApproverIndex = currentApprovalStepOrder;
 
           // 배열 범위 체크
           if (nextApproverIndex >= approvers.length) {
