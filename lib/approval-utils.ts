@@ -11,8 +11,10 @@ export interface ExtendedApprovalRequest extends ApprovalRequest {
     name: string;
   }[];
   steps: {
+    id: string;
     approver: User;
     stepOrder: number;
+    status: ApprovalStatus;
   }[];
 }
 
@@ -29,12 +31,12 @@ export function getKoreanStatus(status: ApprovalStatus): string {
 
 export const getBadgeVariant = (
   status: ApprovalStatus,
-): "default" | "secondary" | "destructive" | "outline" => {
+): "default" | "secondary" | "destructive" | "outline" | "success" => {
   switch (status) {
     case "PENDING":
       return "secondary"; // 노란색 계열을 원하면 custom variant 필요
     case "APPROVED":
-      return "default"; // 초록색 계열을 원하면 custom variant 필요 (기본은 primary 색상)
+      return "success"; // 녹색 배지로 변경
     case "REJECTED":
       return "destructive";
     case "CANCELED":
@@ -42,4 +44,26 @@ export const getBadgeVariant = (
     default:
       return "outline";
   }
+};
+
+// steps 배열에서 pending 상태인 step의 stepOrder를 확인하여 표시할 텍스트 반환
+export const getCurrentStepText = (
+  steps: ExtendedApprovalRequest["steps"],
+): string => {
+  const pendingStep = steps.find((step) => step.status === "PENDING");
+  if (pendingStep) {
+    return `${pendingStep.stepOrder}차 결재 진행중`;
+  }
+
+  // 모든 step이 완료된 경우 (승인 또는 반려)
+  const allApproved = steps.every((step) => step.status === "APPROVED");
+  const hasRejected = steps.some((step) => step.status === "REJECTED");
+
+  if (allApproved) {
+    return "승인";
+  } else if (hasRejected) {
+    return "반려";
+  }
+
+  return "대기중";
 };
