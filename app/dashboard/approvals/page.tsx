@@ -2,6 +2,7 @@
 
 import ApprovalFormModal from "@/app/dashboard/approvals/components/ApprovalFormModal";
 import { ApprovalRequestDialog } from "@/app/dashboard/approvals/components/ApprovalRequestDialog";
+import ApprovalTableSkeleton from "@/app/dashboard/approvals/components/ApprovalTableSkeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -136,10 +137,6 @@ const ApprovalsPage: React.FC = () => {
     fetchApprovals();
   }, [currentPage, activeTab, itemsPerPage]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <>
       <div className="font-inter min-h-screen md:px-4">
@@ -170,53 +167,58 @@ const ApprovalsPage: React.FC = () => {
             />
           </div>
 
-          <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[300px]">결재 요청</TableHead>
-                  <TableHead>결재 상태</TableHead>
-                  <TableHead>요청자</TableHead>
-                  <TableHead>요청일</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvalRequests.length > 0 ? (
-                  approvalRequests.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      onClick={() => handleRowClick(item)}
-                      className="cursor-pointer"
-                    >
-                      <TableCell className="font-medium">
-                        {item.title}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getBadgeVariant(item.status)}>
-                          {getKoreanStatus(item.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.createdBy.name}</TableCell>
-                      <TableCell>
-                        {formatDateTime(item.createdAt, {
-                          includeWeekday: false,
-                        })}
+          {/* 로딩 상태일 때 스켈레톤 표시 */}
+          {isLoading ? (
+            <ApprovalTableSkeleton />
+          ) : (
+            <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[300px]">결재 요청</TableHead>
+                    <TableHead>결재 상태</TableHead>
+                    <TableHead>요청자</TableHead>
+                    <TableHead>요청일</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {approvalRequests.length > 0 ? (
+                    approvalRequests.map((item) => (
+                      <TableRow
+                        key={item.id}
+                        onClick={() => handleRowClick(item)}
+                        className="cursor-pointer"
+                      >
+                        <TableCell className="font-medium">
+                          {item.title}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getBadgeVariant(item.status)}>
+                            {getKoreanStatus(item.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.createdBy.name}</TableCell>
+                        <TableCell>
+                          {formatDateTime(item.createdAt, {
+                            includeWeekday: false,
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center">
+                        데이터가 존재하지 않습니다.
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      데이터가 존재하지 않습니다.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {/* 페이지네이션 컴포넌트 */}
-          {paginationInfo.totalPages > 1 && (
+          {!isLoading && paginationInfo.totalPages > 1 && (
             <div className="mt-6 flex justify-center">
               <Pagination>
                 <PaginationContent>
