@@ -45,3 +45,25 @@ export const getBadgeVariant = (
       return "outline";
   }
 };
+
+// steps 배열에서 pending 상태인 step의 stepOrder를 확인하여 표시할 텍스트 반환
+export const getCurrentStepText = (
+  steps: ExtendedApprovalRequest["steps"],
+): string => {
+  const pendingStep = steps.find((step) => step.status === "PENDING");
+  if (pendingStep) {
+    return `${pendingStep.stepOrder}차 결재 진행중`;
+  }
+
+  // 모든 step이 완료된 경우 (승인 또는 반려)
+  const allApproved = steps.every((step) => step.status === "APPROVED");
+  const hasRejected = steps.some((step) => step.status === "REJECTED");
+
+  if (allApproved) {
+    return "승인";
+  } else if (hasRejected) {
+    return "반려";
+  }
+
+  return "대기중";
+};

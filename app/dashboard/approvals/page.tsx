@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/pagination";
 import {
   ExtendedApprovalRequest,
-  getKoreanStatus,
   getBadgeVariant,
+  getCurrentStepText,
 } from "@/lib/approval-utils";
 import { formatDateTime } from "@/lib/date-utils";
 import { ApprovalStatus } from "@prisma/client";
@@ -194,7 +194,7 @@ const ApprovalsPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Badge variant={getBadgeVariant(item.status)}>
-                            {getKoreanStatus(item.status)}
+                            {getCurrentStepText(item.steps)}
                           </Badge>
                         </TableCell>
                         <TableCell>{item.createdBy.name}</TableCell>
