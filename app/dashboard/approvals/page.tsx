@@ -3,7 +3,6 @@
 import ApprovalFormModal from "@/app/dashboard/approvals/components/ApprovalFormModal";
 import { ApprovalRequestDialog } from "@/app/dashboard/approvals/components/ApprovalRequestDialog";
 import ApprovalTableSkeleton from "@/app/dashboard/approvals/components/ApprovalTableSkeleton";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -29,6 +28,7 @@ import {
 import { formatDateTime } from "@/lib/date-utils";
 import { ApprovalStatus } from "@prisma/client";
 import React, { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 // 페이지네이션 정보 타입 정의
 interface PaginationInfo {
@@ -61,6 +61,9 @@ const ApprovalsPage: React.FC = () => {
   const [selectedRequest, setSelectedRequest] =
     useState<ExtendedApprovalRequest | null>(null);
   const [isOpenApprovalModal, setIsOpenApprovalModal] = useState(false);
+
+  // 게시물 번호 상태 추가
+  const [itemNumbers, setItemNumbers] = useState<number[]>([]);
 
   const handleRowClick = (item: ExtendedApprovalRequest) => {
     // 'View' 액션인 경우에만 다이얼로그를 엽니다. (예시 로직)
@@ -137,6 +140,23 @@ const ApprovalsPage: React.FC = () => {
     fetchApprovals();
   }, [currentPage, activeTab, itemsPerPage]);
 
+  // 페이지 변경 시 게시물 번호 계산
+  useEffect(() => {
+    if (paginationInfo.total > 0) {
+      const numbers = Array.from(
+        { length: approvalRequests.length },
+        (_, index) =>
+          paginationInfo.total - ((currentPage - 1) * itemsPerPage + index),
+      );
+      setItemNumbers(numbers);
+    }
+  }, [
+    currentPage,
+    paginationInfo.total,
+    itemsPerPage,
+    approvalRequests.length,
+  ]);
+
   return (
     <>
       <div className="font-inter min-h-screen md:px-4">
@@ -175,6 +195,7 @@ const ApprovalsPage: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>번호</TableHead>
                     <TableHead className="w-[300px]">결재 요청</TableHead>
                     <TableHead>결재 상태</TableHead>
                     <TableHead>요청자</TableHead>
@@ -183,12 +204,13 @@ const ApprovalsPage: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {approvalRequests.length > 0 ? (
-                    approvalRequests.map((item) => (
+                    approvalRequests.map((item, index) => (
                       <TableRow
                         key={item.id}
                         onClick={() => handleRowClick(item)}
                         className="cursor-pointer"
                       >
+                        <TableCell>{itemNumbers[index] || ""}</TableCell>
                         <TableCell className="font-medium">
                           {item.title}
                         </TableCell>
