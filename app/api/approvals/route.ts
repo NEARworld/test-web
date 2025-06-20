@@ -159,8 +159,10 @@ export async function GET(request: NextRequest) {
           },
           steps: {
             select: {
+              id: true,
               approver: true,
               stepOrder: true,
+              status: true,
             },
           },
         },

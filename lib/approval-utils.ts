@@ -11,8 +11,10 @@ export interface ExtendedApprovalRequest extends ApprovalRequest {
     name: string;
   }[];
   steps: {
+    id: string;
     approver: User;
     stepOrder: number;
+    status: ApprovalStatus;
   }[];
 }
 

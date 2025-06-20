@@ -44,6 +44,21 @@ export function ApprovalRequestDialog({
     return null;
   }
 
+  // 현재 사용자가 결재자인지 확인
+  const isCurrentApprover = requestData.steps.some(
+    (step) => step.approver.id === user?.id,
+  );
+
+  // 현재 사용자가 결재할 수 있는 단계인지 확인 (PENDING 상태인 단계)
+  const canApprove = requestData.steps.some(
+    (step) => step.approver.id === user?.id && step.status === "PENDING",
+  );
+
+  // 현재 사용자의 결재 단계 정보
+  const currentUserStep = requestData.steps.find(
+    (step) => step.approver.id === user?.id,
+  );
+
   const handleApprove = async () => {
     if (!user?.id) {
       alert("사용자 정보를 찾을 수 없습니다.");
@@ -150,8 +165,30 @@ export function ApprovalRequestDialog({
         </div>
 
         <DialogFooter className="border-t bg-slate-50 p-4 sm:justify-end">
+          {/* 결재 권한이 없을 때 안내 메시지 */}
+          {!isCurrentApprover && (
+            <div className="text-muted-foreground mr-auto text-sm">
+              이 결재의 결재자가 아닙니다.
+            </div>
+          )}
+
+          {/* 결재할 수 있는 상태가 아닐 때 안내 메시지 */}
+          {isCurrentApprover && !canApprove && currentUserStep && (
+            <div className="text-muted-foreground mr-auto text-sm">
+              {currentUserStep.status === "APPROVED"
+                ? "이미 승인 처리된 결재입니다."
+                : currentUserStep.status === "REJECTED"
+                  ? "이미 반려 처리된 결재입니다."
+                  : "이미 처리된 결재입니다."}
+            </div>
+          )}
+
           {/* 버튼 텍스트 한글화 */}
-          <Button type="button" variant="secondary" disabled={isLoading}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isLoading || !canApprove}
+          >
             반려
           </Button>
           <Button
@@ -159,7 +196,7 @@ export function ApprovalRequestDialog({
             variant="blue"
             className="cursor-pointer"
             onClick={handleApprove}
-            disabled={isLoading}
+            disabled={isLoading || !canApprove}
           >
             {isLoading ? "처리 중..." : "승인"}
           </Button>
