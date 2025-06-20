@@ -191,52 +191,97 @@ const ApprovalsPage: React.FC = () => {
           {isLoading ? (
             <ApprovalTableSkeleton />
           ) : (
-            <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>번호</TableHead>
-                    <TableHead className="w-[300px]">결재 요청</TableHead>
-                    <TableHead>결재 상태</TableHead>
-                    <TableHead>요청자</TableHead>
-                    <TableHead>요청일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {approvalRequests.length > 0 ? (
-                    approvalRequests.map((item, index) => (
-                      <TableRow
-                        key={item.id}
-                        onClick={() => handleRowClick(item)}
-                        className="cursor-pointer"
-                      >
-                        <TableCell>{itemNumbers[index] || ""}</TableCell>
-                        <TableCell className="font-medium">
-                          {item.title}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getBadgeVariant(item.status)}>
-                            {getCurrentStepText(item.steps)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{item.createdBy.name}</TableCell>
-                        <TableCell>
-                          {formatDateTime(item.createdAt, {
-                            includeWeekday: false,
-                          })}
+            <>
+              {/* 데스크톱 테이블 */}
+              <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>번호</TableHead>
+                      <TableHead className="w-[300px]">결재 요청</TableHead>
+                      <TableHead>결재 상태</TableHead>
+                      <TableHead>요청자</TableHead>
+                      <TableHead>요청일</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvalRequests.length > 0 ? (
+                      approvalRequests.map((item, index) => (
+                        <TableRow
+                          key={item.id}
+                          onClick={() => handleRowClick(item)}
+                          className="cursor-pointer"
+                        >
+                          <TableCell>{itemNumbers[index] || ""}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.title}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getBadgeVariant(item.status)}>
+                              {getCurrentStepText(item.steps)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.createdBy.name}</TableCell>
+                          <TableCell>
+                            {formatDateTime(item.createdAt, {
+                              includeWeekday: false,
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center">
+                          데이터가 존재하지 않습니다.
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
-                        데이터가 존재하지 않습니다.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* 모바일 카드 목록 */}
+              <div className="space-y-4 md:hidden">
+                {approvalRequests.length > 0 ? (
+                  approvalRequests.map((item, index) => (
+                    <div
+                      key={item.id}
+                      onClick={() => handleRowClick(item)}
+                      className="cursor-pointer rounded-lg border bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="text-sm text-gray-500">
+                              {itemNumbers[index] || ""}
+                            </span>
+                            <Badge variant={getBadgeVariant(item.status)}>
+                              {getCurrentStepText(item.steps)}
+                            </Badge>
+                          </div>
+                          <h3 className="mb-2 font-medium text-gray-900">
+                            {item.title}
+                          </h3>
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <p>요청자: {item.createdBy.name}</p>
+                            <p>
+                              요청일:{" "}
+                              {formatDateTime(item.createdAt, {
+                                includeWeekday: false,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-lg border bg-white p-8 text-center">
+                    <p className="text-gray-500">데이터가 존재하지 않습니다.</p>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* 페이지네이션 컴포넌트 */}
