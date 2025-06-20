@@ -132,14 +132,17 @@ export async function GET(request: NextRequest) {
 
     // URL에서 쿼리 파라미터 추출
     const searchParams = request.nextUrl.searchParams;
-    const status = searchParams.get("status");
+    const activeTab = searchParams.get("activeTab");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
 
     // 쿼리 조건 구성
-    const where = status
-      ? { status: status.toUpperCase() as ApprovalStatus }
-      : {};
+    let where = {};
+
+    // activeTab 우선 처리, 없으면 status 파라미터 사용
+    if (activeTab && activeTab !== "All") {
+      where = { status: activeTab.toUpperCase() as ApprovalStatus };
+    }
 
     // 데이터 조회
     const [data, total] = await Promise.all([
