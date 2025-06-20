@@ -36,6 +36,7 @@ export default function ApprovalFormModal({
   // 폼 제출 핸들러
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("handleSubmit");
 
     if (!title.trim()) {
       toast.error("제목을 입력해주세요");
@@ -75,6 +76,9 @@ export default function ApprovalFormModal({
       setTitle("");
       setContent("");
       setSelectedFiles([]);
+
+      // 페이지 새로고침
+      window.location.reload();
     } catch (error) {
       console.error("결재 생성 중 오류 발생:", error);
       toast.error("결재 생성에 실패했습니다", {

@@ -2,7 +2,7 @@
 
 import ApprovalFormModal from "@/app/dashboard/approvals/components/ApprovalFormModal";
 import { ApprovalRequestDialog } from "@/app/dashboard/approvals/components/ApprovalRequestDialog";
-import { Badge } from "@/components/ui/badge";
+import ApprovalTableSkeleton from "@/app/dashboard/approvals/components/ApprovalTableSkeleton";
 import {
   Table,
   TableBody,
@@ -13,13 +13,30 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ExtendedApprovalRequest,
-  getKoreanStatus,
   getBadgeVariant,
+  getCurrentStepText,
 } from "@/lib/approval-utils";
 import { formatDateTime } from "@/lib/date-utils";
 import { ApprovalStatus } from "@prisma/client";
 import React, { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+
+// 페이지네이션 정보 타입 정의
+interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 const ApprovalsPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<ApprovalStatus | "All">(
@@ -30,10 +47,23 @@ const ApprovalsPage: React.FC = () => {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 페이지네이션 상태 추가
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // 페이지당 표시할 항목 수
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
     useState<ExtendedApprovalRequest | null>(null);
   const [isOpenApprovalModal, setIsOpenApprovalModal] = useState(false);
+
+  // 게시물 번호 상태 추가
+  const [itemNumbers, setItemNumbers] = useState<number[]>([]);
 
   const handleRowClick = (item: ExtendedApprovalRequest) => {
     // 'View' 액션인 경우에만 다이얼로그를 엽니다. (예시 로직)
@@ -43,28 +73,89 @@ const ApprovalsPage: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const filteredItems = approvalRequests?.filter((item) => {
-    if (activeTab === "All") return true;
-    // 'Completed' 탭은 'Approved' 또는 'Rejected' 상태를 포함하도록 수정
-    if (activeTab === "APPROVED") return item.status === "APPROVED";
-    if (activeTab === "PENDING") return item.status === "PENDING";
-    return item.status === activeTab;
-  });
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // 탭 변경 시 첫 페이지로 이동
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "All" | "PENDING" | "APPROVED");
+    setCurrentPage(1);
+  };
+
+  // 페이지 번호 배열 생성 (최대 5개 페이지 번호 표시)
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    const totalPages = paginationInfo.totalPages;
+
+    if (totalPages <= maxVisiblePages) {
+      // 전체 페이지가 5개 이하면 모든 페이지 번호 표시
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // 현재 페이지를 중심으로 최대 5개 페이지 번호 표시
+      let startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+      if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+
+    return pages;
+  };
 
   useEffect(() => {
     const fetchApprovals = async () => {
-      const response = await fetch("/api/approvals");
-      const data = await response.json();
-      setApprovalRequests(data.data);
-      console.log(data.data);
-      setIsLoading(false);
-    };
-    fetchApprovals();
-  }, []);
+      setIsLoading(true);
+      try {
+        // 상태에 따른 쿼리 파라미터 구성
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+          activeTab: activeTab,
+        });
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+        const response = await fetch(`/api/approvals?${params}`);
+        const data = await response.json();
+
+        if (data.data) {
+          setApprovalRequests(data.data);
+          setPaginationInfo(data.pagination);
+        }
+      } catch (error) {
+        console.error("결재 목록 조회 중 오류 발생:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApprovals();
+  }, [currentPage, activeTab, itemsPerPage]);
+
+  // 페이지 변경 시 게시물 번호 계산
+  useEffect(() => {
+    if (paginationInfo.total > 0) {
+      const numbers = Array.from(
+        { length: approvalRequests.length },
+        (_, index) =>
+          paginationInfo.total - ((currentPage - 1) * itemsPerPage + index),
+      );
+      setItemNumbers(numbers);
+    }
+  }, [
+    currentPage,
+    paginationInfo.total,
+    itemsPerPage,
+    approvalRequests.length,
+  ]);
 
   return (
     <>
@@ -77,12 +168,7 @@ const ApprovalsPage: React.FC = () => {
           </header>
 
           <div className="mb-3 flex justify-between">
-            <Tabs
-              defaultValue="All"
-              onValueChange={(value) =>
-                setActiveTab(value as "All" | "PENDING" | "APPROVED")
-              }
-            >
+            <Tabs defaultValue="All" onValueChange={handleTabChange}>
               <TabsList className="mb-6 grid w-full grid-cols-3 md:w-[400px]">
                 <TabsTrigger value="All" className="cursor-pointer">
                   모든 결재
@@ -101,50 +187,164 @@ const ApprovalsPage: React.FC = () => {
             />
           </div>
 
-          <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[300px]">결재 요청</TableHead>
-                  <TableHead>결재 상태</TableHead>
-                  <TableHead>요청자</TableHead>
-                  <TableHead>요청일</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.length > 0 ? (
-                  filteredItems.map((item) => (
-                    <TableRow
+          {/* 로딩 상태일 때 스켈레톤 표시 */}
+          {isLoading ? (
+            <ApprovalTableSkeleton />
+          ) : (
+            <>
+              {/* 데스크톱 테이블 */}
+              <div className="hidden overflow-hidden rounded-lg bg-white shadow-sm md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>번호</TableHead>
+                      <TableHead className="w-[300px]">결재 요청</TableHead>
+                      <TableHead>결재 상태</TableHead>
+                      <TableHead>요청자</TableHead>
+                      <TableHead>요청일</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvalRequests.length > 0 ? (
+                      approvalRequests.map((item, index) => (
+                        <TableRow
+                          key={item.id}
+                          onClick={() => handleRowClick(item)}
+                          className="cursor-pointer"
+                        >
+                          <TableCell>{itemNumbers[index] || ""}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.title}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getBadgeVariant(item.status)}>
+                              {getCurrentStepText(item.steps)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.createdBy.name}</TableCell>
+                          <TableCell>
+                            {formatDateTime(item.createdAt, {
+                              includeWeekday: false,
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center">
+                          데이터가 존재하지 않습니다.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* 모바일 카드 목록 */}
+              <div className="space-y-4 md:hidden">
+                {approvalRequests.length > 0 ? (
+                  approvalRequests.map((item, index) => (
+                    <div
                       key={item.id}
                       onClick={() => handleRowClick(item)}
-                      className="cursor-pointer"
+                      className="cursor-pointer rounded-lg border bg-white p-4 shadow-sm"
                     >
-                      <TableCell className="font-medium">
-                        {item.title}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getBadgeVariant(item.status)}>
-                          {getKoreanStatus(item.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.createdBy.name}</TableCell>
-                      <TableCell>
-                        {formatDateTime(item.createdAt, {
-                          includeWeekday: false,
-                        })}
-                      </TableCell>
-                    </TableRow>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="text-sm text-gray-500">
+                              {itemNumbers[index] || ""}
+                            </span>
+                            <Badge variant={getBadgeVariant(item.status)}>
+                              {getCurrentStepText(item.steps)}
+                            </Badge>
+                          </div>
+                          <h3 className="mb-2 font-medium text-gray-900">
+                            {item.title}
+                          </h3>
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <p>요청자: {item.createdBy.name}</p>
+                            <p>
+                              요청일:{" "}
+                              {formatDateTime(item.createdAt, {
+                                includeWeekday: false,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ))
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      데이터가 존재하지 않습니다.
-                    </TableCell>
-                  </TableRow>
+                  <div className="rounded-lg border bg-white p-8 text-center">
+                    <p className="text-gray-500">데이터가 존재하지 않습니다.</p>
+                  </div>
                 )}
-              </TableBody>
-            </Table>
-          </div>
+              </div>
+            </>
+          )}
+
+          {/* 페이지네이션 컴포넌트 */}
+          {!isLoading && paginationInfo.totalPages > 1 && (
+            <div className="mt-6 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  {/* 이전 페이지 버튼 */}
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) {
+                          handlePageChange(currentPage - 1);
+                        }
+                      }}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+
+                  {/* 페이지 번호들 */}
+                  {getPageNumbers().map((pageNumber) => (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(pageNumber);
+                        }}
+                        isActive={currentPage === pageNumber}
+                        className="cursor-pointer"
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                  {/* 다음 페이지 버튼 */}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < paginationInfo.totalPages) {
+                          handlePageChange(currentPage + 1);
+                        }
+                      }}
+                      className={
+                        currentPage === paginationInfo.totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
         <ApprovalRequestDialog
           open={isDialogOpen}
