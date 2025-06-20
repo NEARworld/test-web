@@ -44,40 +44,6 @@ interface DocumentViewerProps {
   document: DocumentWithCreatedBy | null; // prisma Document 타입 사용
 }
 
-// 허용되는 파일 확장자
-const ALLOWED_FILE_EXTENSIONS = [
-  "pdf",
-  "jpg",
-  "jpeg",
-  "png",
-  "gif",
-  "zip",
-  "docx",
-  "doc",
-  "xlsx",
-  "xls",
-  "txt",
-  "csv",
-  "mp4",
-  "mov",
-  "avi",
-  "mkv",
-  "webm",
-  "m4v",
-  "mp3",
-  "wav",
-  "m4a",
-  "m4b",
-  "m4b",
-  "m4p",
-  "pptx",
-  "ppt",
-  "pptm",
-  "pps",
-  "ppsm",
-  "ppsx",
-];
-
 export default function DocumentViewer({
   open,
   onOpenChange,
@@ -453,9 +419,6 @@ export default function DocumentViewer({
                   <Input
                     type="file"
                     multiple
-                    accept={ALLOWED_FILE_EXTENSIONS.map(
-                      (ext) => `.${ext}`,
-                    ).join(",")}
                     onChange={handleFileChange}
                     className="max-w-md hover:cursor-pointer"
                   />
