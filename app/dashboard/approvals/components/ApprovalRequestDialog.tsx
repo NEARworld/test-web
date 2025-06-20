@@ -232,9 +232,10 @@ export function ApprovalRequestDialog({
           {/* 버튼 텍스트 한글화 */}
           <Button
             type="button"
-            variant="secondary"
+            variant="destructive"
             disabled={isLoading || !canApprove}
             onClick={handleReject}
+            className="cursor-pointer hover:bg-red-700"
           >
             반려
           </Button>
