@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { type ExtendedApprovalRequest } from "@/lib/approval-utils";
 import { formatDateTime } from "@/lib/date-utils";
+import { useSession } from "next-auth/react";
 
 // 상세 정보 항목을 위한 작은 컴포넌트
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
@@ -34,9 +35,23 @@ export function ApprovalRequestDialog({
   onOpenChange,
   requestData,
 }: ApprovalRequestDialogProps) {
+  const { data: session } = useSession();
+  const user = session?.user;
+
   if (!requestData) {
     return null;
   }
+
+  const handleApprove = async () => {
+    fetch(`/api/approvals/${requestData.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "APPROVED",
+        processedById: user?.id,
+        processorPosition: user?.position,
+      }),
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,7 +117,12 @@ export function ApprovalRequestDialog({
           <Button type="button" variant="secondary">
             반려
           </Button>
-          <Button type="button" variant="blue" className="cursor-pointer">
+          <Button
+            type="button"
+            variant="blue"
+            className="cursor-pointer"
+            onClick={handleApprove}
+          >
             승인
           </Button>
         </DialogFooter>
