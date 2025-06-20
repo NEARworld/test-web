@@ -13,6 +13,14 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ExtendedApprovalRequest,
   getKoreanStatus,
   getBadgeVariant,
@@ -20,6 +28,14 @@ import {
 import { formatDateTime } from "@/lib/date-utils";
 import { ApprovalStatus } from "@prisma/client";
 import React, { useEffect, useState } from "react";
+
+// 페이지네이션 정보 타입 정의
+interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 const ApprovalsPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<ApprovalStatus | "All">(
@@ -29,6 +45,16 @@ const ApprovalsPage: React.FC = () => {
     ExtendedApprovalRequest[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 페이지네이션 상태 추가
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // 페이지당 표시할 항목 수
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
@@ -43,24 +69,72 @@ const ApprovalsPage: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const filteredItems = approvalRequests?.filter((item) => {
-    if (activeTab === "All") return true;
-    // 'Completed' 탭은 'Approved' 또는 'Rejected' 상태를 포함하도록 수정
-    if (activeTab === "APPROVED") return item.status === "APPROVED";
-    if (activeTab === "PENDING") return item.status === "PENDING";
-    return item.status === activeTab;
-  });
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // 탭 변경 시 첫 페이지로 이동
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "All" | "PENDING" | "APPROVED");
+    setCurrentPage(1);
+  };
+
+  // 페이지 번호 배열 생성 (최대 5개 페이지 번호 표시)
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    const totalPages = paginationInfo.totalPages;
+
+    if (totalPages <= maxVisiblePages) {
+      // 전체 페이지가 5개 이하면 모든 페이지 번호 표시
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // 현재 페이지를 중심으로 최대 5개 페이지 번호 표시
+      let startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+      if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+
+    return pages;
+  };
 
   useEffect(() => {
     const fetchApprovals = async () => {
-      const response = await fetch("/api/approvals");
-      const data = await response.json();
-      setApprovalRequests(data.data);
-      console.log(data.data);
-      setIsLoading(false);
+      setIsLoading(true);
+      try {
+        // 상태에 따른 쿼리 파라미터 구성
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+          activeTab: activeTab,
+        });
+
+        const response = await fetch(`/api/approvals?${params}`);
+        const data = await response.json();
+
+        if (data.data) {
+          setApprovalRequests(data.data);
+          setPaginationInfo(data.pagination);
+        }
+      } catch (error) {
+        console.error("결재 목록 조회 중 오류 발생:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
     fetchApprovals();
-  }, []);
+  }, [currentPage, activeTab, itemsPerPage]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -77,12 +151,7 @@ const ApprovalsPage: React.FC = () => {
           </header>
 
           <div className="mb-3 flex justify-between">
-            <Tabs
-              defaultValue="All"
-              onValueChange={(value) =>
-                setActiveTab(value as "All" | "PENDING" | "APPROVED")
-              }
-            >
+            <Tabs defaultValue="All" onValueChange={handleTabChange}>
               <TabsList className="mb-6 grid w-full grid-cols-3 md:w-[400px]">
                 <TabsTrigger value="All" className="cursor-pointer">
                   모든 결재
@@ -112,8 +181,8 @@ const ApprovalsPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.length > 0 ? (
-                  filteredItems.map((item) => (
+                {approvalRequests.length > 0 ? (
+                  approvalRequests.map((item) => (
                     <TableRow
                       key={item.id}
                       onClick={() => handleRowClick(item)}
@@ -145,6 +214,68 @@ const ApprovalsPage: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* 페이지네이션 컴포넌트 */}
+          {paginationInfo.totalPages > 1 && (
+            <div className="mt-6 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  {/* 이전 페이지 버튼 */}
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) {
+                          handlePageChange(currentPage - 1);
+                        }
+                      }}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+
+                  {/* 페이지 번호들 */}
+                  {getPageNumbers().map((pageNumber) => (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(pageNumber);
+                        }}
+                        isActive={currentPage === pageNumber}
+                        className="cursor-pointer"
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                  {/* 다음 페이지 버튼 */}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < paginationInfo.totalPages) {
+                          handlePageChange(currentPage + 1);
+                        }
+                      }}
+                      className={
+                        currentPage === paginationInfo.totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
         <ApprovalRequestDialog
           open={isDialogOpen}

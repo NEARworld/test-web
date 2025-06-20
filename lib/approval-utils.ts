@@ -1,4 +1,4 @@
-import { ApprovalRequest, ApprovalStatus } from "@prisma/client";
+import { ApprovalRequest, ApprovalStatus, User } from "@prisma/client";
 
 export interface ExtendedApprovalRequest extends ApprovalRequest {
   createdBy: {
@@ -8,7 +8,11 @@ export interface ExtendedApprovalRequest extends ApprovalRequest {
   };
   attachments: {
     id: string;
-    fileName: string;
+    name: string;
+  }[];
+  steps: {
+    approver: User;
+    stepOrder: number;
   }[];
 }
 

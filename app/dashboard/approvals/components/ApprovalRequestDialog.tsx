@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { type ExtendedApprovalRequest } from "@/lib/approval-utils";
 import { formatDateTime } from "@/lib/date-utils";
+import { useSession } from "next-auth/react";
 
 // 상세 정보 항목을 위한 작은 컴포넌트
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
@@ -34,9 +35,23 @@ export function ApprovalRequestDialog({
   onOpenChange,
   requestData,
 }: ApprovalRequestDialogProps) {
+  const { data: session } = useSession();
+  const user = session?.user;
+
   if (!requestData) {
     return null;
   }
+
+  const handleApprove = async () => {
+    fetch(`/api/approvals/${requestData.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "APPROVED",
+        processedById: user?.id,
+        processorPosition: user?.position,
+      }),
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,7 +59,7 @@ export function ApprovalRequestDialog({
         <DialogHeader className="p-6 pb-2">
           {/* 제목 변경 */}
           <DialogTitle className="text-2xl font-bold">
-            결재 요청 상세
+            {requestData.title}
           </DialogTitle>
         </DialogHeader>
 
@@ -62,6 +77,12 @@ export function ApprovalRequestDialog({
                 })}
               />
               <DetailItem label="요청 내용" value={requestData.content} />
+              <DetailItem
+                label="결재자"
+                value={
+                  requestData.steps[requestData.steps.length - 1].approver.name!
+                }
+              />
             </div>
           </div>
 
@@ -69,14 +90,23 @@ export function ApprovalRequestDialog({
           <div>
             <h3 className="mb-3 text-lg font-semibold">첨부 파일</h3>
             <div className="flex flex-wrap gap-2">
+              {/* 첨부파일 뱃지를 클릭하면 다운로드가 되도록 a 태그로 감쌈 */}
               {requestData.attachments.map((file) => (
-                <Badge
+                <a
                   key={file.id}
-                  variant="secondary"
-                  className="cursor-pointer px-3 py-1.5 text-sm font-normal"
+                  href={`/api/attachments/${file.id}`}
+                  download={file.name}
+                  // 새 탭에서 열리지 않도록 target, rel 생략
+                  className="no-underline"
                 >
-                  {file.fileName}
-                </Badge>
+                  {/* Badge 컴포넌트로 파일명 표시 */}
+                  <Badge
+                    variant="secondary"
+                    className="cursor-pointer px-3 py-1.5 text-sm font-normal"
+                  >
+                    {file.name}
+                  </Badge>
+                </a>
               ))}
             </div>
           </div>
@@ -87,7 +117,14 @@ export function ApprovalRequestDialog({
           <Button type="button" variant="secondary">
             반려
           </Button>
-          <Button type="button">승인</Button>
+          <Button
+            type="button"
+            variant="blue"
+            className="cursor-pointer"
+            onClick={handleApprove}
+          >
+            승인
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
