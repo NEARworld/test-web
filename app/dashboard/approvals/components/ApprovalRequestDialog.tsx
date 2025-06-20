@@ -105,6 +105,52 @@ export function ApprovalRequestDialog({
     }
   };
 
+  const handleReject = async () => {
+    if (!user?.id) {
+      alert("사용자 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/approvals/${requestData.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "REJECTED",
+          processedById: user.id,
+          processorPosition: user.position,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "반려 처리 중 오류가 발생했습니다.");
+      }
+
+      const result = await response.json();
+      console.log("반려 성공:", result);
+
+      // 성공 시 다이얼로그 닫기
+      onOpenChange(false);
+
+      // 페이지 새로고침
+      window.location.reload();
+    } catch (error) {
+      console.error("반려 처리 실패:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "반려 처리 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 sm:max-w-2xl">
@@ -186,8 +232,10 @@ export function ApprovalRequestDialog({
           {/* 버튼 텍스트 한글화 */}
           <Button
             type="button"
-            variant="secondary"
+            variant="destructive"
             disabled={isLoading || !canApprove}
+            onClick={handleReject}
+            className="cursor-pointer hover:bg-red-700"
           >
             반려
           </Button>
