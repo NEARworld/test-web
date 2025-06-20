@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { type ExtendedApprovalRequest } from "@/lib/approval-utils";
 import { formatDateTime } from "@/lib/date-utils";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 // 상세 정보 항목을 위한 작은 컴포넌트
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
@@ -37,20 +38,56 @@ export function ApprovalRequestDialog({
 }: ApprovalRequestDialogProps) {
   const { data: session } = useSession();
   const user = session?.user;
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!requestData) {
     return null;
   }
 
   const handleApprove = async () => {
-    fetch(`/api/approvals/${requestData.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        status: "APPROVED",
-        processedById: user?.id,
-        processorPosition: user?.position,
-      }),
-    });
+    if (!user?.id) {
+      alert("사용자 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/approvals/${requestData.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "APPROVED",
+          processedById: user.id,
+          processorPosition: user.position,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "승인 처리 중 오류가 발생했습니다.");
+      }
+
+      const result = await response.json();
+      console.log("승인 성공:", result);
+
+      // 성공 시 다이얼로그 닫기
+      onOpenChange(false);
+
+      // 페이지 새로고침
+      window.location.reload();
+    } catch (error) {
+      console.error("승인 처리 실패:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "승인 처리 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -114,7 +151,7 @@ export function ApprovalRequestDialog({
 
         <DialogFooter className="border-t bg-slate-50 p-4 sm:justify-end">
           {/* 버튼 텍스트 한글화 */}
-          <Button type="button" variant="secondary">
+          <Button type="button" variant="secondary" disabled={isLoading}>
             반려
           </Button>
           <Button
@@ -122,8 +159,9 @@ export function ApprovalRequestDialog({
             variant="blue"
             className="cursor-pointer"
             onClick={handleApprove}
+            disabled={isLoading}
           >
-            승인
+            {isLoading ? "처리 중..." : "승인"}
           </Button>
         </DialogFooter>
       </DialogContent>
