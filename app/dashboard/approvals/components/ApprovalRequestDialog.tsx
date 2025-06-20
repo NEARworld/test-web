@@ -51,7 +51,8 @@ export function ApprovalRequestDialog({
 
   // 현재 사용자가 결재할 수 있는 단계인지 확인 (PENDING 상태인 단계)
   const canApprove = requestData.steps.some(
-    (step) => step.approver.id === user?.id && step.status === "PENDING",
+    (step) =>
+      step.approver.position === user?.position && step.status === "PENDING",
   );
 
   // 현재 사용자의 결재 단계 정보
